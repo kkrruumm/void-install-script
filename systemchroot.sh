@@ -45,16 +45,11 @@ rootPassword() {
     exit 0
 }
 
-echo -e "Running grub-install... \n"
-commandFailure="GRUB installation has failed."
-
-grub-install --removable --target=x86_64-efi --efi-directory=/boot/efi || failureCheck
-
 echo -e "Enabling all services... \n"
 
 if test -e "/usr/share/applications/pipewire.desktop" ; then
     commandFailure="Pipewire configuration has failed."
-    echo -e "Enabling Pipewire... \n"
+    echo "Enabling Pipewire..."
     ln -s /usr/share/applications/pipewire.desktop /etc/xdg/autostart/pipewire.desktop || echo -e "Autostart dir does not appear to exist... "
     ln -s /usr/share/applications/pipewire-pulse.desktop /etc/xdg/autostart/pipewire-pulse.desktop || echo -e "Autostart dir does not appear to exist... \n"
     ln -s /usr/share/alsa/alsa.conf.d/50-pipewire.conf /etc/alsa/conf.d || failureCheck
@@ -75,15 +70,15 @@ done
 
 networkChoice=$(cat /tmp/networking)
 if [ $networkChoice == "NetworkManager" ]; then
-    echo -e "Enabling NetworkManager... \n"
+    echo "Enabling NetworkManager..."
     ln -s /etc/sv/NetworkManager /var/service || failureCheck
 elif [ $networkChoice == "dhcpcd" ]; then
-    echo -e "Starting dhcpcd... \n"
+    echo "Enabling dhcpcd..."
     ln -s /etc/sv/dhcpcd /var/service || failureCheck
 fi
 
 if test -e "/bin/sway" ; then
-    echo -e "Enabling elogind... \n"
+    echo "Enabling elogind..."
     ln -s /etc/sv/elogind /var/service || failureCheck
 fi
 
@@ -99,36 +94,53 @@ if test -e "/dev/mapper/void-home" ; then
 fi
 
 encryptionPrompt=$(cat /tmp/encryption)
+bootloaderChoice=$(cat /tmp/bootChoice)
+diskInput=$(cat /tmp/installDrive)
+
+if [[ $diskInput == /dev/nvme* ]] || [[ $diskInput == /dev/mmcblk* ]]; then
+    partition1="$diskInput"p1
+    partition2="$diskInput"p2
+else
+    partition1="$diskInput"1
+    partition2="$diskInput"2
+fi
+
+partVar=$(blkid -o value -s UUID $partition2)
 
 if [ $encryptionPrompt == "y" ] || [ $encryptionPrompt == "Y" ]; then
-    commandFailure="Configuring LUKS key has failed."
+    if [ $bootloaderChoice == "grub" ]; then
+        commandFailure="Configuring LUKS key has failed."
 
-    echo -e "Configuring LUKS key... \n"
+        echo -e "Configuring LUKS key... \n"
 
-    diskInput=$(cat /tmp/installDrive)
-    if [[ $diskInput == /dev/nvme* ]] || [[ $diskInput == /dev/mmcblk* ]]; then
-        partition1="$diskInput"p1
-        partition2="$diskInput"p2
-    else
-        partition1="$diskInput"1
-        partition2="$diskInput"2
+        dd bs=1 count=64 if=/dev/urandom of=/boot/volume.key || failureCheck
+        echo -e "Enter your encryption passphrase: \n" || failureCheck
+        cryptsetup luksAddKey $partition2 /boot/volume.key || failureCheck
+        chmod 000 /boot/volume.key || failureCheck
+        chmod -R g-rwx,o-rwx /boot || failureCheck
+
+        echo "void   UUID=$partVar   /boot/volume.key   luks" >> /etc/crypttab || failureCheck
+        touch /etc/dracut.conf.d/10-crypt.conf || failureCheck
+        dracutConf='install_items+=" /boot/volume.key /etc/crypttab "' || failureCheck
+        echo "$dracutConf" >> /etc/dracut.conf.d/10-crypt.conf || failureCheck
+
+        echo "LUKS key configured."
+    elif [ $bootloaderChoice == "efistub" ]; then
+        commandFailure="Configuring crypttab has failed."
+        echo -e "Configuring crypttab... \n"
+        echo "void        UUID=$partVar  none   luks" >> /etc/crypttab || failureCheck
     fi
+fi
 
-    partVar=$(blkid -o value -s UUID $partition2)
+if [ $bootloaderChoice == "efistub" ]; then
+    # Symlink to tell dracut to mount all filesystems listed
+    commandFailure="Dracut fstab symlink has failed."
+    ln -s /etc/fstab /etc/fstab.sys || failureCheck
+elif [ $bootloaderChoice == "grub" ]; then
+    echo -e "Running grub-install... \n"
+    commandFailure="GRUB installation has failed."
 
-    dd bs=1 count=64 if=/dev/urandom of=/boot/volume.key || failureCheck
-    echo -e "Enter your encryption passphrase: \n" || failureCheck
-    cryptsetup luksAddKey $partition2 /boot/volume.key || failureCheck
-    chmod 000 /boot/volume.key || failureCheck
-    chmod -R g-rwx,o-rwx /boot || failureCheck
-
-    echo "void   UUID=$partVar   /boot/volume.key   luks" >> /etc/crypttab || failureCheck
-    touch /etc/dracut.conf.d/10-crypt.conf || failureCheck
-    dracutConf='install_items+=" /boot/volume.key /etc/crypttab "' || failureCheck
-    echo "$dracutConf" >> /etc/dracut.conf.d/10-crypt.conf || failureCheck
-
-    echo "LUKS key configured."
-
+    grub-install --removable --target=x86_64-efi --efi-directory=/boot/efi || failureCheck
 fi
 
 clear
