@@ -15,6 +15,8 @@ passInput="1" # Tells the installer how many times it should overwrite the disk 
 suChoice="doas" # Tells the installer if it should install 'sudo' or 'doas'
 wifiChoice="n" # Tells the installer if it should install wifi firmware and utilities (iw, wpa_supplicant, wifi-firmware) (y/n)
 kernelChoice="linux-lts" # Tells the installer which kernel it should install, another valid option here is 'linux'
+bootloaderChoice="efistub" # Tells the installer which setup it should use to boot, another valid option here is 'grub'
+fsChoice="xfs" # Tells the installer which filesystem it should setup, another valid option here is 'ext4'
 
 hostnameInput="mothership" # Set the hostname of the computer you are installing to
 timezonePrompt="America/New_York" # Set your timezone
