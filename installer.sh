@@ -16,6 +16,7 @@ elif [ $# == 1 ]; then
     echo "Attempting to use user-defined config file..."
 
     if [[ $1 == *.sh ]] ; then
+        # Should be performing a more exhaustive check on the config file before accepting it, WIP
         if grep 'diskInput' $1 ; then
             source $1
             configDetected=1
@@ -38,10 +39,8 @@ entry() {
     if test -e "/sys/firmware/efi" ; then
         echo -e "This system is UEFI. Continuing... \n"
     else
-        clear
-        echo -e "${RED}This script only supports UEFI systems, but it appears we have booted as BIOS.${NC}\n"
-        echo -e "Please correct this error and run again. \n"
-        exit 1
+        commandFailure="This script only supports UEFI systems, but it appears we have booted as BIOS."
+        failureCheck
     fi
 
     # Autodetection for glibc/musl
@@ -52,18 +51,15 @@ entry() {
     fi
 
     if [ $sysArch != "x86_64" ]; then
-        clear
-        echo -e "${RED}This systems CPU architecture is not currently supported by this install script.${NC}"
-        exit 1
+        commandFailure="This systems CPU architecture is not currently supported by this install script."
+        failureCheck
     fi
 
     if test -e "$runDirectory/systemchroot.sh" ; then
         echo -e "Secondary script found. Continuing... \n"
     else
-        clear
-        echo -e "${RED}Secondary script appears to be missing. This could be because it is incorrectly named, or simply does not exist.${NC}\n"
-        echo -e "Please correct this error and run again. \n"
-        exit 1
+        commandFailure="Secondary script appears to be missing. This could be because it is incorrectly named, or simply does not exist."
+        failureCheck
     fi
 
     clear
@@ -73,8 +69,8 @@ entry() {
     if ping -c 1 gnu.org &>/dev/null || ping -c 1 fsf.org &>/dev/null ; then
         echo -e "Network check succeeded. \n"
     else
-        echo -e "${RED}Network check failed. Please make sure your network is active.${NC}"
-        exit 1
+        commandFailure="Network check failed. Please make sure your network is active."
+        failureCheck
     fi
 
     clear
@@ -199,6 +195,12 @@ installOptions() {
 
     clear
 
+    echo -e "What filesystem would you like to use? \n"
+    echo -e "If you are unsure, choose 'ext4' here. \n"
+    fsChoice=$(echo -e "ext4\nxfs" | fzf --height 10%)
+
+    clear
+
     echo -e "Would you like to use sudo or doas? \n"
     echo -e "If you are unsure, choose 'sudo' here. \n"
     suChoice=$(echo -e "sudo\ndoas" | fzf --height 10%)
@@ -206,8 +208,16 @@ installOptions() {
     clear
 
     echo -e "Which kernel would you like to use? \n"
-    echo -e "If you are unsure, choose 'linux' here."
+    echo -e "If you are unsure, choose 'linux' here. \n"
     kernelChoice=$(echo -e "linux\nlinux-lts" | fzf --height 10%)
+
+    clear
+
+    echo -e "Would you like to use grub or efistub? \n"
+    echo -e "If you are unsure, choose 'grub' here. \n"
+    # Will remove annoying red text once efistub has been properly tested.
+    echo -e "${RED}efistub support should be considered an experimental feature. ${NC}\n"
+    bootloaderChoice=$(echo -e "grub\nefistub" | fzf --height 10%)
 
     clear
 
@@ -347,10 +357,11 @@ confirmInstallationOptions() {
     echo -e "If the following choices are correct, you may select 'confirm' to proceed with the installation. \n"
     echo -e "Selecting 'confirm' here will destroy all data on the selected disk and install with the options below. \n"
 
-    echo "Detected libc: $muslSelection"
-    echo "Repo mirror: $installRepo"
-    echo -e "Kernel: $kernelChoice \n"
+    echo -e "Detected libc: $muslSelection \n"
 
+    echo "Repo mirror: $installRepo"
+    echo "Bootloader: $bootloaderChoice"
+    echo "Kernel: $kernelChoice"
     echo "Install disk: $diskInput"
     echo "Encryption: $encryptionPrompt"
     if [ $encryptionPrompt == "y" ] || [ $encryptionPrompt == "Y" ]; then
@@ -359,6 +370,7 @@ confirmInstallationOptions() {
             echo "Number of passes: $passInput"
         fi
     fi
+    echo "Filesystem: $fsChoice"
     echo "SU choice: $suChoice"
     echo "Install wifi firmware: $wifiChoice"
     echo "Create swap: $swapPrompt"
@@ -373,7 +385,8 @@ confirmInstallationOptions() {
         fi
     fi
     echo "Hostname: $hostnameInput"
-    echo "Timezone: $timezonePrompt"
+    echo -e "Timezone: $timezonePrompt \n"
+
     echo "Installation profile: $installType"
     if [ $installType == "desktop" ]; then
         echo "Graphics drivers: $graphicsChoice"
@@ -429,7 +442,7 @@ install() {
         vgremove $deviceVG || failureCheck
     fi
 
-    # Make EFI boot partition and secondary partition to store encrypted volumes
+    # Make EFI boot partition and secondary partition to store lvm
     commandFailure="Disk partitioning has failed."
     wipefs -a $diskInput || failureCheck
     parted $diskInput mklabel gpt || failureCheck
@@ -452,7 +465,12 @@ install() {
     if [ $encryptionPrompt == "y" ] || [ $encryptionPrompt == "Y" ]; then
         echo "Configuring partitions for encrypted install..."
         echo -e "Enter your encryption passphrase here, the stronger the better. \n"
-        cryptsetup luksFormat --type luks1 $partition2 || failureCheck
+        if [ $bootloaderChoice == "grub" ]; then
+            cryptsetup luksFormat --type luks1 $partition2 || failureCheck
+        elif [ $bootloaderChoice == "efistub" ]; then
+            # We get to use luks2 defaults for efistub setups since grubs lack of Argon2id support is not a problem here, sweet.
+            cryptsetup luksFormat --type luks2 $partition2 || failureCheck
+        fi
         echo -e "Opening new encrypted container... \n"
         cryptsetup luksOpen $partition2 void || failureCheck
     else
@@ -482,18 +500,26 @@ install() {
         lvcreate --name root -L $rootPrompt void || failureCheck
     fi
 
-    # Should add support for other FS types at some point
-    mkfs.ext4 /dev/void/root || failureCheck
+    if [ $fsChoice == "ext4" ]; then
+        mkfs.ext4 /dev/void/root || failureCheck
+    elif [ $fsChoice == "xfs" ]; then
+        mkfs.xfs /dev/void/root || failureCheck
+    fi
 
     if [ $separateHomePossible == "1" ]; then
         if [ $homePrompt == "y" ] || [ $homePrompt == "Y" ]; then
             if [ $homeInput == "full" ]; then
                 lvcreate --name home -l 100%FREE void || failureCheck
-                mkfs.ext4 /dev/void/home || failureCheck
             else
                 lvcreate --name home -L $homeInput void || failureCheck
-                mkfs.ext4 /dev/void/home || failureCheck
             fi
+
+            if [ $fsChoice == "ext4" ]; then
+                mkfs.ext4 /dev/void/home || failureCheck
+            elif [ $fsChoice == "xfs" ]; then
+                mkfs.xfs /dev/void/home || failureCheck
+            fi
+
         fi
     fi
 
@@ -501,8 +527,14 @@ install() {
     commandFailure="Mounting partitions has failed."
     mount /dev/void/root /mnt || failureCheck
     for dir in dev proc sys run; do mkdir -p /mnt/$dir ; mount --rbind /$dir /mnt/$dir ; mount --make-rslave /mnt/$dir ; done || failureCheck
-    mkdir -p /mnt/boot/efi || failureCheck
-    mount $partition1 /mnt/boot/efi || failureCheck
+
+    if [ $bootloaderChoice == "grub" ]; then
+        mkdir -p /mnt/boot/efi || failureCheck
+        mount $partition1 /mnt/boot/efi || failureCheck
+    elif [ $bootloaderChoice == "efistub" ]; then
+        mkdir -p /mnt/boot || failureCheck
+        mount $partition1 /mnt/boot || failureCheck
+    fi
 
     echo -e "Copying keys... \n"
     commandFailure="Copying XBPS keys has failed."
@@ -518,6 +550,16 @@ install() {
     # The dkms package will install headers for 'linux' rather than 'linux-lts' unless we create a virtual package here, and we do not need both.
     if [ $kernelChoice == "linux-lts" ]; then
         echo "virtualpkg=linux-headers:linux-lts-headers" >> /mnt/etc/xbps.d/headers.conf || failureCheck
+    fi
+
+    if [ $bootloaderChoice == "grub" ]; then
+        echo -e "Installing grub... \n"
+        commandFailure="Grub installation has failed."
+        xbps-install -Sy -R $installRepo -r /mnt grub-x86_64-efi || failureCheck
+    elif [ $bootloaderChoice == "efistub" ]; then
+        echo -e "Installing efibootmgr... \n"
+        commandFailure="efibootmgr installation has failed."
+        xbps-install -Sy -R $installRepo -r /mnt efibootmgr || failureCheck
     fi
 
     if [ $installRepo != "https://repo-default.voidlinux.org/current" ] && [ $installRepo != "https://repo-default.voidlinux.org/current/musl" ]; then
@@ -552,15 +594,49 @@ install() {
     echo -e "Configuring fstab... \n"
     commandFailure="Fstab configuration has failed."
     partVar=$(blkid -o value -s UUID $partition1)
-    echo "UUID=$partVar 	/boot/efi	vfat	defaults	0	0" >> /mnt/etc/fstab || failureCheck
-    echo "/dev/void/root  /     ext4     defaults              0       0" >> /mnt/etc/fstab || failureCheck
+    if [ $bootloaderChoice == "grub" ]; then
+        echo "UUID=$partVar 	/boot/efi	vfat	defaults	0	0" >> /mnt/etc/fstab || failureCheck
+    elif [ $bootloaderChoice == "efistub" ]; then
+        echo "UUID=$partVar     /boot       vfat    defaults    0   0" >> /mnt/etc/fstab || failureCheck
+    fi
+    echo "/dev/void/root  /     $fsChoice     defaults              0       0" >> /mnt/etc/fstab || failureCheck
 
     if [ $swapPrompt == "y" ] || [ $swapPrompt == "Y" ]; then
         echo "/dev/void/swap  swap  swap    defaults              0       0" >> /mnt/etc/fstab || failureCheck
     fi
 
     if [ $homePrompt == "y" ] && [ $separateHomePossible == "1" ]; then
-        echo "/dev/void/home  /home ext4     defaults              0       0" >> /mnt/etc/fstab || failureCheck
+        echo "/dev/void/home  /home $fsChoice     defaults              0       0" >> /mnt/etc/fstab || failureCheck
+    fi
+
+    if [ $bootloaderChoice == "efistub" ]; then
+        echo "Configuring dracut for efistub boot..."
+        commandFailure="Dracut configuration has failed."
+        echo 'hostonly="yes"' >> /mnt/etc/dracut.conf.d/30.conf || failureCheck
+        echo 'use_fstab="yes"' >> /mnt/etc/dracut.conf.d/30.conf || failureCheck
+
+        echo 'install_items+=" /etc/crypttab "' >> /mnt/etc/dracut.conf.d/30.conf || failureCheck
+        echo 'add_drivers+=" vfat nls_cp437 nls_iso8859_1 "' >> /mnt/etc/dracut.conf.d/30.conf || failureCheck
+
+        echo "Moving runit service for efistub boot..."
+        commandFailure="Moving runit service has failed."
+        mv /mnt/etc/runit/core-services/03-filesystems.sh{,.bak} || failureCheck
+
+        echo "Configuring xbps for efistub boot..."
+        commaindFailure="efistub xbps configuration has failed."
+        echo "noextract=/etc/runit/core-services/03-filesystems.sh" >> /mnt/etc/xbps.d/xbps.conf || failureCheck
+
+        echo "Editing efibootmgr for efistub boot..."
+        commandFailure="efibootmgr configuration has failed."
+        sed -i -e 's/MODIFY_EFI_ENTRIES=0/MODIFY_EFI_ENTRIES=1/g' /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
+        echo DISK="$diskInput" >> /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
+        echo 'PART="1"' >> /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
+        if [ $encryptionPrompt == "Y" ] || [ $encryptionPrompt == "y" ]; then
+            echo 'OPTIONS="loglevel=4 rd.lvm.vg=void"' >> /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
+        else
+            # TTY spam begone
+            echo 'OPTIONS="loglevel=4"' >> /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
+        fi
     fi
 
     if [ $muslSelection == "glibc" ]; then
@@ -574,16 +650,14 @@ install() {
     echo -e "Setting hostname.. \n"
     echo $hostnameInput > /mnt/etc/hostname || failureCheck
 
-    echo -e "Installing grub... \n"
-    commandFailure="Grub installation has failed."
-    xbps-install -Sy -R $installRepo -r /mnt grub-x86_64-efi || failureCheck
-
     if [ $encryptionPrompt == "Y" ] || [ $encryptionPrompt == "y" ]; then
-        commandFailure="Configuring grub for full disk encryption has failed."
-        echo -e "Configuring grub for full disk encryption... \n"
-        partVar=$(blkid -o value -s UUID $partition2)
-        sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4"/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 rd.lvm.vg=void rd.luks.uuid='$partVar'"/g' /mnt/etc/default/grub || failureCheck # I really need to change how this is done, I know it's awful.
-        echo "GRUB_ENABLE_CRYPTODISK=y" >> /mnt/etc/default/grub || failureCheck
+        if [ $bootloaderChoice == "grub" ]; then
+            commandFailure="Configuring grub for full disk encryption has failed."
+            echo -e "Configuring grub for full disk encryption... \n"
+            partVar=$(blkid -o value -s UUID $partition2)
+            sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4"/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 rd.lvm.vg=void rd.luks.uuid='$partVar'"/g' /mnt/etc/default/grub || failureCheck # I really need to change how this is done, I know it's awful.
+            echo "GRUB_ENABLE_CRYPTODISK=y" >> /mnt/etc/default/grub || failureCheck
+        fi
     fi
 
     if [ $installType == "minimal" ]; then
@@ -731,6 +805,7 @@ chrootFunction() {
 
     commandFailure="System chroot has failed."
     cp /etc/resolv.conf /mnt/etc/resolv.conf || failureCheck
+    echo "$bootloaderChoice" >> /mnt/tmp/bootChoice || failureCheck
     echo "$suChoice" >> /mnt/tmp/suChoice || failureCheck
     echo "$timezonePrompt" >> /mnt/tmp/selectTimezone || failureCheck
     echo "$encryptionPrompt" >> /mnt/tmp/encryption || failureCheck
