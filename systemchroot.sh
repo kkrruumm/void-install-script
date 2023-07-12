@@ -2,21 +2,22 @@
 RED='\033[0;31m'
 NC='\033[0m'
 
-chown root:root / || failureCheck
-chmod 755 / || failureCheck
-
 failureCheck() {
     echo -e "${RED}$commandFailure${NC}"
     echo "Installation will not proceed."
     exit 1
 }
 
-userPassword() {
-    echo "Set the password for the user $createUser:"
-    passwd $createUser || userPassword
-
+exitFunction () {
     commandFailure="XBPS Reconfigure has failed."
     xbps-reconfigure -fa || failureCheck
+
+    if [ $bootloaderChoice == "efistub" ]; then
+        # We need to set our efistub boot entry as the default one to boot, or it seems that some systems will just ignore it.
+        commandFailure="Setting default boot entry has failed."
+        bootEntry=$(efibootmgr --unicode | grep "Void Linux with kernel" | while read c1 c2; do echo $c1; done | sed 's/Boot//g' | sed 's/*//g') || failureCheck
+        efibootmgr --bootorder $bootEntry || failureCheck
+    fi
 
     clear
 
@@ -24,6 +25,14 @@ userPassword() {
     echo -e "If you are ready to reboot into your new system, enter 'reboot now'. \n"
 
     exit 0
+
+}
+
+userPassword() {
+    echo "Set the password for the user $createUser:"
+    passwd $createUser || userPassword
+
+    exitFunction
 }
 
 rootPassword() {
@@ -34,16 +43,12 @@ rootPassword() {
         userPassword
     fi
 
-    commandFailure="XBPS Reconfigure has failed."
-    xbps-reconfigure -fa || failureCheck
-
-    clear
-
-    echo -e "Installation complete. \n"
-    echo -e "If you are ready to reboot into your new system, enter 'reboot now'. \n"
-
-    exit 0
+    exitFunction
 }
+
+commandFailure="Setting root directory permissions has failed."
+chown root:root / || failureCheck
+chmod 755 / || failureCheck
 
 echo -e "Enabling all services... \n"
 
