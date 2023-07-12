@@ -79,7 +79,7 @@ entry() {
 
     echo -e "Grabbing installer dependencies... \n"
     commandFailure="Dependency installation has failed."
-    xbps-install -Sy bc fzf parted xmirror void-repo-nonfree || failureCheck
+    xbps-install -Sy bc fzf parted void-repo-nonfree || failureCheck
    
     if [ $configDetected == "1" ]; then
         confirmInstallationOptions
@@ -631,11 +631,24 @@ install() {
         sed -i -e 's/MODIFY_EFI_ENTRIES=0/MODIFY_EFI_ENTRIES=1/g' /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
         echo DISK="$diskInput" >> /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
         echo 'PART="1"' >> /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
+
+        # An empty BOOTX64.EFI file needs to exist at the default/fallback efi location to stop some motherboards from nuking our efistub boot entry
+        mkdir -p /mnt/boot/EFI/BOOT || failureCheck
+        touch /mnt/boot/EFI/BOOT/BOOTX64.EFI || failureCheck
+
         if [ $encryptionPrompt == "Y" ] || [ $encryptionPrompt == "y" ]; then
             echo 'OPTIONS="loglevel=4 rd.lvm.vg=void"' >> /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
         else
             # TTY spam begone
             echo 'OPTIONS="loglevel=4"' >> /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
+        fi
+    elif [ $bootloaderChoice == "grub" ]; then
+        if [ $encryptionPrompt == "Y" ] || [ $encryptionPrompt == "y" ]; then
+            commandFailure="Configuring grub for full disk encryption has failed."
+            echo -e "Configuring grub for full disk encryption... \n"
+            partVar=$(blkid -o value -s UUID $partition2)
+            sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4"/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 rd.lvm.vg=void rd.luks.uuid='$partVar'"/g' /mnt/etc/default/grub || failureCheck # I really need to change how this is done, I know it's awful.
+            echo "GRUB_ENABLE_CRYPTODISK=y" >> /mnt/etc/default/grub || failureCheck
         fi
     fi
 
@@ -649,16 +662,6 @@ install() {
     commandFailure="Hostname configuration has failed."
     echo -e "Setting hostname.. \n"
     echo $hostnameInput > /mnt/etc/hostname || failureCheck
-
-    if [ $encryptionPrompt == "Y" ] || [ $encryptionPrompt == "y" ]; then
-        if [ $bootloaderChoice == "grub" ]; then
-            commandFailure="Configuring grub for full disk encryption has failed."
-            echo -e "Configuring grub for full disk encryption... \n"
-            partVar=$(blkid -o value -s UUID $partition2)
-            sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4"/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 rd.lvm.vg=void rd.luks.uuid='$partVar'"/g' /mnt/etc/default/grub || failureCheck # I really need to change how this is done, I know it's awful.
-            echo "GRUB_ENABLE_CRYPTODISK=y" >> /mnt/etc/default/grub || failureCheck
-        fi
-    fi
 
     if [ $installType == "minimal" ]; then
         chrootFunction
