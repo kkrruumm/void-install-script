@@ -636,12 +636,8 @@ install() {
         mkdir -p /mnt/boot/EFI/BOOT || failureCheck
         touch /mnt/boot/EFI/BOOT/BOOTX64.EFI || failureCheck
 
-        if [ $encryptionPrompt == "Y" ] || [ $encryptionPrompt == "y" ]; then
-            echo 'OPTIONS="loglevel=4 rd.lvm.vg=void"' >> /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
-        else
-            # TTY spam begone
-            echo 'OPTIONS="loglevel=4"' >> /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
-        fi
+        echo 'OPTIONS="loglevel=4 rd.lvm.vg=void"' >> /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
+
     elif [ $bootloaderChoice == "grub" ]; then
         if [ $encryptionPrompt == "Y" ] || [ $encryptionPrompt == "y" ]; then
             commandFailure="Configuring grub for full disk encryption has failed."
