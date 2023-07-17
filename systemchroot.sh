@@ -177,7 +177,7 @@ if [ $createUser == "skip" ]; then
 else
     commandFailure="Creating user has failed."
     useradd $createUser -m -d /home/$createUser || failureCheck
-    usermod -aG audio,video,input,kvm $createUser || failureCheck
+    usermod -aG audio,video,kvm $createUser || failureCheck
     clear
     echo -e "Should user $createUser be a superuser? (y/n) \n"
     read superPrompt
