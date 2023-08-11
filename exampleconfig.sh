@@ -3,6 +3,10 @@
 # This is a template config file used to define all of the variables the installer will ask for, to be taken as an example.
 # The installer can be told to use the config file by running with ./installer.sh /path/to/myconfig.sh
 
+installRepo="https://repo-default.voidlinux.org/current" # Define the mirror you would like to pull packages from, https://docs.voidlinux.org/xbps/repositories/mirrors/index.html
+# If you're installing the musl variant of Void, be sure to add '/musl' to the end of this url, example: 'https://repo-default.voidlinux.org/current/musl'
+# If installRepo is left undefined here, repo-default will be used.
+
 diskInput="/dev/sda" # Define your install disk
 swapPrompt="y" # Enable or disable swap (y/n)
 swapInput="4G" # Define swap size
