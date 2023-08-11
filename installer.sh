@@ -1,6 +1,7 @@
 #!/bin/bash -e
 user=$(whoami)
 RED='\033[0;31m'
+GREEN='\033[0;32m'
 NC='\033[0m'
 
 if [ $user != root ]; then
@@ -15,8 +16,8 @@ if [ $# != 1 ]; then
 elif [ $# == 1 ]; then
     echo "Attempting to use user-defined config file..."
 
+    # Should be performing a much more exhaustive check on the config file before accepting it, WIP
     if [[ $1 == *.sh ]] ; then
-        # Should be performing a more exhaustive check on the config file before accepting it, WIP
         if grep 'diskInput' $1 ; then
             source $1
             configDetected=1
@@ -30,6 +31,7 @@ fi
 
 entry() {
 
+    configExported=0
     runDirectory=$(pwd)
     sysArch=$(uname -m)
     locale="LANG=en_US.UTF-8"
@@ -344,9 +346,22 @@ confirmInstallationOptions() {
         else
             separateHomePossible=0
         fi
+
+        if [ -z $installRepo ]; then
+            if [ $muslSelection == "glibc" ]; then
+                installRepo="https://repo-default.voidlinux.org/current"
+            elif [ $muslSelection == "musl" ]; then
+                installRepo="https://repo-default.voidlinux.org/current/musl"
+            fi
+        fi
     fi
 
     clear
+
+    if [ $configExported == 1 ]; then
+        echo -e "${GREEN}This config has been successfully exported to $(pwd)/exportedconfig.sh ${NC} \n"
+        configExported=0
+    fi
 
     echo "Your disk will not be touched until you select 'confirm'"
     if [ $configDetected == "0" ]; then
@@ -401,18 +416,30 @@ confirmInstallationOptions() {
     fi
 
     if [ $configDetected == "0" ]; then
-        confirmInstall=$(echo -e "confirm\nrestart" | fzf --height 10%)
+        confirmInstall=$(echo -e "exit\nconfirm\nrestart\nexport as config" | fzf --height 10%)
     elif [ $configDetected == "1" ]; then
-        confirmInstall=$(echo -e "confirm\nexit" | fzf --height 10%)
+        confirmInstall=$(echo -e "exit\nconfirm" | fzf --height 10%)
     fi
 
-    if [ $confirmInstall == "restart" ]; then
-        entry
-    elif [ $confirmInstall == "confirm" ]; then
-        install
-    elif [ $confirmInstall == "exit" ]; then
-        exit 1
-    fi
+    case $confirmInstall in
+        confirm)
+            install
+            ;;
+
+        restart)
+            entry
+            ;;
+
+        exit)
+            exit 0
+            ;;
+        "export as config")
+            exportConfig
+            ;;
+        *)
+            exit 1
+            ;;
+    esac
 
 }
 
@@ -565,7 +592,7 @@ install() {
     if [ $installRepo != "https://repo-default.voidlinux.org/current" ] && [ $installRepo != "https://repo-default.voidlinux.org/current/musl" ]; then
         commandFailure="Repo configuration has failed."
         echo -e "Configuring mirror repo... \n"
-        cp /etc/xbps.d/*-repository-main.conf /mnt/etc/xbps.d/ || failureCheck
+        xmirror -s "$installRepo" -r /mnt || failureCheck
     fi
 
     commandFailure="$suChoice installation has failed."
@@ -676,7 +703,7 @@ install() {
             nvidia)
                 echo -e "Installing NVIDIA graphics drivers... \n"
                 xbps-install -Sy -R $installRepo -r /mnt void-repo-nonfree || failureCheck
-                cp /etc/xbps.d/*-repository-nonfree.conf /mnt/etc/xbps.d/ || failureCheck
+                xmirror -s "$installRepo" -r /mnt || failureCheck
                 xbps-install -Sy -R $installRepo -r /mnt nvidia || failureCheck
                 echo -e "NVIDIA graphics drivers have been installed. \n"
                 ;;
@@ -690,7 +717,7 @@ install() {
             nvidia-optimus)
                 echo -e "Installing INTEL and NVIDIA graphics drivers... \n"
                 xbps-install -Sy -R $installRepo -r /mnt void-repo-nonfree || failureCheck
-                cp /etc/xbps.d/*-repository-nonfree.conf /mnt/etc/xbps.d/ || failureCheck
+                xmirror -s "$installRepo" -r /mnt || failureCheck
                 xbps-install -Sy -R $installRepo -r /mnt nvidia mesa-dri vulkan-loader mesa-vulkan-intel intel-video-accel || failureCheck
                 echo -e "INTEL and NVIDIA graphics drivers have been installed. \n"
                 ;;
@@ -849,6 +876,47 @@ partitionerOutput() {
 
     return 0
 
+}
+
+exportConfig() {
+    commandFailure="Exporting installer options as a config has failed."
+    echo -e "#!/bin/bash \n" >> "$runDirectory"/exportedconfig.sh || failureCheck
+    echo -e "# This is an auto-generated void-install-script config created on $(date) \n" >> "$runDirectory"/exportedconfig.sh || failureCheck
+
+    exportedVarPairs=("installRepo $installRepo" \
+    "diskInput $diskInput" \
+    "swapPrompt $swapPrompt" \
+    "swapInput $swapInput" \
+    "rootPrompt $rootPrompt" \
+    "homePrompt $homePrompt" \
+    "homeInput $homeInput" \
+    "encryptionPrompt $encryptionPrompt" \
+    "wipePrompt $wipePrompt" \
+    "passInput $passInput" \
+    "suChoice $suChoice" \
+    "wifiChoice $wifiChoice" \
+    "kernelChoice $kernelChoice" \
+    "bootloaderChoice $bootloaderChoice" \
+    "fsChoice $fsChoice" \
+    "hostnameInput $hostnameInput" \
+    "timezonePrompt $timezonePrompt" \
+    "installType $installType" \
+    "graphicsChoice $graphicsChoice" \
+    "networkChoice $networkChoice" \
+    "audioChoice $audioChoice" \
+    "desktopChoice $desktopChoice" \
+    "i3prompt $i3prompt" \
+    "logPrompt $logPrompt" \
+    "flatpakPrompt $flatpakPrompt")
+
+    for i in "${exportedVarPairs[@]}"
+    do
+        set -- $i || failureCheck
+        echo "$1='$2'" >> "$runDirectory"/exportedconfig.sh || failureCheck
+    done
+
+    configExported=1
+    confirmInstallationOptions
 }
 
 entry
