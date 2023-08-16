@@ -1,5 +1,6 @@
 #!/bin/bash -e
 RED='\033[0;31m'
+GREEN='\033[0;32m'
 NC='\033[0m'
 
 failureCheck() {
@@ -21,7 +22,7 @@ exitFunction () {
 
     clear
 
-    echo -e "Installation complete. \n"
+    echo -e "${GREEN}Installation complete.${NC} \n"
     echo -e "If you are ready to reboot into your new system, enter 'reboot now'. \n"
 
     exit 0
