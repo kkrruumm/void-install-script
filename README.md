@@ -23,10 +23,10 @@ This installer was primarily created to serve as an installer with encryption su
 -Option to securely erase the installation disk with shred
 -Option to choose either doas or sudo
 -Option to choose your repository mirror
--Option to choose either linux or linux-lts
+-Option to choose between linux, linux-lts, and linux-mainline kernels
 -Option to install wifi firmware and basic utilities
 -Option to choose between xfs and ext4 filesystems
--Configure partitions in the installer for home, swap, and root
+-Configure partitions in the installer for home, swap, and root with LVM
 -Support for both glibc and musl libc implementations
 -User creation and basic configuration
 -Config support
