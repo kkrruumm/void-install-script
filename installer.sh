@@ -211,7 +211,7 @@ installOptions() {
 
     echo -e "Which kernel would you like to use? \n"
     echo -e "If you are unsure, choose 'linux' here. \n"
-    kernelChoice=$(echo -e "linux\nlinux-lts" | fzf --height 10%)
+    kernelChoice=$(echo -e "linux\nlinux-lts\nlinux-mainline" | fzf --height 10%)
 
     clear
 
