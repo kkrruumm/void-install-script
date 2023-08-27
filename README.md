@@ -1,5 +1,5 @@
 # void-install-script
-WIP Shell script installer for Void Linux
+Shell script installer for Void Linux
 
 This installer was primarily created to serve as an installer with encryption support while also having general installation options one would want, with sane defaults.
 
@@ -64,7 +64,7 @@ This setup would be very well complimented by secure boot.
 
 # Notes
 
-This installer is not officially supported, and is very work-in-progress. If you run into any problems please file them on this github page.
+This installer is not officially supported, and is still fairly work-in-progress. If you run into any problems please file them on this github page.
 
 This installer only supports x86_64-efi. I currently have no plans to support anything else.
 
