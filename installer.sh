@@ -574,9 +574,11 @@ install() {
 
     XBPS_ARCH=$ARCH xbps-install -Sy -R $installRepo -r /mnt base-minimal $kernelChoice ncurses libgcc bash file less man-pages mdocml pciutils usbutils dhcpcd kbd iproute2 iputils ethtool kmod acpid eudev lvm2 void-artwork || failureCheck
 
-    # The dkms package will install headers for 'linux' rather than 'linux-lts' unless we create a virtual package here, and we do not need both.
+    # The dkms package will install headers for 'linux' rather than '$kernelChoice' unless we create a virtual package here, and we do not need both.
     if [ $kernelChoice == "linux-lts" ]; then
         echo "virtualpkg=linux-headers:linux-lts-headers" >> /mnt/etc/xbps.d/headers.conf || failureCheck
+    elif [ $kernelChoice == "linux-mainline" ]; then
+        echo "virtualpkg=linux-headers:linux-mainline-headers" >> /mnt/etc/xbps.d/headers.conf || failureCheck
     fi
 
     if [ $bootloaderChoice == "grub" ]; then
