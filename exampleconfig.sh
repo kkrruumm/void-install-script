@@ -37,3 +37,7 @@ logPrompt="y" # Tells the installer if it should setup socklog on the new system
 flatpakPrompt="y" # Tells the installer if it should install flatpak or not (y/n)
 
 # If any of these values are not defined or set to 'skip', the installer will do nothing for said values.
+
+# If this option is enabled, confirmInstallOptions menu will show for the user to verify the correctness of the install options
+# If disabled, the installer will begin automatically installing with this config file as soon as executed, and will not prompt the user to verify the options.
+verifySettings="y" # Did you read the comments?
