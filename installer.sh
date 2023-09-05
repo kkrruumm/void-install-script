@@ -17,11 +17,9 @@ elif [ $# == 1 ]; then
     echo "Attempting to use user-defined config file..."
 
     # Should be performing a much more exhaustive check on the config file before accepting it, WIP
-    if [[ $1 == *.sh ]] ; then
-        if grep 'diskInput' $1 ; then
-            source $1
-            configDetected=1
-        fi
+    if [[ $1 == *.sh ]] && grep 'diskInput' $1 ; then
+        source $1
+        configDetected=1
     else
         echo -e "${RED}User-defined config detected but is either misinput or the wrong file type.${NC}\n"
         echo -e "Please correct this error and run again. \n"
@@ -82,10 +80,16 @@ entry() {
     echo -e "Grabbing installer dependencies... \n"
     commandFailure="Dependency installation has failed."
     xbps-install -Sy bc fzf parted void-repo-nonfree || failureCheck
-   
+
     if [ $configDetected == "1" ]; then
-        confirmInstallationOptions
+        if [ $verifySettings == "y" ] || [ $verifySettings == "Y" ]; then
+            confirmInstallationOptions
+        else
+            install
+        fi
     else
+        verifySettings="y" # If the user wants to disable this, it should be done in the sourced config file, not by editing this script.
+        # verifySettings is set explicitly here to provide a default on config export.
         diskConfiguration
     fi
 
@@ -433,12 +437,16 @@ confirmInstallationOptions() {
         exit)
             exit 0
             ;;
+
         "export as config")
             exportConfig
             ;;
+
         *)
-            exit 1
+            commandFailure="Invalid confirm settings menu selection"
+            failureCheck
             ;;
+
     esac
 
 }
@@ -652,7 +660,7 @@ install() {
         mv /mnt/etc/runit/core-services/03-filesystems.sh{,.bak} || failureCheck
 
         echo "Configuring xbps for efistub boot..."
-        commaindFailure="efistub xbps configuration has failed."
+        commandFailure="efistub xbps configuration has failed."
         echo "noextract=/etc/runit/core-services/03-filesystems.sh" >> /mnt/etc/xbps.d/xbps.conf || failureCheck
 
         echo "Editing efibootmgr for efistub boot..."
@@ -909,7 +917,8 @@ exportConfig() {
     "desktopChoice $desktopChoice" \
     "i3prompt $i3prompt" \
     "logPrompt $logPrompt" \
-    "flatpakPrompt $flatpakPrompt")
+    "flatpakPrompt $flatpakPrompt" \
+    "verifySettings $verifySettings")
 
     for i in "${exportedVarPairs[@]}"
     do
