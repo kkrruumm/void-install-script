@@ -841,12 +841,22 @@ chrootFunction() {
 
     commandFailure="System chroot has failed."
     cp /etc/resolv.conf /mnt/etc/resolv.conf || failureCheck
-    echo "$bootloaderChoice" >> /mnt/tmp/bootChoice || failureCheck
-    echo "$suChoice" >> /mnt/tmp/suChoice || failureCheck
-    echo "$timezonePrompt" >> /mnt/tmp/selectTimezone || failureCheck
-    echo "$encryptionPrompt" >> /mnt/tmp/encryption || failureCheck
-    echo "$diskInput" >> /mnt/tmp/installDrive || failureCheck
-    echo "$networkChoice" >> /mnt/tmp/networking || failureCheck
+
+    echo -e "#!/bin/bash \n" >> /mnt/tmp/installerOptions.sh || failureCheck
+    
+    syschrootVarPairs=("bootloaderChoice $bootloaderChoice" \
+    "suChoice $suChoice" \
+    "timezonePrompt $timezonePrompt" \
+    "encryptionPrompt $encryptionPrompt" \
+    "diskInput $diskInput" \
+    "networkChoice $networkChoice")
+
+    for i in "${syschrootVarPairs[@]}"
+    do
+        set -- $i || failureCheck
+        echo "$1='$2'" >> /mnt/tmp/installerOptions.sh || failureCheck
+    done
+
     cp -f $runDirectory/systemchroot.sh /mnt/tmp/systemchroot.sh || failureCheck
     chroot /mnt /bin/bash -c "/bin/bash /tmp/systemchroot.sh" || failureCheck
 
