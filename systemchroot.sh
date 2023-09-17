@@ -47,6 +47,13 @@ rootPassword() {
     exitFunction
 }
 
+commandFailure="Sourcing installer variable file on new system has failed."
+if ! test -e /tmp/installerOptions.sh ; then
+    failureCheck
+else
+    source /tmp/installerOptions.sh || failureCheck
+fi
+
 commandFailure="Setting root directory permissions has failed."
 chown root:root / || failureCheck
 chmod 755 / || failureCheck
@@ -74,7 +81,6 @@ do
     fi
 done
 
-networkChoice=$(cat /tmp/networking)
 if [ $networkChoice == "NetworkManager" ]; then
     echo "Enabling NetworkManager..."
     ln -s /etc/sv/NetworkManager /var/service || failureCheck
@@ -98,10 +104,6 @@ if test -e "/dev/mapper/void-home" ; then
     commandFailure="Mounting home directory has failed."
     mount /dev/mapper/void-home /home || failureCheck
 fi
-
-encryptionPrompt=$(cat /tmp/encryption)
-bootloaderChoice=$(cat /tmp/bootChoice)
-diskInput=$(cat /tmp/installDrive)
 
 if [[ $diskInput == /dev/nvme* ]] || [[ $diskInput == /dev/mmcblk* ]]; then
     partition1="$diskInput"p1
@@ -151,13 +153,11 @@ fi
 
 clear
 
-timezonePrompt=$(cat /tmp/selectTimezone)
 commandFailure="Setting timezone has failed."
 ln -sf /usr/share/zoneinfo/$timezonePrompt /etc/localtime || failureCheck
     
 clear
 
-suChoice=$(cat /tmp/suChoice)
 if [ $suChoice == "doas" ]; then
     commandFailure="doas configuration has failed."
     touch /etc/doas.conf || failureCheck
