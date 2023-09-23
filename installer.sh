@@ -2,6 +2,7 @@
 user=$(whoami)
 RED='\033[0;31m'
 GREEN='\033[0;32m'
+YELLOW='\e[1;33m'
 NC='\033[0m'
 
 if [ $user != root ]; then
@@ -58,7 +59,7 @@ entry() {
     if test -e "$runDirectory/systemchroot.sh" ; then
         echo -e "Secondary script found. Continuing... \n"
     else
-        commandFailure="Secondary script appears to be missing. This could be because it is incorrectly named, or simply does not exist."
+        commandFailure="Secondary script appears to be missing. This could be because the name of it is incorrect, or it does not exist in $runDirectory."
         failureCheck
     fi
 
@@ -367,16 +368,12 @@ confirmInstallationOptions() {
         configExported=0
     fi
 
-    echo "Your disk will not be touched until you select 'confirm'"
     if [ $configDetected == "0" ]; then
         echo -e "If these choices are in any way incorrect, you may select 'restart' to go back to the beginning of the installer and start over."
     elif [ $configDetected == "1" ]; then
         echo -e "If these choices are in any way incorrect, you may select 'exit' to close the installer and make changes to your config."
     fi
-    echo -e "If the following choices are correct, you may select 'confirm' to proceed with the installation. \n"
-    echo -e "Selecting 'confirm' here will destroy all data on the selected disk and install with the options below. \n"
-
-    echo -e "Detected libc: $muslSelection \n"
+    echo -e "${RED}Selecting 'confirm' here will destroy all data on the selected disk and install with the options below. ${NC}\n"
 
     echo "Repo mirror: $installRepo"
     echo "Bootloader: $bootloaderChoice"
@@ -484,7 +481,7 @@ install() {
     parted $diskInput mkpart primary 0% 500M --script || failureCheck
     parted $diskInput set 1 esp on --script || failureCheck
     parted $diskInput mkpart primary 500M 100% --script || failureCheck
-
+ 
     if [[ $diskInput == /dev/nvme* ]] || [[ $diskInput == /dev/mmcblk* ]]; then
         partition1="$diskInput"p1
         partition2="$diskInput"p2
@@ -499,14 +496,28 @@ install() {
 
     if [ $encryptionPrompt == "y" ] || [ $encryptionPrompt == "Y" ]; then
         echo "Configuring partitions for encrypted install..."
-        echo -e "Enter your encryption passphrase here, the stronger the better. \n"
+
+        # Cryptsetup options, not exposing to user directly but modify values here if you'd like.
+        hash="sha512"
+        keysize="512"
+        itertime="10000" # Read comments below
+
+        # The higher the itertime value, the longer brute forcing the drive will take.
+        # The value here will equal the amount of time it takes to unlock the drive in milliseconds calculated for the system this is ran on.
+        # However, due to this, if the drive is then put into a system with a faster CPU, it will unlock quicker. Raising this value on systems with slower CPUs may be a good idea.
+        # 10 seconds should be a good enough default for this installer, with the luks default being 2 seconds.
+        # The fips140 compliant value here would be 600000 according to owasp, though this would result in a 10 minute disk unlock time.
+
+        echo -e "${YELLOW}Enter your encryption passphrase here, the stronger the better. ${NC}\n"
         if [ $bootloaderChoice == "grub" ]; then
-            cryptsetup luksFormat --type luks1 $partition2 || failureCheck
+            # We need to use luks1 and pbkdf2 to maintain compatibility with grub here.
+            # It should be possible to replace the grub EFI binary to add luks2 support, but for the time being I'm going to leave this as luks1.
+            cryptsetup luksFormat --type luks1 --hash $hash --key-size $keysize --iter-time $itertime --pbkdf pbkdf2 --use-urandom $partition2 || failureCheck
         elif [ $bootloaderChoice == "efistub" ]; then
-            # We get to use luks2 defaults for efistub setups since grubs lack of Argon2id support is not a problem here, sweet.
-            cryptsetup luksFormat --type luks2 $partition2 || failureCheck
+            # We get to use luks2 here, no need to maintain compatibility.
+            cryptsetup luksFormat --type luks2 --hash $hash --key-size $keysize --iter-time $itertime --pbkdf argon2id --use-urandom $partition2 || failureCheck
         fi
-        echo -e "Opening new encrypted container... \n"
+        echo -e "${YELLOW}Opening new encrypted container... ${NC}\n"
         cryptsetup luksOpen $partition2 void || failureCheck
     else
         pvcreate $partition2 || failureCheck

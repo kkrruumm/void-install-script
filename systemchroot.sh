@@ -1,6 +1,7 @@
 #!/bin/bash -e
 RED='\033[0;31m'
 GREEN='\033[0;32m'
+YELLOW='\e[1;33m'
 NC='\033[0m'
 
 failureCheck() {
@@ -23,21 +24,21 @@ exitFunction () {
     clear
 
     echo -e "${GREEN}Installation complete.${NC} \n"
-    echo -e "If you are ready to reboot into your new system, enter 'reboot now'. \n"
+    echo -e "If you are ready to reboot into your new system, enter 'sudo reboot now' \n"
 
     exit 0
 
 }
 
 userPassword() {
-    echo "Set the password for the user $createUser:"
+    echo "${YELLOW}Set the password for the user $createUser: ${NC}"
     passwd $createUser || userPassword
 
     exitFunction
 }
 
 rootPassword() {
-    echo "Set your root password:"
+    echo "${YELLOW}Set your root password: ${NC}"
     passwd root || rootPassword
 
     if [ $createUser != "skip" ]; then
@@ -122,7 +123,7 @@ if [ $encryptionPrompt == "y" ] || [ $encryptionPrompt == "Y" ]; then
         echo -e "Configuring LUKS key... \n"
 
         dd bs=1 count=64 if=/dev/urandom of=/boot/volume.key || failureCheck
-        echo -e "Enter your encryption passphrase: \n" || failureCheck
+        echo -e "${YELLOW}Enter your encryption passphrase: ${NC}\n" || failureCheck
         cryptsetup luksAddKey $partition2 /boot/volume.key || failureCheck
         chmod 000 /boot/volume.key || failureCheck
         chmod -R g-rwx,o-rwx /boot || failureCheck
