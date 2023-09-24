@@ -8,8 +8,8 @@ This installer was primarily created to serve as an installer with encryption su
 -Experimental efistub support, see efistub notes
 
 -Option to encrypt installation disk
---With efistup setup, encryption will encrypt / using luks2 defaults
---With grub setup, encryption will encrypt both /boot and / using luks1 defaults
+--With efistup setup, encryption will encrypt / using luks2
+--With grub setup, encryption will encrypt both /boot and / using luks1
 
 -Option to pre-install and pre-configure the following;
 --Graphics drivers (amd, nvidia, intel, nvidia-optimus, none)
@@ -27,7 +27,7 @@ This installer was primarily created to serve as an installer with encryption su
 -Option to install wifi firmware and basic utilities
 -Option to choose between xfs and ext4 filesystems
 -Configure partitions in the installer for home, swap, and root with LVM
--Support for both glibc and musl libc implementations
+-Support for both glibc and musl
 -User creation and basic configuration
 -Config support
 ```
@@ -58,7 +58,7 @@ efistub support should be considered experimental as of right now.
 
 efistub setup will *not* provide full-disk-encryption as /boot will not be encrypted.
 
-However, root will be encrypted using luks2 defaults instead of luks1, since grub is no longer a constraint here.
+However, root will be encrypted using luks2 instead of luks1, since grub is no longer a constraint here.
 
 This setup would be very well complimented by secure boot.
 
