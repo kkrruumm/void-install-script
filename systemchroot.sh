@@ -31,14 +31,14 @@ exitFunction () {
 }
 
 userPassword() {
-    echo "${YELLOW}Set the password for the user $createUser: ${NC}"
+    echo -e "${YELLOW}Set the password for the user $createUser: ${NC}"
     passwd $createUser || userPassword
 
     exitFunction
 }
 
 rootPassword() {
-    echo "${YELLOW}Set your root password: ${NC}"
+    echo -e "${YELLOW}Set your root password: ${NC}"
     passwd root || rootPassword
 
     if [ $createUser != "skip" ]; then
