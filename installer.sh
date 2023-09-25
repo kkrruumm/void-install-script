@@ -512,10 +512,10 @@ install() {
         if [ $bootloaderChoice == "grub" ]; then
             # We need to use luks1 and pbkdf2 to maintain compatibility with grub here.
             # It should be possible to replace the grub EFI binary to add luks2 support, but for the time being I'm going to leave this as luks1.
-            cryptsetup luksFormat --type luks1 --hash $hash --key-size $keysize --iter-time $itertime --pbkdf pbkdf2 --use-urandom $partition2 || failureCheck
+            cryptsetup luksFormat --type luks1 --batch-mode --verify-passphrase --hash $hash --key-size $keysize --iter-time $itertime --pbkdf pbkdf2 --use-urandom $partition2 || failureCheck
         elif [ $bootloaderChoice == "efistub" ]; then
             # We get to use luks2 here, no need to maintain compatibility.
-            cryptsetup luksFormat --type luks2 --hash $hash --key-size $keysize --iter-time $itertime --pbkdf argon2id --use-urandom $partition2 || failureCheck
+            cryptsetup luksFormat --type luks2 --batch-mode --verify-passphrase --hash $hash --key-size $keysize --iter-time $itertime --pbkdf argon2id --use-urandom $partition2 || failureCheck
         fi
         echo -e "${YELLOW}Opening new encrypted container... ${NC}\n"
         cryptsetup luksOpen $partition2 void || failureCheck
