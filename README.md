@@ -6,6 +6,7 @@ This installer was primarily created to serve as an installer with encryption su
 # Features
 ```
 -Experimental efistub support, see efistub notes
+-Option to add user-created modules to be executed by the installer, see modules notes
 
 -Option to encrypt installation disk
 --With efistup setup, encryption will encrypt / using luks2
@@ -29,7 +30,6 @@ This installer was primarily created to serve as an installer with encryption su
 -Configure partitions in the installer for home, swap, and root with LVM
 -Support for both glibc and musl
 -User creation and basic configuration
--Config support
 ```
 
 # Instructions
@@ -44,13 +44,6 @@ sudo ./installer.sh
 Follow on-screen steps
 Done.
 ```
-# Config usage
-```
-If you want to use the config feature, run the installer with ./installer.sh /path/to/myconfig.sh
-Take a look at exampleconfig.sh for usage.
-
-This feature is very barebones at the moment, and is in need of some work.
-```
 
 # efistub notes
 
@@ -62,14 +55,50 @@ However, root will be encrypted using luks2 instead of luks1, since grub is no l
 
 This setup would be very well complimented by secure boot.
 
-# Notes
+# Modules notes
+
+A barebones "module" system has been added to the installer to provide users with a simple way to add their own features.
+
+This also makes adding future misc. features to the installer easier in general.
+
+To create a module, simply create a file in the 'modules' directory that comes with this installer, its name should be the title of your module.
+
+Then, add at minimum the 3 required variables and 1 required function to this file.
+If any of the 3 required variables or the 1 required function are missing, the installer will not import the module.
+
+Example module file contents:
+
+```
+title=nameofmymodule
+description="- This module does XYZ"
+status=off
+
+main() {
+    # Do cool stuff here
+}
+```
+
+--The title variable here will both be the name of the entry in the TUI, but also the name of the file the installer will look for.
+
+--The description variable will be the extra information given to the user in the TUI along with the option and can be left empty, but must exist.
+
+--The status variable tells the installer whether or not the module should be enabled or disabled by default, valid values are on/off.
+
+Inside of the main() function, you're free to add any commands you'd like to be executed, and you can access all variables set by the primary install script.
+
+
+
+That's it!
+
+Feel free to check out some of the installers included modules for further example.
+
+# Misc notes
 
 This installer is not officially supported, and is still fairly work-in-progress. If you run into any problems please file them on this github page.
 
 This installer only supports x86_64-efi. I currently have no plans to support anything else.
 
 If you have found this script useful, do star this repository!
-
 
 # Contributing
 
@@ -78,7 +107,6 @@ The best way to contribute to this would be to find ways to break the installer.
 If you would like a change to be made to the script, a request/suggestion in the issues tracker is a wonderful place to start.
 
 Niche requests for features that do not fit the scope of this installer are unlikely to be entertained, but do not hesitate to suggest ideas.
-
 
 # TODO
 ```

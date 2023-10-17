@@ -1,36 +1,17 @@
-#!/bin/bash -e
+#!/bin/bash
 user=$(whoami)
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\e[1;33m'
 NC='\033[0m'
 
-if [ $user != root ]; then
+if [ "$user" != root ]; then
     echo -e "${RED}Please execute this script as root.${NC}"
     exit 1
 fi
 
-# Check to see if there is a flag when executing installer.sh and make sure it's a .sh file to be imported as an installation config
-if [ $# != 1 ]; then
-    echo "Continuing without config file..."
-    configDetected=0
-elif [ $# == 1 ]; then
-    echo "Attempting to use user-defined config file..."
-
-    # Should be performing a much more exhaustive check on the config file before accepting it, WIP
-    if [[ $1 == *.sh ]] && grep 'diskInput' $1 ; then
-        source $1
-        configDetected=1
-    else
-        echo -e "${RED}User-defined config detected but is either misinput or the wrong file type.${NC}\n"
-        echo -e "Please correct this error and run again. \n"
-        exit 1
-    fi
-fi
-
 entry() {
 
-    configExported=0
     runDirectory=$(pwd)
     sysArch=$(uname -m)
     locale="LANG=en_US.UTF-8"
@@ -51,7 +32,7 @@ entry() {
         muslSelection="musl"
     fi
 
-    if [ $sysArch != "x86_64" ]; then
+    if [ "$sysArch" != "x86_64" ]; then
         commandFailure="This systems CPU architecture is not currently supported by this install script."
         failureCheck
     fi
@@ -63,8 +44,6 @@ entry() {
         failureCheck
     fi
 
-    clear
-
     echo -e "Testing network connectivity... \n"
 
     if ping -c 1 gnu.org &>/dev/null || ping -c 1 fsf.org &>/dev/null ; then
@@ -74,103 +53,79 @@ entry() {
         failureCheck
     fi
 
-    clear
-
     echo -e "Begin void installer... \n"
 
     echo -e "Grabbing installer dependencies... \n"
     commandFailure="Dependency installation has failed."
-    xbps-install -Sy bc fzf parted void-repo-nonfree || failureCheck
+    xbps-install -Suy xbps || failureCheck # Just incase xbps is out of date on the ISO
+    xbps-install -Suy dialog bc parted void-repo-nonfree || failureCheck
 
-    if [ $configDetected == "1" ]; then
-        if [ $verifySettings == "y" ] || [ $verifySettings == "Y" ]; then
-            confirmInstallationOptions
-        else
-            install
-        fi
-    else
-        verifySettings="y" # If the user wants to disable this, it should be done in the sourced config file, not by editing this script.
-        # verifySettings is set explicitly here to provide a default on config export.
-        diskConfiguration
-    fi
+    echo -e "Creating .dialogrc... \n"
+    dialog --create-rc ~/.dialogrc
+    # I find the default blue background of dialog to be a little bit irritating, changing it to black here.
+    sed -i -e 's/screen_color = (CYAN,BLUE,ON)/screen_color = (BLACK,BLACK,ON)/g' ~/.dialogrc
+    # Might as well tweak some other stuff too...
+    sed -i -e 's/title_color = (BLUE,WHITE,ON)/title_color = (BLACK,WHITE,ON)/g' ~/.dialogrc
+
+    diskConfiguration
 
 }
 
 diskConfiguration() {
 
     # We're going to define all disk options and use them later on so the user can verify the layout and return to entry to start over if something isn't correct, before touching the disks.
-    clear
-    echo -e "AVAILABLE DISKS: \n"
-    lsblk -o NAME,SIZE,TYPE -e7
-    echo -e "The disk you choose will not be modified until you confirm your installation options. \n"
-    echo -e "Please choose the disk you would like to partition and install Void Linux to: \n"
-    diskPrompt=$(lsblk -d -o NAME -n -e7 | fzf --height 10%)
+    diskPrompt=$(lsblk -d -o NAME,SIZE -n -e7)
+    diskReadout=$(lsblk -o NAME,SIZE,TYPE -e7)
+
+    if ! diskPrompt=$(drawDialog --begin 2 2 --title "Available Disks" --infobox "$diskReadout" 0 0 --and-widget --title "Partitioner" --menu 'The disk you choose will not be modified until you confirm your installation options.\n\nPlease choose the disk you would like to partition and install Void Linux to:' 0 0 0 $diskPrompt) ; then
+        exit 0
+    fi
 
     diskInput="/dev/$diskPrompt"
-
-    clear
 
     diskSize=$(lsblk --output SIZE -n -d $diskInput)
     diskFloat=$(echo $diskSize | sed 's/G//g')
     diskAvailable=$(echo $diskFloat - 0.5 | bc)
     diskAvailable+="G"
 
-    partitionerOutput
+    partOutput=$(partitionerOutput)
 
-    echo -e "Would you like to have a swap partition? (y/n) \n"
-    read swapPrompt
-
-    if [ $swapPrompt == "y" ] || [ $swapPrompt == "Y" ]; then
-        clear
-
-        partitionerOutput
+    if drawDialog --begin 2 2 --title "Disk Details" --infobox "$partOutput" 0 0 --and-widget --title "Partitioner" --yesno "Would you like to have a swap partition?" 0 0 ; then
+        swapPrompt="Yes"
+        partOutput=$(partitionerOutput)
         
-        echo -e "How large would you like your swap partition to be? (Example: '4G') \n"
-        read swapInput
+        swapInput=$(drawDialog --begin 2 2 --title "Disk Details" --infobox "$partOutput" 0 0 --and-widget --no-cancel --title "Partitioner" --inputbox "How large would you like your swap partition to be?\n(Example: '4G')" 0 0)
 
         sizeInput=$swapInput
         diskCalculator
+        partOutput=$(partitionerOutput)
     fi
 
-    clear
-    
-    partitionerOutput
-
-    echo "If you would like to limit the size of your root filesystem, such as to have a separate home partition, you can enter a value such as '50G' here."
-    echo -e "Otherwise, if you would like your root partition to take up the entire drive, enter 'full' here. \n"
-    read rootPrompt
+    rootPrompt=$(drawDialog --begin 2 2 --title "Disk Details" --infobox "$partOutput" 0 0 --and-widget --no-cancel --title "Partitioner" --inputbox "If you would like to limit the size of your root filesystem, such as to have a separate home partition, you can enter a value such as '50G' here.\n\nOtherwise, if you would like your root partition to take up the entire drive, enter 'full' here." 0 0)
 
     # If the user wants the root partition to take up all space after the EFI partition, a separate home on this disk isn't possible.
-    if [ $rootPrompt == "full" ]; then
+    if [ "$rootPrompt" == "full" ]; then
         separateHomePossible=0
+        homePrompt="No"
     else
         sizeInput=$rootPrompt
         diskCalculator
+        partOutput=$(partitionerOutput)
 
         separateHomePossible=1
     fi
 
-    if [ $separateHomePossible == "1" ]; then
-        clear
-
-        partitionerOutput
-
-        echo -e "Would you like to have a separate home partition on disk $diskInput (y/n) \n"
-        read homePrompt
-
-        if [ $homePrompt == "y" ] || [ $homePrompt == "Y" ]; then
-            clear
+    if [ "$separateHomePossible" == "1" ]; then
+        if drawDialog --begin 2 2 --title "Disk Details" --infobox "$partOutput" 0 0 --and-widget --title "Partitioner" --yesno "Would you like to have a separate home partition?" 0 0 ; then
+            homePrompt="Yes"
+            homeInput=$(drawDialog --begin 2 2 --title "Disk Details" --infobox "$partOutput" 0 0 --and-widget --no-cancel --title "Partitioner" --inputbox "How large would you like your home partition to be?\n(Example: '100G')\n\nYou can choose to use the rest of your disk after the root partition by entering 'full' here." 0 0)
             
-            partitionerOutput
-
-            echo "How large would you like your home partition to be? (Example: '100G')"
-            echo -e "You can choose to use the rest of your disk after the root partition by entering 'full' here. \n"
-            read homeInput
-            
-            if [ $homeInput != "full" ]; then
+            if [ "$homeInput" != "full" ]; then
                 sizeInput=$homeInput
                 diskCalculator
             fi
+        else
+            homePrompt="No"
         fi
     fi
 
@@ -180,163 +135,101 @@ diskConfiguration() {
 
 installOptions() {
 
-    clear
-
-    echo -e "Should this installation be encrypted? (y/n) \n"
-    read encryptionPrompt
-
-    clear
-
-    if [ $encryptionPrompt == "y" ] || [ $encryptionPrompt == "Y" ]; then
-        clear
-        echo -e "Would you like to securely wipe the selected disk before setup? (y/n) \n"
-        echo -e "This can take quite a long time depending on how many passes you choose. \n"
-        read wipePrompt
-
-        if [ $wipePrompt == "y" ] || [ $wipePrompt == "Y" ]; then
-            echo -e "How many passes would you like to do on this disk? \n"
-            echo -e "Sane values include 1-3. The more passes you choose, the longer this will take. \n"
-            read passInput
+    if drawDialog --title "Encryption" --yesno "Should this installation be encrypted?" 0 0 ; then
+        encryptionPrompt="Yes"
+        if drawDialog --title "Wipe Disk" --yesno "Would you like to securely wipe the selected disk before setup?\n\nThis can take quite a long time depending on how many passes you choose." 0 0 ; then
+            wipePrompt="Yes"
+            passInput=$(drawDialog --title "Wipe Disk" --inputbox "How many passes would you like to do on this disk?\n\nSane values include 1-3. The more passes you choose, the longer this will take." 0 0)
+        else
+            wipePrompt="No"
+            passInput=0
         fi
     fi
 
-    clear
+    # More filesystems such as btrfs can be added later.
+    fsChoice=$(drawDialog --no-cancel --title "Filesystem choice" --menu "If you are unsure, choose 'ext4'" 0 0 0 "ext4" "" "xfs" "")
 
-    echo -e "What filesystem would you like to use? \n"
-    echo -e "If you are unsure, choose 'ext4' here. \n"
-    fsChoice=$(echo -e "ext4\nxfs" | fzf --height 10%)
+    suChoice=$(drawDialog --no-cancel --title "SU choice" --menu "If you are unsure, choose 'sudo'" 0 0 0 "sudo" "" "doas" "")
 
-    clear
+    kernelChoice=$(drawDialog --no-cancel --title "Kernel choice" --menu "If you are unsure, choose 'linux'" 0 0 0 "linux" "- Normal Void kernel" "linux-lts" "- Older LTS kernel" "linux-mainline" "- Bleeding edge kernel")
 
-    echo -e "Would you like to use sudo or doas? \n"
-    echo -e "If you are unsure, choose 'sudo' here. \n"
-    suChoice=$(echo -e "sudo\ndoas" | fzf --height 10%)
+    bootloaderChoice=$(drawDialog --no-cancel --title "Bootloader choice" --menu "If you are unsure, choose 'grub'" 0 0 0 "grub" "- Traditional bootloader" "efistub" "- Boot kernel directly")
 
-    clear
+    hostnameInput=$(drawDialog --no-cancel --title "System hostname" --inputbox "Set your system hostname." 0 0)
 
-    echo -e "Which kernel would you like to use? \n"
-    echo -e "If you are unsure, choose 'linux' here. \n"
-    kernelChoice=$(echo -e "linux\nlinux-lts\nlinux-mainline" | fzf --height 10%)
+    createUser=$(drawDialog --title "Create User" --inputbox "What would you like your username to be?\n\nIf you do not want to set a user here, choose 'Skip'\n\nYou will be asked to set a password later." 0 0)
 
-    clear
+    # Most of this timezone section is taken from the normal Void installer.
+    areas=(Africa America Antarctica Arctic Asia Atlantic Australia Europe Indian Pacific)
 
-    echo -e "Would you like to use grub or efistub? \n"
-    echo -e "If you are unsure, choose 'grub' here. \n"
-    # Will remove annoying red text once efistub has been properly tested.
-    echo -e "${RED}efistub support should be considered an experimental feature. ${NC}\n"
-    bootloaderChoice=$(echo -e "grub\nefistub" | fzf --height 10%)
+    if area=$(IFS='|'; drawDialog --title "Set Timezone" --menu "" 0 0 0 $(printf '%s||' "${areas[@]}")) ; then
+        read -a locations -d '\n' < <(find /usr/share/zoneinfo/$area -type f -printf '%P\n' | sort) || echo "Disregard exit code"
+        location=$(IFS='|'; drawDialog --no-cancel --title "Set Timezone" --menu "" 0 0 0 $(printf '%s||' "${locations[@]//_/ }"))
+    fi
 
-    clear
+    location=$(echo $location | tr ' ' '_')
+    timezonePrompt="$area/$location"
 
-    echo -e "Do you want to install firmware and utilities for wifi? (y/n) \n"
-    echo -e "This option will include the packages 'iw', 'wpa_supplicant', and 'wifi-firmware'. \n"
-    read wifiChoice
-
-    clear
-
-    echo -e "What do you want this computer to be called on the network? (Hostname) \n"
-    read hostnameInput
-
-    clear
-
-    echo -e "Timezone selection... \n"
-    echo -e "You can type here to search for your timezone. \n"
-    timezonePrompt=$(awk '/^Z/ { print $2 }; /^L/ { print $3 }' /usr/share/zoneinfo/tzdata.zi | sort | fzf --height 10%)
-
-    clear
-
-    echo -e "Would you like to choose a repo mirror? (y/n) \n"
-    echo -e "Tier 1 mirrors are recommended. If you choose 'n', repo-default will be used. \n"
-    read mirrorInput
-
-    if [ $mirrorInput == "Y" ] || [ $mirrorInput == "y" ]; then
+    if drawDialog --title "Repository Mirror" --yesno "Would you like to set your repo mirror?" 0 0 ; then
         xmirror
         installRepo=$(cat /etc/xbps.d/*-repository-main.conf | sed 's/repository=//g')
     else
-        if [ $muslSelection == "glibc" ]; then
+        if [ "$muslSelection" == "glibc" ]; then
             installRepo="https://repo-default.voidlinux.org/current"
-        elif [ $muslSelection == "musl" ]; then
+        elif [ "$muslSelection" == "musl" ]; then
             installRepo="https://repo-default.voidlinux.org/current/musl"
         fi
     fi
 
-    if [ $muslSelection == "glibc" ]; then
+    if [ "$muslSelection" == "glibc" ]; then
         ARCH="x86_64"
-    elif [ $muslSelection == "musl" ]; then
+    elif [ "$muslSelection" == "musl" ]; then
         ARCH="x86_64-musl"
     fi
 
-    clear
-
-    echo -e "Would you like a minimal installation or a desktop installation? \n"
-    echo -e "The minimal installation does not configure networking, graphics drivers, DE/WM, etc. \n"
-    echo -e "The desktop installation will allow you to configure networking, install graphics drivers, choose an audio server, and install a DE or WM from this installer with sane defaults. \n"
-    echo -e "If you choose the minimal installation, dhcpcd will be included by default and can be enabled in the new install for networking. \n"
-
-    installType=$(echo -e "desktop\nminimal" | fzf --height 10%)
-
-    clear
+    installType=$(drawDialog --no-cancel --title "Profile Choice" --menu "Choose your installation profile:" 0 0 0 "minimal" " - Installs base system only, dhcpcd included for networking." "desktop" "- Provides extra optional install choices.")
 
     # Extra install options
-    if [ $installType == "desktop" ]; then
+    if [ "$installType" == "desktop" ]; then
 
-        echo -e "If you would like to install graphics drivers, please choose here. \n"
-        echo -e "Both 'nvidia' and 'nvidia-optimus' include the proprietary official driver. \n"
-        if [ $muslSelection == "musl" ]; then
-            echo -e "Note that nvidia drivers are not compatible with musl. \n"
-        fi
-        echo -e "If you would like to skip installing graphics drivers here, choose 'skip' \n"
-
-        if [ $muslSelection == "glibc" ]; then
-            graphicsChoice=$(echo -e "skip\nnvidia-optimus\nnvidia\nintel\namd" | fzf --height 10%)
-        elif [ $muslSelection == "musl" ]; then
-            graphicsChoice=$(echo -e "skip\nintel\namd" | fzf --height 10%)
+        if [ "$muslSelection" == "glibc" ]; then
+            graphicsChoice=$(drawDialog --title "Graphics Drivers" --menu "Both nvidia and nvidia-optimus include the proprietary official driver.\n\nChoose 'Skip' if you want to skip installing graphics drivers." 0 0 0 "intel" "" "amd" "" "nvidia" "" "nvidia-optimus" "")
+        elif [ "$muslSelection" == "musl" ]; then
+            graphicsChoice=$(drawDialog --title "Graphics Drivers" --menu "Note that nvidia drivers are incompatible with musl.\n\nChoose 'Skip' if you want to skip installing graphics drivers." 0 0 0 "intel" "" "amd" "")
         fi
 
-        clear
+        networkChoice=$(drawDialog --title "Networking" --menu "If you are unsure, choose 'NetworkManager'\n\nChoose 'Skip' if you want to skip." 0 0 0 "NetworkManager" "" "dhcpcd" "")
 
-        echo -e "If you would like the installer to install NetworkManager or enable dhcpcd, choose one here. \n"
-        echo -e "If you are unsure, choose 'NetworkManager'. If you would like to skip this, choose 'skip' \n"
+        audioChoice=$(drawDialog --title "Audio Server" --menu "If you are unsure, 'pipewire' is recommended.\n\nChoose 'Skip' if you want to skip." 0 0 0 "pipewire" "" "pulseaudio" "")
 
-        networkChoice=$(echo -e "skip\nNetworkManager\ndhcpcd" | fzf --height 10%)
+        desktopChoice=$(drawDialog --title "Desktop Environment" --menu "Choose 'Skip' if you want to skip." 0 0 0 "gnome" "" "kde" "" "xfce" "" "sway" "" "i3" "")
 
-        clear
-
-        echo -e "Choose the audio server you would like to install, 'pipewire' is recommended here. \n"
-        echo -e "If you would like to skip installing an audio server, choose 'skip' here. \n"
-
-        audioChoice=$(echo -e "skip\npipewire\npulseaudio" | fzf --height 10%)
-
-        clear
-
-        echo -e "Choose the desktop environment or window manager you would like to install. \n"
-        echo -e "If you would like to skip installing an DE/WM, choose 'skip' here. (Such as to install one that isn't in this list) \n"
-
-        desktopChoice=$(echo -e "skip\ni3\nsway\nxfce\nkde\ngnome" | fzf --height 10%)
-
-        if [ $desktopChoice == "i3" ]; then
-            clear
-            echo -e "Would you like to install lightdm with i3wm? (y/n) \n"
-            read i3prompt
-        elif [ $desktopChoice == "sway" ]; then
-            clear
-            echo -e "Sway will have to be started manually on login. This can be done by entering 'dbus-run-session sway' after logging in to the new installation. \n"
-            read -p "Press Enter to continue." </dev/tty
+        if [ "$desktopChoice" == "i3" ]; then
+            if drawDialog --title "" --yesno "Would you like to install lightdm with i3wm?" 0 0 ; then
+                i3prompt="Yes"
+            fi
+        elif [ "$desktopChoice" == "sway" ]; then
+            drawDialog --msgbox "Sway will have to be started manually on login. This can be done by entering 'dbus-run-session sway' after logging in to the new installation." 0 0
         fi
 
-        clear
+        # Extras
+        commandFailure="Reading modules directory has failed."
+        read -a modulesList -d '\n' < <(ls modules/ | sort)
+        commandFailure="Importing module has failed."
 
-        echo -e "Would you like to enable logging on the new installation with socklog? (y/n) \n"
-        echo -e "This can be extremely useful for troubleshooting. \n"
-        read logPrompt
+        for i in "${modulesList[@]}"
+        do
+            if test -e "modules/$i" && checkModule ; then
+                . "modules/$i" || failureCheck
+                modulesDialogArray+=("'$title' '$description' '$status'")
+            fi
+        done
 
-        clear
-
-        echo -e "Would you like to install flatpak? (y/n) \n"
-        read flatpakPrompt
+        # Using sh here as a simple solution to it misbehaving when ran normally
+        modulesChoice=( "$(sh -c "dialog --stdout --title 'Extra Options' --no-mouse --backtitle "https://github.com/kkrruumm/void-install-script" --checklist 'Enable or disable extra install options: ' 0 0 0 $(echo "${modulesDialogArray[@]}")")" )
 
         confirmInstallationOptions
-    elif [ $installType == "minimal" ]; then
+    elif [ "$installType" == "minimal" ]; then
         confirmInstallationOptions
     fi
 
@@ -344,113 +237,54 @@ installOptions() {
 
 confirmInstallationOptions() {  
 
-    # If a config is being used, we need to set some variables that weren't defined earlier in the script
-    if [ $configDetected == "1" ]; then
-        if [ $rootPrompt != "full" ]; then
-            separateHomePossible=1
-        else
-            separateHomePossible=0
-        fi
+    drawDialog --yes-label "Install" --no-label "Exit" --extra-button --extra-label "Restart" --title "Confirm Installation Choices" --yesno "    Selecting 'Install' here will install with the options below. \n\n
+        Repo mirror: $installRepo \n
+        Bootloader: $bootloaderChoice \n
+        Kernel: $kernelChoice \n
+        Install disk: $diskInput \n
+        Encryption: $encryptionPrompt \n
+        Wipe disk: $wipePrompt \n
+        Number of disk wipe passes: $passInput \n
+        Filesystem: $fsChoice \n
+        SU Choice: $suChoice \n
+        Create swap: $swapPrompt \n
+        Swap size: $swapInput \n
+        Root partition size: $rootPrompt \n
+        Create separate home: $homePrompt \n
+        Home size: $homeInput \n
+        Hostname: $hostnameInput \n
+        Timezone: $timezonePrompt \n
+        User: $createUser \n
+        Installation profile: $installType \n\n
+        $( if [ -n "$modulesChoice" ]; then echo "Enabled modules: ${modulesChoice[@]}"; fi ) \n
+        $( if [ $installType == "desktop" ]; then echo "Graphics drivers: $graphicsChoice"; fi ) \n
+        $( if [ $installType == "desktop" ]; then echo "Networking: $networkChoice"; fi ) \n
+        $( if [ $installType == "desktop" ]; then echo "Audio server: $audioChoice"; fi ) \n
+        $( if [ $installType == "desktop" ]; then echo "DE/WM: $desktopChoice"; fi ) \n\n
+        $( if [ $desktopChoice == "i3" ]; then echo "Install lightdm with i3: $i3prompt"; fi ) \n
+    You can choose 'Restart' to go back to the beginning of the installer and change settings." 0 0
 
-        if [ -z $installRepo ]; then
-            if [ $muslSelection == "glibc" ]; then
-                installRepo="https://repo-default.voidlinux.org/current"
-            elif [ $muslSelection == "musl" ]; then
-                installRepo="https://repo-default.voidlinux.org/current/musl"
-            fi
-        fi
-    fi
-
-    clear
-
-    if [ $configExported == 1 ]; then
-        echo -e "${GREEN}This config has been successfully exported to $(pwd)/exportedconfig.sh ${NC} \n"
-        configExported=0
-    fi
-
-    if [ $configDetected == "0" ]; then
-        echo -e "If these choices are in any way incorrect, you may select 'restart' to go back to the beginning of the installer and start over."
-    elif [ $configDetected == "1" ]; then
-        echo -e "If these choices are in any way incorrect, you may select 'exit' to close the installer and make changes to your config."
-    fi
-    echo -e "${RED}Selecting 'confirm' here will destroy all data on the selected disk and install with the options below. ${NC}\n"
-
-    echo "Repo mirror: $installRepo"
-    echo "Bootloader: $bootloaderChoice"
-    echo "Kernel: $kernelChoice"
-    echo "Install disk: $diskInput"
-    echo "Encryption: $encryptionPrompt"
-    if [ $encryptionPrompt == "y" ] || [ $encryptionPrompt == "Y" ]; then
-        echo "Wipe disk: $wipePrompt"
-        if [ $wipePrompt == "y" ] || [ $wipePrompt == "Y" ]; then
-            echo "Number of passes: $passInput"
-        fi
-    fi
-    echo "Filesystem: $fsChoice"
-    echo "SU choice: $suChoice"
-    echo "Install wifi firmware: $wifiChoice"
-    echo "Create swap: $swapPrompt"
-    if [ $swapPrompt == "y" ] || [ $swapPrompt == "Y" ]; then
-        echo "Swap size: $swapInput"
-    fi
-    echo "Root partition size: $rootPrompt"
-    if [ $separateHomePossible == "1" ]; then
-        echo "Create separate home: $homePrompt"
-        if [ $homePrompt == "y" ] || [ $homePrompt == "Y" ]; then
-            echo "Home size: $homeInput"
-        fi
-    fi
-    echo "Hostname: $hostnameInput"
-    echo -e "Timezone: $timezonePrompt \n"
-
-    echo "Installation profile: $installType"
-    if [ $installType == "desktop" ]; then
-        echo "Graphics drivers: $graphicsChoice"
-        echo "Networking: $networkChoice"
-        echo "Audio server: $audioChoice"
-        echo "DE/WM: $desktopChoice"
-        if [ $desktopChoice == "i3" ]; then
-            echo "Install lightdm with i3: $i3prompt"
-        fi 
-        echo "Enable system logging: $logPrompt"
-        echo "Install flatpak: $flatpakPrompt"
-    fi
-
-    if [ $configDetected == "0" ]; then
-        confirmInstall=$(echo -e "exit\nconfirm\nrestart\nexport as config" | fzf --height 10%)
-    elif [ $configDetected == "1" ]; then
-        confirmInstall=$(echo -e "exit\nconfirm" | fzf --height 10%)
-    fi
-
-    case $confirmInstall in
-        confirm)
+    case $? in 
+        0)
             install
             ;;
-
-        restart)
-            entry
-            ;;
-
-        exit)
+        1)
             exit 0
             ;;
-
-        "export as config")
-            exportConfig
+        3)
+            entry
             ;;
-
         *)
-            commandFailure="Invalid confirm settings menu selection"
+            commandFailure="Invalid confirm settings exit code"
             failureCheck
             ;;
-
     esac
-
+    
 }
 
 install() {
 
-    if [ $wipePrompt == "y" ] || [ $wipePrompt == "Y" ]; then
+    if [ "$wipePrompt" == "Yes" ]; then
         commandFailure="Disk erase has failed."
         clear
         echo -e "Beginning disk secure erase with $passInput passes and then overwriting with zeroes. \n"
@@ -494,7 +328,7 @@ install() {
 
     clear
 
-    if [ $encryptionPrompt == "y" ] || [ $encryptionPrompt == "Y" ]; then
+    if [ "$encryptionPrompt" == "Yes" ]; then
         echo "Configuring partitions for encrypted install..."
 
         # Cryptsetup options, not exposing to user directly but modify values here if you'd like.
@@ -509,11 +343,11 @@ install() {
         # The fips140 compliant value here would be 600000 according to owasp, though this would result in a 10 minute disk unlock time.
 
         echo -e "${YELLOW}Enter your encryption passphrase here, the stronger the better. ${NC}\n"
-        if [ $bootloaderChoice == "grub" ]; then
+        if [ "$bootloaderChoice" == "grub" ]; then
             # We need to use luks1 and pbkdf2 to maintain compatibility with grub here.
             # It should be possible to replace the grub EFI binary to add luks2 support, but for the time being I'm going to leave this as luks1.
             cryptsetup luksFormat --type luks1 --batch-mode --verify-passphrase --hash $hash --key-size $keysize --iter-time $itertime --pbkdf pbkdf2 --use-urandom $partition2 || failureCheck
-        elif [ $bootloaderChoice == "efistub" ]; then
+        elif [ "$bootloaderChoice" == "efistub" ]; then
             # We get to use luks2 here, no need to maintain compatibility.
             cryptsetup luksFormat --type luks2 --batch-mode --verify-passphrase --hash $hash --key-size $keysize --iter-time $itertime --pbkdf argon2id --use-urandom $partition2 || failureCheck
         fi
@@ -525,20 +359,20 @@ install() {
         vgcreate void $partition2 || failureCheck
     fi
 
-    if [ $encryptionPrompt == "y" ] || [ $encryptionPrompt == "Y" ]; then
+    if [ "$encryptionPrompt" == "Yes" ]; then
         echo -e "Creating volume group... \n"
         vgcreate void /dev/mapper/void || failureCheck
     fi
 
     echo -e "Creating volumes... \n"
 
-    if [ $swapPrompt == "y" ] || [ $swapPrompt == "Y" ]; then
+    if [ "$swapPrompt" == "Yes" ]; then
         echo -e "Creating swap volume..."
         lvcreate --name swap -L $swapInput void || failureCheck
         mkswap /dev/void/swap || failureCheck
     fi
 
-    if [ $rootPrompt == "full" ]; then
+    if [ "$rootPrompt" == "full" ]; then
         echo -e "Creating full disk root volume..."
         lvcreate --name root -l 100%FREE void || failureCheck
     else
@@ -546,23 +380,23 @@ install() {
         lvcreate --name root -L $rootPrompt void || failureCheck
     fi
 
-    if [ $fsChoice == "ext4" ]; then
+    if [ "$fsChoice" == "ext4" ]; then
         mkfs.ext4 /dev/void/root || failureCheck
-    elif [ $fsChoice == "xfs" ]; then
+    elif [ "$fsChoice" == "xfs" ]; then
         mkfs.xfs /dev/void/root || failureCheck
     fi
 
-    if [ $separateHomePossible == "1" ]; then
-        if [ $homePrompt == "y" ] || [ $homePrompt == "Y" ]; then
-            if [ $homeInput == "full" ]; then
+    if [ "$separateHomePossible" == "1" ]; then
+        if [ "$homePrompt" == "Yes" ]; then
+            if [ "$homeInput" == "full" ]; then
                 lvcreate --name home -l 100%FREE void || failureCheck
             else
                 lvcreate --name home -L $homeInput void || failureCheck
             fi
 
-            if [ $fsChoice == "ext4" ]; then
+            if [ "$fsChoice" == "ext4" ]; then
                 mkfs.ext4 /dev/void/home || failureCheck
-            elif [ $fsChoice == "xfs" ]; then
+            elif [ "$fsChoice" == "xfs" ]; then
                 mkfs.xfs /dev/void/home || failureCheck
             fi
 
@@ -574,10 +408,10 @@ install() {
     mount /dev/void/root /mnt || failureCheck
     for dir in dev proc sys run; do mkdir -p /mnt/$dir ; mount --rbind /$dir /mnt/$dir ; mount --make-rslave /mnt/$dir ; done || failureCheck
 
-    if [ $bootloaderChoice == "grub" ]; then
+    if [ "$bootloaderChoice" == "grub" ]; then
         mkdir -p /mnt/boot/efi || failureCheck
         mount $partition1 /mnt/boot/efi || failureCheck
-    elif [ $bootloaderChoice == "efistub" ]; then
+    elif [ "$bootloaderChoice" == "efistub" ]; then
         mkdir -p /mnt/boot || failureCheck
         mount $partition1 /mnt/boot || failureCheck
     fi
@@ -594,23 +428,23 @@ install() {
     XBPS_ARCH=$ARCH xbps-install -Sy -R $installRepo -r /mnt base-minimal $kernelChoice ncurses libgcc bash file less man-pages mdocml pciutils usbutils dhcpcd kbd iproute2 iputils ethtool kmod acpid eudev lvm2 void-artwork || failureCheck
 
     # The dkms package will install headers for 'linux' rather than '$kernelChoice' unless we create a virtual package here, and we do not need both.
-    if [ $kernelChoice == "linux-lts" ]; then
+    if [ "$kernelChoice" == "linux-lts" ]; then
         echo "virtualpkg=linux-headers:linux-lts-headers" >> /mnt/etc/xbps.d/headers.conf || failureCheck
-    elif [ $kernelChoice == "linux-mainline" ]; then
+    elif [ "$kernelChoice" == "linux-mainline" ]; then
         echo "virtualpkg=linux-headers:linux-mainline-headers" >> /mnt/etc/xbps.d/headers.conf || failureCheck
     fi
 
-    if [ $bootloaderChoice == "grub" ]; then
+    if [ "$bootloaderChoice" == "grub" ]; then
         echo -e "Installing grub... \n"
         commandFailure="Grub installation has failed."
         xbps-install -Sy -R $installRepo -r /mnt grub-x86_64-efi || failureCheck
-    elif [ $bootloaderChoice == "efistub" ]; then
+    elif [ "$bootloaderChoice" == "efistub" ]; then
         echo -e "Installing efibootmgr... \n"
         commandFailure="efibootmgr installation has failed."
         xbps-install -Sy -R $installRepo -r /mnt efibootmgr || failureCheck
     fi
 
-    if [ $installRepo != "https://repo-default.voidlinux.org/current" ] && [ $installRepo != "https://repo-default.voidlinux.org/current/musl" ]; then
+    if [ "$installRepo" != "https://repo-default.voidlinux.org/current" ] && [ "$installRepo" != "https://repo-default.voidlinux.org/current/musl" ]; then
         commandFailure="Repo configuration has failed."
         echo -e "Configuring mirror repo... \n"
         xmirror -s "$installRepo" -r /mnt || failureCheck
@@ -618,22 +452,16 @@ install() {
 
     commandFailure="$suChoice installation has failed."
     echo -e "Installing $suChoice... \n"
-    if [ $suChoice == "sudo" ]; then
+    if [ "$suChoice" == "sudo" ]; then
         xbps-install -Sy -R $installRepo -r /mnt sudo || failureCheck
-    elif [ $suChoice == "doas" ]; then
+    elif [ "$suChoice" == "doas" ]; then
         xbps-install -Sy -R $installRepo -r /mnt opendoas || failureCheck
     fi
 
-    if [ $encryptionPrompt == "y" ] || [ $encryptionPrompt == "Y" ]; then
+    if [ "$encryptionPrompt" == "Yes" ]; then
         commandFailure="Cryptsetup installation has failed."
         echo -e "Installing cryptsetup... \n"
         xbps-install -Sy -R $installRepo -r /mnt cryptsetup || failureCheck
-    fi
-
-    if [ $wifiChoice == "y" ] || [ $wifiChoice == "Y" ]; then
-        commandFailure="Wifi firmware and utility installation has failed."
-        echo -e "Installing wifi firmware and utilities... \n"
-        xbps-install -Sy -R $installRepo -r /mnt iw wpa_supplicant wifi-firmware || failureCheck
     fi
 
     echo -e "Base system installed... \n"
@@ -642,22 +470,22 @@ install() {
     echo -e "Configuring fstab... \n"
     commandFailure="Fstab configuration has failed."
     partVar=$(blkid -o value -s UUID $partition1)
-    if [ $bootloaderChoice == "grub" ]; then
+    if [ "$bootloaderChoice" == "grub" ]; then
         echo "UUID=$partVar 	/boot/efi	vfat	defaults	0	0" >> /mnt/etc/fstab || failureCheck
-    elif [ $bootloaderChoice == "efistub" ]; then
+    elif [ "$bootloaderChoice" == "efistub" ]; then
         echo "UUID=$partVar     /boot       vfat    defaults    0   0" >> /mnt/etc/fstab || failureCheck
     fi
     echo "/dev/void/root  /     $fsChoice     defaults              0       0" >> /mnt/etc/fstab || failureCheck
 
-    if [ $swapPrompt == "y" ] || [ $swapPrompt == "Y" ]; then
+    if [ "$swapPrompt" == "Yes" ]; then
         echo "/dev/void/swap  swap  swap    defaults              0       0" >> /mnt/etc/fstab || failureCheck
     fi
 
-    if [ $homePrompt == "y" ] && [ $separateHomePossible == "1" ]; then
+    if [ "$homePrompt" == "Yes" ] && [ "$separateHomePossible" == "1" ]; then
         echo "/dev/void/home  /home $fsChoice     defaults              0       0" >> /mnt/etc/fstab || failureCheck
     fi
 
-    if [ $bootloaderChoice == "efistub" ]; then
+    if [ "$bootloaderChoice" == "efistub" ]; then
         echo "Configuring dracut for efistub boot..."
         commandFailure="Dracut configuration has failed."
         echo 'hostonly="yes"' >> /mnt/etc/dracut.conf.d/30.conf || failureCheck
@@ -686,17 +514,17 @@ install() {
 
         echo 'OPTIONS="loglevel=4 rd.lvm.vg=void"' >> /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
 
-    elif [ $bootloaderChoice == "grub" ]; then
-        if [ $encryptionPrompt == "Y" ] || [ $encryptionPrompt == "y" ]; then
+    elif [ "$bootloaderChoice" == "grub" ]; then
+        if [ "$encryptionPrompt" == "Yes" ]; then
             commandFailure="Configuring grub for full disk encryption has failed."
             echo -e "Configuring grub for full disk encryption... \n"
             partVar=$(blkid -o value -s UUID $partition2)
-            sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4"/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 rd.lvm.vg=void rd.luks.uuid='$partVar'"/g' /mnt/etc/default/grub || failureCheck # I really need to change how this is done, I know it's awful.
+            sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4"/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 rd.lvm.vg=void rd.luks.uuid='$partVar'"/g' /mnt/etc/default/grub || failureCheck
             echo "GRUB_ENABLE_CRYPTODISK=y" >> /mnt/etc/default/grub || failureCheck
         fi
     fi
 
-    if [ $muslSelection == "glibc" ]; then
+    if [ "$muslSelection" == "glibc" ]; then
         commandFailure="Locale configuration has failed."
         echo -e "Configuring locales... \n"
         echo $locale > /mnt/etc/locale.conf || failureCheck
@@ -707,9 +535,9 @@ install() {
     echo -e "Setting hostname.. \n"
     echo $hostnameInput > /mnt/etc/hostname || failureCheck
 
-    if [ $installType == "minimal" ]; then
+    if [ "$installType" == "minimal" ]; then
         chrootFunction
-    elif [ $installType == "desktop" ]; then
+    elif [ "$installType" == "desktop" ]; then
 
         commandFailure="Graphics driver installation has failed."
 
@@ -749,7 +577,7 @@ install() {
 
         esac
 
-        if [ $networkChoice == "NetworkManager" ]; then
+        if [ "$networkChoice" == "NetworkManager" ]; then
             commandFailure="NetworkManager installation has failed."
             echo -e "Installing NetworkManager... \n"
             xbps-install -Sy -R $installRepo -r /mnt NetworkManager || failureCheck
@@ -757,7 +585,7 @@ install() {
         fi
 
         commandFailure="Audio server installation has failed."
-        if [ $audioChoice == "pipewire" ]; then
+        if [ "$audioChoice" == "pipewire" ]; then
             echo -e "Installing pipewire... \n"
             xbps-install -Sy -R $installRepo -r /mnt pipewire alsa-pipewire wireplumber || failureCheck
             mkdir -p /mnt/etc/alsa/conf.d || failureCheck
@@ -767,7 +595,7 @@ install() {
             echo 'context.exec = [ { path = "/usr/bin/wireplumber" args = "" } ]' > /mnt/etc/pipewire/pipewire.conf.d/10-wireplumber.conf || failureCheck
 
             echo -e "Pipewire has been installed. \n"
-        elif [ $audioChoice == "pulseaudio" ]; then
+        elif [ "$audioChoice" == "pulseaudio" ]; then
             echo -e "Installing pulseaudio... \n"
             xbps-install -Sy -R $installRepo -r /mnt pulseaudio alsa-plugins-pulseaudio || failureCheck
             echo -e "Pulseaudio has been installed. \n"
@@ -809,7 +637,7 @@ install() {
                 echo -e "Installing i3wm... \n"
                 xbps-install -Sy -R $installRepo -r /mnt xorg-minimal xinit xterm i3 xorg-fonts || failureCheck
                 echo -e "i3wm has been installed. \n"
-                if [ $i3prompt == "y" ] || [ $i3prompt == "Y" ]; then
+                if [ "$i3prompt" == "Yes" ]; then
                     echo -e "Installing lightdm... \n"
                     xbps-install -Sy -R $installRepo -r /mnt lightdm lightdm-gtk3-greeter || failureCheck
                     echo "lightdm has been installed."
@@ -821,20 +649,6 @@ install() {
                 ;;
 
         esac
-
-        if [ $flatpakPrompt == "y" ] || [ $flatpakPrompt == "Y" ]; then
-            commandFailure="Flatpak installation has failed."
-            echo -e "Installing flatpak... \n"
-            xbps-install -Sy -R $installRepo -r /mnt flatpak || failureCheck
-            echo -e "Flatpak has been installed. \n"
-        fi
-
-        if [ $logPrompt == "y" ] || [ $logPrompt == "Y" ]; then
-            commandFailure="Socklog installation has failed."
-            echo -e "Installing socklog... \n"
-            xbps-install -Sy -R $installRepo -r /mnt socklog-void || failureCheck
-            echo -e "Socklog has been installed. \n"
-        fi
 
         clear
 
@@ -852,24 +666,45 @@ chrootFunction() {
 
     commandFailure="System chroot has failed."
     cp /etc/resolv.conf /mnt/etc/resolv.conf || failureCheck
-
-    echo -e "#!/bin/bash \n" >> /mnt/tmp/installerOptions.sh || failureCheck
     
     syschrootVarPairs=("bootloaderChoice $bootloaderChoice" \
     "suChoice $suChoice" \
     "timezonePrompt $timezonePrompt" \
     "encryptionPrompt $encryptionPrompt" \
     "diskInput $diskInput" \
-    "networkChoice $networkChoice")
+    "networkChoice $networkChoice" \
+    "createUser $createUser")
 
     for i in "${syschrootVarPairs[@]}"
     do
         set -- $i || failureCheck
-        echo "$1='$2'" >> /mnt/tmp/installerOptions.sh || failureCheck
+        echo "$1='$2'" >> /mnt/tmp/installerOptions || failureCheck
     done
 
     cp -f $runDirectory/systemchroot.sh /mnt/tmp/systemchroot.sh || failureCheck
     chroot /mnt /bin/bash -c "/bin/bash /tmp/systemchroot.sh" || failureCheck
+
+    postInstall
+
+}
+
+drawDialog() {
+
+    commandFailure="Displaying dialog window has failed."
+    dialog --stdout --cancel-label "Skip" --no-mouse --backtitle "https://github.com/kkrruumm/void-install-script" "$@"
+
+}
+
+checkModule() {
+
+    # We need to make sure a few variables at minimum exist before the installer should accept it.
+    # Past this, I'm going to leave verifying correctness to the author of the module.
+    if grep "title="*"" "modules/$i" && ( grep "status=on" "modules/$i" || grep "status=off" "modules/$i" ) && ( grep "description="*"" "modules/$i" ) && ( grep "main()" "modules/$i" ); then
+        return 0
+    else
+        # Skip found module file if its contents do not comply.
+        return 1
+    fi
 
 }
 
@@ -888,7 +723,7 @@ diskCalculator() {
     diskAvailable=$(echo $diskFloat - 0.5 | bc)
     diskAvailable+="G"
 
-    if [ $diskFloat -lt 0 ]; then
+    if [ "$diskFloat" -lt 0 ]; then
         clear
         echo -e "${RED}Used disk space cannot exceed the maximum capacity of the chosen disk. Have you over-provisioned your disk? ${NC}\n"
         read -p "Press Enter to start disk configuration again." </dev/tty
@@ -909,46 +744,31 @@ partitionerOutput() {
 
 }
 
-exportConfig() {
-    commandFailure="Exporting installer options as a config has failed."
-    echo -e "#!/bin/bash \n" >> "$runDirectory"/exportedconfig.sh || failureCheck
-    echo -e "# This is an auto-generated void-install-script config created on $(date) \n" >> "$runDirectory"/exportedconfig.sh || failureCheck
+postInstall() {
 
-    exportedVarPairs=("installRepo $installRepo" \
-    "diskInput $diskInput" \
-    "swapPrompt $swapPrompt" \
-    "swapInput $swapInput" \
-    "rootPrompt $rootPrompt" \
-    "homePrompt $homePrompt" \
-    "homeInput $homeInput" \
-    "encryptionPrompt $encryptionPrompt" \
-    "wipePrompt $wipePrompt" \
-    "passInput $passInput" \
-    "suChoice $suChoice" \
-    "wifiChoice $wifiChoice" \
-    "kernelChoice $kernelChoice" \
-    "bootloaderChoice $bootloaderChoice" \
-    "fsChoice $fsChoice" \
-    "hostnameInput $hostnameInput" \
-    "timezonePrompt $timezonePrompt" \
-    "installType $installType" \
-    "graphicsChoice $graphicsChoice" \
-    "networkChoice $networkChoice" \
-    "audioChoice $audioChoice" \
-    "desktopChoice $desktopChoice" \
-    "i3prompt $i3prompt" \
-    "logPrompt $logPrompt" \
-    "flatpakPrompt $flatpakPrompt" \
-    "verifySettings $verifySettings")
+    if [ -z "$modulesChoice" ]; then
+        clear
 
-    for i in "${exportedVarPairs[@]}"
-    do
-        set -- $i || failureCheck
-        echo "$1='$2'" >> "$runDirectory"/exportedconfig.sh || failureCheck
-    done
+        echo -e "${GREEN}Installation complete.${NC} \n"
+        echo -e "If you are ready to reboot into your new system, enter 'sudo reboot now' \n"
+        exit 0
+    else
 
-    configExported=1
-    confirmInstallationOptions
+        commandFailure="Executing module has failed."
+        for i in "${modulesChoice[@]}"
+        do
+            # Source and execute each module
+            . "modules/$i"  || failureCheck
+            main
+        done
+
+        clear
+
+        echo -e "${GREEN}Installation complete.${NC} \n"
+        echo -e "If you are ready to reboot into your new system, enter 'sudo reboot now' \n"
+        exit 0
+    fi
+
 }
 
 entry

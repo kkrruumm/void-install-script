@@ -1,0 +1,12 @@
+title=wifi-firmware
+description="- Wifi firmware and utilities"
+status=on
+
+main() {
+    commandFailure="Wifi firmware and utility installation has failed."
+    echo -e "Installing wifi firmware and utilities... \n"
+    xbps-install -Sy -R $installRepo -r /mnt iw wpa_supplicant wifi-firmware || failureCheck
+    echo -e "wifi firmware and utilities installed. \n"
+    
+    return 0
+}

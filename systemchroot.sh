@@ -1,6 +1,5 @@
 #!/bin/bash -e
 RED='\033[0;31m'
-GREEN='\033[0;32m'
 YELLOW='\e[1;33m'
 NC='\033[0m'
 
@@ -21,11 +20,6 @@ exitFunction () {
         efibootmgr --bootorder $bootEntry || failureCheck
     fi
 
-    clear
-
-    echo -e "${GREEN}Installation complete.${NC} \n"
-    echo -e "If you are ready to reboot into your new system, enter 'sudo reboot now' \n"
-
     exit 0
 
 }
@@ -41,7 +35,7 @@ rootPassword() {
     echo -e "${YELLOW}Set your root password: ${NC}"
     passwd root || rootPassword
 
-    if [ $createUser != "skip" ]; then
+    if [ -n "$createUser" ]; then
         userPassword
     fi
 
@@ -49,10 +43,10 @@ rootPassword() {
 }
 
 commandFailure="Sourcing installer variable file on new system has failed."
-if ! test -e /tmp/installerOptions.sh ; then
+if ! test -e /tmp/installerOptions ; then
     failureCheck
 else
-    source /tmp/installerOptions.sh || failureCheck
+    . /tmp/installerOptions || failureCheck
 fi
 
 commandFailure="Setting root directory permissions has failed."
@@ -72,7 +66,7 @@ fi
 
 commandFailure="Enabling all services has failed."
 
-services=(gdm dbus sddm lightdm socklog-unix nanoklogd)
+services=(gdm dbus sddm lightdm)
 
 for i in "${services[@]}"
 do
@@ -93,12 +87,6 @@ fi
 if test -e "/bin/sway" ; then
     echo "Enabling elogind..."
     ln -s /etc/sv/elogind /var/service || failureCheck
-fi
-
-if test -e "/usr/bin/flatpak" ; then
-    commandFailure="Adding flatpak repository has failed."
-    echo -e "Adding flathub repo for flatpak... \n"
-    flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo || failureCheck
 fi
 
 if test -e "/dev/mapper/void-home" ; then
@@ -167,13 +155,7 @@ if [ $suChoice == "doas" ]; then
     ln -s $(which doas) /usr/bin/sudo || failureCheck
 fi
 
-clear
-
-echo -e "If you would like to create a new user, enter a username here. \n"
-echo -e "If you do not want to add a user now, enter 'skip' \n"
-read createUser
-
-if [ $createUser == "skip" ]; then
+if [ -z "$createUser" ]; then
     clear    
     rootPassword
 else
@@ -184,7 +166,7 @@ else
     echo -e "Should user $createUser be a superuser? (y/n) \n"
     read superPrompt
 
-    if [ $superPrompt == "y" ] || [ $superPrompt == "Y"]; then
+    if [ $superPrompt == "y" ] || [ $superPrompt == "Y" ]; then
         usermod -aG wheel $createUser || failureCheck
         if [ $suChoice == "sudo" ]; then
             sed -i -e 's/# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/g' /etc/sudoers || failureCheck

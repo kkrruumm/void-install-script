@@ -1,0 +1,12 @@
+title=openssh
+description="- OpenSSH package"
+status=off
+
+main() {
+    commandFailure="OpenSSH installation has failed."
+    echo -e "Installing OpenSSH... \n"
+    xbps-install -Sy -R $installRepo -r /mnt openssh || failureCheck
+    echo -e "OpenSSH has been installed. \n"
+
+    return 0
+}

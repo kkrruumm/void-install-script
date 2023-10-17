@@ -1,0 +1,12 @@
+title=raise_vm.max_map_count
+description="- Raises vm.max_map_count to 1048576"
+status=off
+
+main() {
+    commandFailure="Raising vm.max_map_count has failed."
+    echo -e "Raising vm.max_map_count... \n"
+    echo "vm.max_map_count=1048576" >> /mnt/etc/sysctl.conf
+    echo -e "vm.max_map_count has been raised. \n"
+
+    return 0
+}

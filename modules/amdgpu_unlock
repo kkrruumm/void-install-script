@@ -1,0 +1,16 @@
+title=amdgpu_unlock
+description="- Enables amdgpu overclocking"
+status=off
+
+main() {
+    commandFailure="Enabling amdgpu overclocking has failed..."
+    echo -e "Enabling amdgpu overclocking... \n"
+    if [ $bootloaderChoice == "grub" ]; then
+        sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 amdgpu.ppfeaturemask=0xffffffff/g' /mnt/etc/default/grub || failureCheck
+    elif [ $bootloaderChoice == "efistub" ]; then
+        sed -i -e 's/OPTIONS="loglevel=4/OPTIONS="loglevel=4 amdgpu.ppfeaturemask=0xffffffff/g' /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
+    fi
+    echo -e "amdgpu overclocking enabled. \n"
+
+    return 0
+}

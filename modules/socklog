@@ -1,0 +1,17 @@
+title=socklog
+description="- Enables system logging"
+status=on
+
+main() {
+    commandFailure="Socklog installation has failed."
+    echo -e "Installing socklog... \n"
+    xbps-install -Sy -R $installRepo -r /mnt socklog-void || failureCheck
+    echo -e "Socklog has been installed. \n"
+
+    commandFailure="Enabling socklog has failed."
+    echo -e "Enabling socklog... \n"
+    chroot /mnt /bin/bash -c "ln -s /etc/sv/socklog-unix /var/service && ln -s /etc/sv/nanoklogd /var/service" || failureCheck
+    echo -e "Socklog has been enabled. \n"
+
+    return 0
+}
