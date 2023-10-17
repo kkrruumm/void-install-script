@@ -213,7 +213,6 @@ installOptions() {
         fi
 
         # Extras
-        commandFailure="Reading modules directory has failed."
         read -a modulesList -d '\n' < <(ls modules/ | sort)
         commandFailure="Importing module has failed."
 
@@ -226,7 +225,7 @@ installOptions() {
         done
 
         # Using sh here as a simple solution to it misbehaving when ran normally
-        modulesChoice=( "$(sh -c "dialog --stdout --title 'Extra Options' --no-mouse --backtitle "https://github.com/kkrruumm/void-install-script" --checklist 'Enable or disable extra install options: ' 0 0 0 $(echo "${modulesDialogArray[@]}")")" )
+        modulesChoice=( $(sh -c "dialog --stdout --title 'Extra Options' --no-mouse --backtitle "https://github.com/kkrruumm/void-install-script" --checklist 'Enable or disable extra install options: ' 0 0 0 $(echo "${modulesDialogArray[@]}")") )
 
         confirmInstallationOptions
     elif [ "$installType" == "minimal" ]; then
