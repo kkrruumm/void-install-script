@@ -43,7 +43,7 @@ rootPassword() {
 }
 
 commandFailure="Sourcing installer variable file on new system has failed."
-if ! test -e /tmp/installerOptions ; then
+if [ ! -e "/tmp/installerOptions" ]; then
     failureCheck
 else
     . /tmp/installerOptions || failureCheck
@@ -55,7 +55,7 @@ chmod 755 / || failureCheck
 
 echo -e "Enabling all services... \n"
 
-if test -e "/usr/share/applications/pipewire.desktop" ; then
+if [ -e "/usr/share/applications/pipewire.desktop" ]; then
     commandFailure="Pipewire configuration has failed."
     echo "Enabling Pipewire..."
     ln -s /usr/share/applications/pipewire.desktop /etc/xdg/autostart/pipewire.desktop || echo -e "Autostart dir does not appear to exist... "
@@ -70,7 +70,7 @@ services=(gdm dbus sddm lightdm)
 
 for i in "${services[@]}"
 do
-    if test -e "/etc/sv/$i" ; then
+    if [ -e "/etc/sv/$i" ]; then
         echo -e "Enabling $i..."
         ln -s /etc/sv/$i /var/service || failureCheck
     fi
@@ -84,12 +84,12 @@ elif [ $networkChoice == "dhcpcd" ]; then
     ln -s /etc/sv/dhcpcd /var/service || failureCheck
 fi
 
-if test -e "/bin/sway" ; then
+if [ -e "/bin/sway" ]; then
     echo "Enabling elogind..."
     ln -s /etc/sv/elogind /var/service || failureCheck
 fi
 
-if test -e "/dev/mapper/void-home" ; then
+if [ -e "/dev/mapper/void-home" ]; then
     commandFailure="Mounting home directory has failed."
     mount /dev/mapper/void-home /home || failureCheck
 fi

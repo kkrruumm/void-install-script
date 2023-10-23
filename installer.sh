@@ -18,7 +18,7 @@ entry() {
     libclocale="en_US.UTF-8 UTF-8"
 
     # This script will only work on UEFI systems.
-    if test -e "/sys/firmware/efi" ; then
+    if [ -e "/sys/firmware/efi" ]; then
         echo -e "This system is UEFI. Continuing... \n"
     else
         commandFailure="This script only supports UEFI systems, but it appears we have booted as BIOS."
@@ -37,7 +37,7 @@ entry() {
         failureCheck
     fi
 
-    if test -e "$runDirectory/systemchroot.sh" ; then
+    if [ -e "$runDirectory/systemchroot.sh" ]; then
         echo -e "Secondary script found. Continuing... \n"
     else
         commandFailure="Secondary script appears to be missing. This could be because the name of it is incorrect, or it does not exist in $runDirectory."
@@ -218,7 +218,7 @@ installOptions() {
 
         for i in "${modulesList[@]}"
         do
-            if test -e "modules/$i" && checkModule ; then
+            if [ -e "modules/$i" ] && checkModule ; then
                 . "modules/$i" || failureCheck
                 modulesDialogArray+=("'$title' '$description' '$status'")
             fi
@@ -752,7 +752,6 @@ postInstall() {
         echo -e "If you are ready to reboot into your new system, enter 'sudo reboot now' \n"
         exit 0
     else
-
         commandFailure="Executing module has failed."
         for i in "${modulesChoice[@]}"
         do
