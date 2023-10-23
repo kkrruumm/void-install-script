@@ -424,7 +424,23 @@ install() {
     commandFailure="Base system installation has failed."
     sleep 1
 
-    XBPS_ARCH=$ARCH xbps-install -Sy -R $installRepo -r /mnt base-minimal $kernelChoice ncurses libgcc bash file less man-pages mdocml pciutils usbutils dhcpcd kbd iproute2 iputils ethtool kmod acpid eudev lvm2 void-artwork || failureCheck
+    XBPS_ARCH=$ARCH xbps-install -Sy -R $installRepo -r /mnt base-minimal $kernelChoice dosfstools ncurses libgcc bash file less man-pages mdocml pciutils usbutils dhcpcd kbd iproute2 iputils ethtool kmod acpid eudev lvm2 void-artwork || failureCheck
+
+    case $fsChoice in
+
+        xfs)
+            xbps-install -Sy -R $installRepo -r /mnt xfsprogs || failureCheck
+            ;;
+
+        ext4)
+            xbps-install -Sy -R $installRepo -r /mnt e2fsprogs || failureCheck
+            ;;
+
+        *)
+            failureCheck
+            ;;
+            
+    esac
 
     # The dkms package will install headers for 'linux' rather than '$kernelChoice' unless we create a virtual package here, and we do not need both.
     if [ "$kernelChoice" == "linux-lts" ]; then
