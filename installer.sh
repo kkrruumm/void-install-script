@@ -12,6 +12,10 @@ fi
 
 entry() {
 
+    if [ -n "$modulesDialogArray" ]; then
+        unset modulesDialogArray
+    fi
+
     runDirectory=$(pwd)
     sysArch=$(uname -m)
     locale="LANG=en_US.UTF-8"
