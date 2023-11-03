@@ -3,7 +3,7 @@ description="- Enables amdgpu overclocking"
 status=off
 
 main() {
-    commandFailure="Enabling amdgpu overclocking has failed..."
+    commandFailure="Enabling amdgpu overclocking has failed."
     echo -e "Enabling amdgpu overclocking... \n"
     if [ $bootloaderChoice == "grub" ]; then
         sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 amdgpu.ppfeaturemask=0xffffffff/g' /mnt/etc/default/grub || failureCheck

@@ -6,7 +6,16 @@ This installer was primarily created to serve as an installer with encryption su
 # Features
 ```
 -Experimental efistub support, see efistub notes
+
 -Option to add user-created modules to be executed by the installer, see modules notes
+-Included modules do various things, a few included ones:
+--Option to raise vm.max_map_count
+--Option to enable system logging with socklog
+--Option to install wifi firmware and basic utilities
+--Option to install Flatpak with Flathub repository
+--Option to install and preconfigure qemu and libvirt
+--Option to install nftables with a default firewall config
+--Option to enable esync by raising user ulimit
 
 -Option to encrypt installation disk
 --With efistup setup, encryption will encrypt / using luks2
@@ -17,15 +26,12 @@ This installer was primarily created to serve as an installer with encryption su
 --Networking (dhcpcd, NetworkManager, none)
 --Audio server (pipewire, pulseaudio, none)
 --DE or WM (gnome, kde, xfce, sway, i3, none)
---System logging with socklog
---Flatpak
 --Or, choose to do none of these and install a bare-minimum system
 
 -Option to securely erase the installation disk with shred
 -Option to choose either doas or sudo
 -Option to choose your repository mirror
 -Option to choose between linux, linux-lts, and linux-mainline kernels
--Option to install wifi firmware and basic utilities
 -Option to choose between xfs and ext4 filesystems
 -Configure partitions in the installer for home, swap, and root with LVM
 -Support for both glibc and musl
@@ -57,11 +63,9 @@ This setup would be very well complimented by secure boot.
 
 # Modules notes
 
-A barebones "module" system has been added to the installer to provide users with a simple way to add their own features.
+A barebones "module" system has been added to the installer to make adding misc features simpler and more organized.
 
-This also makes adding future misc. features to the installer easier in general.
-
-To create a module, simply create a file in the 'modules' directory that comes with this installer, its name should be the title of your module.
+To create a module, create a file in the 'modules' directory that comes with this installer, its name should be the title of your module.
 
 Then, add at minimum the 3 required variables and 1 required function to this file.
 If any of the 3 required variables or the 1 required function are missing, the installer will not import the module.
