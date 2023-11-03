@@ -82,11 +82,11 @@ main() {
 }
 ```
 
---The title variable here will both be the name of the entry in the TUI, but also the name of the file the installer will look for.
+The title variable here will both be the name of the entry in the TUI, but also the name of the file the installer will look for.
 
---The description variable will be the extra information given to the user in the TUI along with the option and can be left empty, but must exist.
+The description variable will be the extra information given to the user in the TUI along with the option and can be left empty, but must exist.
 
---The status variable tells the installer whether or not the module should be enabled or disabled by default, valid values are on/off.
+The status variable tells the installer whether or not the module should be enabled or disabled by default, valid values are on/off.
 
 Inside of the main() function, you're free to add any commands you'd like to be executed, and you can access all variables set by the primary install script.
 
