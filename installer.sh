@@ -1,30 +1,29 @@
 #!/bin/bash
 user=$(whoami)
+
+if [ "$user" != root ]; then
+    echo -e "${RED}Please execute this script as root. \n${NC}"
+    exit 1
+fi
+
+sysArch=$(uname -m)
+locale="LANG=en_US.UTF-8"
+libclocale="en_US.UTF-8 UTF-8"
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\e[1;33m'
 NC='\033[0m'
 
-if [ "$user" != root ]; then
-    echo -e "${RED}Please execute this script as root.${NC}"
-    exit 1
-fi
-
 entry() {
 
+    # Unsetting to prevent duplicates when the installer scans for modules
     if [ -n "$modulesDialogArray" ]; then
         unset modulesDialogArray
     fi
 
-    runDirectory=$(pwd)
-    sysArch=$(uname -m)
-    locale="LANG=en_US.UTF-8"
-    libclocale="en_US.UTF-8 UTF-8"
-
     # This script will only work on UEFI systems.
-    if [ -e "/sys/firmware/efi" ]; then
-        echo -e "This system is UEFI. Continuing... \n"
-    else
+    if [ ! -e "/sys/firmware/efi" ]; then
         commandFailure="This script only supports UEFI systems, but it appears we have booted as BIOS."
         failureCheck
     fi
@@ -41,10 +40,13 @@ entry() {
         failureCheck
     fi
 
-    if [ -e "$runDirectory/systemchroot.sh" ]; then
-        echo -e "Secondary script found. Continuing... \n"
-    else
-        commandFailure="Secondary script appears to be missing. This could be because the name of it is incorrect, or it does not exist in $runDirectory."
+    if [ ! -e "$(pwd)/systemchroot.sh" ]; then
+        commandFailure="Secondary script appears to be missing. This could be because the name of it is incorrect, or it does not exist in $(pwd)."
+        failureCheck
+    fi
+
+    if [ ! -e "$(pwd)/modules" ]; then
+        commandFailure="Modules directory appears to be missing. This could be because the name of it is incorrect, or it does not exist in $(pwd)."
         failureCheck
     fi
 
@@ -700,7 +702,7 @@ chrootFunction() {
         echo "$1='$2'" >> /mnt/tmp/installerOptions || failureCheck
     done
 
-    cp -f $runDirectory/systemchroot.sh /mnt/tmp/systemchroot.sh || failureCheck
+    cp -f $(pwd)/systemchroot.sh /mnt/tmp/systemchroot.sh || failureCheck
     chroot /mnt /bin/bash -c "/bin/bash /tmp/systemchroot.sh" || failureCheck
 
     postInstall
@@ -769,7 +771,7 @@ postInstall() {
         clear
 
         echo -e "${GREEN}Installation complete.${NC} \n"
-        echo -e "If you are ready to reboot into your new system, enter 'sudo reboot now' \n"
+        echo -e "Please remove installation media and reboot. \n"
         exit 0
     else
         commandFailure="Executing module has failed."
@@ -783,7 +785,7 @@ postInstall() {
         clear
 
         echo -e "${GREEN}Installation complete.${NC} \n"
-        echo -e "If you are ready to reboot into your new system, enter 'sudo reboot now' \n"
+        echo -e "Please remove installation media and reboot. \n"
         exit 0
     fi
 
