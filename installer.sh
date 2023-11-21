@@ -347,7 +347,7 @@ install() {
         # 10 seconds should be a good enough default for this installer, with the luks default being 2 seconds.
         # The fips140 compliant value here would be 600000 according to owasp, though this would result in a 10 minute disk unlock time.
 
-        echo -e "${YELLOW}Enter your encryption passphrase here, the stronger the better. ${NC}\n"
+        echo -e "${YELLOW}Enter your encryption passphrase here. ${NC}\n"
         if [ "$bootloaderChoice" == "grub" ]; then
             # We need to use luks1 and pbkdf2 to maintain compatibility with grub here.
             # It should be possible to replace the grub EFI binary to add luks2 support, but for the time being I'm going to leave this as luks1.
