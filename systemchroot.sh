@@ -66,9 +66,7 @@ fi
 
 commandFailure="Enabling all services has failed."
 
-services=(gdm dbus sddm lightdm)
-
-for i in "${services[@]}"
+for i in gdm dbus sddm lightdm
 do
     if [ -e "/etc/sv/$i" ]; then
         echo -e "Enabling $i..."

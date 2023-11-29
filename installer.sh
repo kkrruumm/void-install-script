@@ -1,12 +1,10 @@
 #!/bin/bash
-user=$(whoami)
 
-if [ "$user" != root ]; then
+if [ "$USER" != root ]; then
     echo -e "${RED}Please execute this script as root. \n${NC}"
     exit 1
 fi
 
-sysArch=$(uname -m)
 locale="LANG=en_US.UTF-8"
 libclocale="en_US.UTF-8 UTF-8"
 
@@ -35,7 +33,7 @@ entry() {
         muslSelection="musl"
     fi
 
-    if [ "$sysArch" != "x86_64" ]; then
+    if [ "$(uname -m)" != "x86_64" ]; then
         commandFailure="This systems CPU architecture is not currently supported by this install script."
         failureCheck
     fi
@@ -428,7 +426,6 @@ install() {
 
     echo -e "Installing base system... \n"
     commandFailure="Base system installation has failed."
-    sleep 1
 
     XBPS_ARCH=$ARCH xbps-install -Sy -R $installRepo -r /mnt base-minimal $kernelChoice dosfstools ncurses libgcc bash file less man-pages mdocml pciutils usbutils dhcpcd kbd iproute2 iputils ethtool kmod acpid eudev lvm2 void-artwork || failureCheck
 
@@ -486,7 +483,6 @@ install() {
     fi
 
     echo -e "Base system installed... \n"
-    sleep 1
 
     echo -e "Configuring fstab... \n"
     commandFailure="Fstab configuration has failed."
@@ -630,28 +626,24 @@ install() {
                 echo -e "Installing Gnome desktop environment... \n"
                 xbps-install -Sy -R $installRepo -r /mnt gnome-core gnome-disk-utility gnome-console gnome-tweaks gnome-browser-connector gnome-text-editor xdg-user-dirs xorg-minimal || failureCheck
                 echo -e "Gnome has been installed. \n"
-                sleep 1
                 ;;
 
             kde)
                 echo -e "Installing KDE desktop environment... \n"
                 xbps-install -Sy -R $installRepo -r /mnt kde5 kde5-baseapps xdg-user-dirs xorg-minimal || failureCheck
                 echo -e "KDE has been installed. \n"
-                sleep 1
                 ;;
 
             xfce)
                 echo -e "Installing XFCE desktop environment... \n"
                 xbps-install -Sy -R $installRepo -r /mnt xfce4 lightdm lightdm-gtk3-greeter xorg-minimal xdg-user-dirs xorg-fonts || failureCheck
                 echo -e "XFCE has been installed. \n"
-                sleep 1
                 ;;
 
             sway)
                 echo -e "Installing Sway window manager... \n"
                 xbps-install -Sy -R $installRepo -r /mnt sway elogind foot xorg-fonts || failureCheck
                 echo -e "Sway has been installed. \n"
-                sleep 1
                 ;;
 
             i3)
