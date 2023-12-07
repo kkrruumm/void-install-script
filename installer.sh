@@ -148,7 +148,11 @@ installOptions() {
             wipePrompt="No"
             passInput=0
         fi
+    else
+        encryptionPrompt="No"
     fi
+
+    baseChoice=$(drawDialog --no-cancel --title "Base system meta package choice" --menu "If you are unsure, choose 'base-system'" 0 0 0 "base-system" "- Traditional base system package" "base-container" "- Minimal base system package targeted at containers and chroots")
 
     # More filesystems such as btrfs can be added later.
     fsChoice=$(drawDialog --no-cancel --title "Filesystem choice" --menu "If you are unsure, choose 'ext4'" 0 0 0 "ext4" "" "xfs" "")
@@ -241,6 +245,7 @@ installOptions() {
 confirmInstallationOptions() {  
 
     drawDialog --yes-label "Install" --no-label "Exit" --extra-button --extra-label "Restart" --title "Confirm Installation Choices" --yesno "    Selecting 'Install' here will install with the options below. \n\n
+        Base System: $baseChoice \n
         Repo mirror: $installRepo \n
         Bootloader: $bootloaderChoice \n
         Kernel: $kernelChoice \n
@@ -427,23 +432,50 @@ install() {
     echo -e "Installing base system... \n"
     commandFailure="Base system installation has failed."
 
-    XBPS_ARCH=$ARCH xbps-install -Sy -R $installRepo -r /mnt base-minimal $kernelChoice dosfstools ncurses libgcc bash file less man-pages mdocml pciutils usbutils dhcpcd kbd iproute2 iputils ethtool kmod acpid eudev lvm2 void-artwork || failureCheck
+    if [ $baseChoice == "base-container" ]; then
+        XBPS_ARCH=$ARCH xbps-install -Sy -R $installRepo -r /mnt base-container $kernelChoice dosfstools ncurses libgcc bash file less man-pages mdocml pciutils usbutils dhcpcd kbd iproute2 iputils ethtool kmod acpid eudev lvm2 void-artwork || failureCheck
 
-    case $fsChoice in
+        case $fsChoice in
 
-        xfs)
-            xbps-install -Sy -R $installRepo -r /mnt xfsprogs || failureCheck
-            ;;
+            xfs)
+                xbps-install -Sy -R $installRepo -r /mnt xfsprogs || failureCheck
+                ;;
 
-        ext4)
-            xbps-install -Sy -R $installRepo -r /mnt e2fsprogs || failureCheck
-            ;;
+            ext4)
+                xbps-install -Sy -R $installRepo -r /mnt e2fsprogs || failureCheck
+                ;;
 
-        *)
-            failureCheck
-            ;;
-            
-    esac
+            *)
+                failureCheck
+                ;;
+
+        esac
+    elif [ $baseChoice == "base-system" ]; then
+        XBPS_ARCH=$ARCH xbps-install -Sy -R $installRepo -r /mnt base-system lvm2 || failureCheck
+
+        # Ignore some packages provided by base-system and remove them to provide a choice.
+        if [ $kernelChoice != "linux" ]; then
+            echo "ignorepkg=linux" >> /mnt/etc/xbps.d/ignore.conf || failureCheck
+
+            xbps-install -Sy -R $installRepo -r /mnt $kernelChoice || failureCheck
+
+            xbps-remove -ROoy -r /mnt linux || failureCheck
+        fi
+
+        if [ $suChoice != "sudo" ]; then
+            echo "ignorepkg=sudo" >> /mnt/etc/xbps.d/ignore.conf || failureCheck
+
+            xbps-remove -ROoy -r /mnt sudo || failureCheck
+        fi
+
+        if [[ ! ${modulesChoice[@]} =~ "wifi-firmware" ]]; then
+            echo "ignorepkg=wifi-firmware" >> /mnt/etc/xbps.d/ignore.conf || failureCheck
+            echo "ignorepkg=iw" >> /mnt/etc/xbps.d/ignore.conf || failureCheck
+            echo "ignorepkg=wpa_supplicant" >> /mnt/etc/xbps.d/ignore.conf || failureCheck
+
+            xbps-remove -ROoy -r /mnt wifi-firmware iw wpa_supplicant || failureCheck
+        fi
+    fi
 
     # The dkms package will install headers for 'linux' rather than '$kernelChoice' unless we create a virtual package here, and we do not need both.
     if [ "$kernelChoice" == "linux-lts" ]; then

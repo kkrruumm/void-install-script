@@ -102,7 +102,7 @@ fi
 
 partVar=$(blkid -o value -s UUID $partition2)
 
-if [ $encryptionPrompt == "y" ] || [ $encryptionPrompt == "Y" ]; then
+if [ $encryptionPrompt == "Yes" ]; then
     if [ $bootloaderChoice == "grub" ]; then
         commandFailure="Configuring LUKS key has failed."
 

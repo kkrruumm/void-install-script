@@ -26,6 +26,7 @@ This installer was primarily created to serve as an installer with encryption su
 --DE or WM (gnome, kde, xfce, sway, i3, none)
 --Or, choose to do none of these and install a bare-minimum system
 
+-Option to choose between base-system and base-container base system meta packages
 -Option to securely erase the installation disk with shred
 -Option to choose either doas or sudo
 -Option to choose your repository mirror
@@ -97,6 +98,8 @@ Feel free to check out some of the installers included modules for further examp
 This installer is not officially supported, and is still fairly work-in-progress. If you run into any problems please file them on this github page.
 
 This installer only supports x86_64-efi. I currently have no plans to support anything else.
+
+The base-system metapackage should be chosen in *most* scenarios, though using base-container provides a slightly more minimal install.
 
 If you have found this script useful, do star this repository!
 
