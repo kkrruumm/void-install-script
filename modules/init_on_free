@@ -10,7 +10,7 @@ main() {
         chroot /mnt /bin/bash -c "update-grub" || failureCheck
     elif [ $bootloaderChoice == "efistub" ]; then
         sed -i -e 's/OPTIONS="loglevel=4/OPTIONS="loglevel=4 init_on_free=1/g' /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
-        chroot /mnt /bin/bash -c "xbps-reconfigure -f linux$(uname -r | cut -c -3)" || failureCheck
+        chroot /mnt /bin/bash -c "xbps-reconfigure -f linux$(find /mnt/boot -name vmlinuz\* | tr -d "/boot/vmlinuz-" | cut -c -3)" || failureCheck
     fi
     echo -e "init_on_free enabled. \n"
 
