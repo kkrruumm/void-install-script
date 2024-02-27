@@ -210,15 +210,27 @@ installOptions() {
 
         audioChoice=$(drawDialog --title "Audio Server" --menu "If you are unsure, 'pipewire' is recommended.\n\nChoose 'Skip' if you want to skip." 0 0 0 "pipewire" "" "pulseaudio" "")
 
-        desktopChoice=$(drawDialog --title "Desktop Environment" --menu "Choose 'Skip' if you want to skip." 0 0 0 "gnome" "" "kde" "" "xfce" "" "sway" "" "i3" "")
+        desktopChoice=$(drawDialog --title "Desktop Environment" --menu "Choose 'Skip' if you want to skip." 0 0 0 "gnome" "" "kde" "" "xfce" "" "sway" "" "swayfx" "" "wayfire" "" "i3" "")
 
-        if [ "$desktopChoice" == "i3" ]; then
-            if drawDialog --title "" --yesno "Would you like to install lightdm with i3wm?" 0 0 ; then
-                i3prompt="Yes"
-            fi
-        elif [ "$desktopChoice" == "sway" ]; then
-            drawDialog --msgbox "Sway will have to be started manually on login. This can be done by entering 'dbus-run-session sway' after logging in to the new installation." 0 0
-        fi
+        case $desktopChoice in
+            sway)
+                drawDialog --msgbox "Sway will have to be started manually on login. This can be done by entering 'dbus-run-session sway' after logging in on the new installation." 0 0
+		;;
+
+            swayfx)
+                drawDialog --msgbox "SwayFX will have to be started manually on login. This can be done by entering 'dbus-run-session sway' after logging in on the new installation." 0 0
+                ;;
+
+            wayfire)
+                drawDialog --msgbox "Wayfire will have to be started manually on login. This can be done by entering 'dbus-run-session wayfire' after logging in on the new installation." 0 0
+                ;;
+
+            i3)
+                if drawDialog --title "" --yesno "Would you like to install lightdm with i3?" 0 0 ; then
+                    i3prompt="Yes"
+                fi
+                ;;
+        esac
 
         # Extras
         read -a modulesList -d '\n' < <(ls modules/ | sort)
@@ -630,7 +642,10 @@ install() {
             commandFailure="NetworkManager installation has failed."
             echo -e "Installing NetworkManager... \n"
             xbps-install -Sy -R $installRepo -r /mnt NetworkManager || failureCheck
+            chroot /mnt /bin/bash -c "ln -s /etc/sv/NetworkManager /var/service" || failureCheck
             echo -e "NetworkManager has been installed. \n"
+        elif [ "$networkChoice" == "dhcpcd" ]; then
+            chroot /mnt /bin/bash -c "ln -s /etc/sv/dhcpcd /var/service" || failureCheck
         fi
 
         commandFailure="Audio server installation has failed."
@@ -657,25 +672,45 @@ install() {
             gnome)
                 echo -e "Installing Gnome desktop environment... \n"
                 xbps-install -Sy -R $installRepo -r /mnt gnome-core gnome-disk-utility gnome-console gnome-tweaks gnome-browser-connector gnome-text-editor xdg-user-dirs xorg-minimal || failureCheck
+                chroot /mnt /bin/bash -c "ln -s /etc/sv/gdm /var/service" || failureCheck
                 echo -e "Gnome has been installed. \n"
                 ;;
 
             kde)
                 echo -e "Installing KDE desktop environment... \n"
                 xbps-install -Sy -R $installRepo -r /mnt kde5 kde5-baseapps xdg-user-dirs xorg-minimal || failureCheck
+                chroot /mnt /bin/bash -c "ln -s /etc/sv/sddm /var/service" || failureCheck
                 echo -e "KDE has been installed. \n"
                 ;;
 
             xfce)
                 echo -e "Installing XFCE desktop environment... \n"
                 xbps-install -Sy -R $installRepo -r /mnt xfce4 lightdm lightdm-gtk3-greeter xorg-minimal xdg-user-dirs xorg-fonts || failureCheck
+                chroot /mnt /bin/bash -c "ln -s /etc/sv/lightdm /var/service" || failureCheck
                 echo -e "XFCE has been installed. \n"
                 ;;
 
             sway)
                 echo -e "Installing Sway window manager... \n"
-                xbps-install -Sy -R $installRepo -r /mnt sway elogind foot xorg-fonts || failureCheck
+                xbps-install -Sy -R $installRepo -r /mnt sway elogind polkit polkit-elogind foot xorg-fonts || failureCheck
+                chroot /mnt /bin/bash -c "ln -s /etc/sv/elogind /var/service && ln -s /etc/sv/polkitd /var/service" || failureCheck
                 echo -e "Sway has been installed. \n"
+                ;;
+
+            swayfx)
+                echo -e "Installing SwayFX window manager... \n"
+                xbps-install -Sy -R $installRepo -r /mnt swayfx elogind polkit polkit-elogind foot xorg-fonts || failureCheck
+                chroot /mnt /bin/bash -c "ln -s /etc/sv/elogind /var/service && ln -s /etc/sv/polkitd /var/service" || failureCheck
+                echo -e "SwayFX has been installed. \n"
+                ;;
+
+            wayfire)
+                echo -e "Installing Wayfire window manager... \n"
+                xbps-install -Sy -R $installRepo -r /mnt wayfire elogind polkit polkit-elogind foot xorg-fonts || failureCheck
+                # To ensure a consistent experience, I would rather provide foot with all wayland compositors. 
+                # Modifying the default terminal setting so the user doesn't get stuck without a terminal is done post user setup by systemchroot.sh
+                chroot /mnt /bin/bash -c "ln -s /etc/sv/elogind /var/service && ln -s /etc/sv/polkitd /var/service" || failureCheck
+                echo -e "Wayfire has been installed. \n"
                 ;;
 
             i3)
@@ -685,6 +720,7 @@ install() {
                 if [ "$i3prompt" == "Yes" ]; then
                     echo -e "Installing lightdm... \n"
                     xbps-install -Sy -R $installRepo -r /mnt lightdm lightdm-gtk3-greeter || failureCheck
+                    chroot /mnt /bin/bash -c "ln -s /etc/sv/lightdm /var/service" || failureCheck
                     echo "lightdm has been installed."
                 fi
                 ;;
@@ -717,7 +753,6 @@ chrootFunction() {
     "timezonePrompt $timezonePrompt" \
     "encryptionPrompt $encryptionPrompt" \
     "diskInput $diskInput" \
-    "networkChoice $networkChoice" \
     "createUser $createUser")
 
     for i in "${syschrootVarPairs[@]}"

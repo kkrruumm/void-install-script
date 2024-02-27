@@ -23,7 +23,7 @@ This installer was primarily created to serve as an installer with encryption su
 --Graphics drivers (amd, nvidia, intel, nvidia-optimus, none)
 --Networking (dhcpcd, NetworkManager, none)
 --Audio server (pipewire, pulseaudio, none)
---DE or WM (gnome, kde, xfce, sway, i3, none)
+--DE or WM (gnome, kde, xfce, sway, swayfx, wayfire, i3, none)
 --Or, choose to do none of these and install a bare-minimum system
 
 -Option to choose between base-system and base-container base system meta packages
@@ -105,9 +105,9 @@ If you have found this script useful, do star this repository!
 
 # Contributing
 
-The best way to contribute to this would be to find ways to break the installer.
+The best way to contribute to this would be to create a pull request adding the feature you would like.
 
-If you would like a change to be made to the script, a request/suggestion in the issues tracker is a wonderful place to start.
+If you would like a change to be made to the script, a request/suggestion in the issues tracker is also a wonderful place to start.
 
 Niche requests for features that do not fit the scope of this installer are unlikely to be entertained, but do not hesitate to suggest ideas.
 

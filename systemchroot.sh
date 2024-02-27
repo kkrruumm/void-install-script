@@ -66,25 +66,8 @@ fi
 
 commandFailure="Enabling all services has failed."
 
-for i in gdm dbus sddm lightdm
-do
-    if [ -e "/etc/sv/$i" ]; then
-        echo -e "Enabling $i..."
-        ln -s /etc/sv/$i /var/service || failureCheck
-    fi
-done
-
-if [ $networkChoice == "NetworkManager" ]; then
-    echo "Enabling NetworkManager..."
-    ln -s /etc/sv/NetworkManager /var/service || failureCheck
-elif [ $networkChoice == "dhcpcd" ]; then
-    echo "Enabling dhcpcd..."
-    ln -s /etc/sv/dhcpcd /var/service || failureCheck
-fi
-
-if [ -e "/bin/sway" ]; then
-    echo "Enabling elogind..."
-    ln -s /etc/sv/elogind /var/service || failureCheck
+if [ -e /etc/sv/dbus ]; then
+	ln -s /etc/sv/dbus /var/service || failureCheck
 fi
 
 if [ -e "/dev/mapper/void-home" ]; then
@@ -171,6 +154,17 @@ else
         elif [ $suChoice == "doas" ]; then
             echo "permit :wheel" >> /etc/doas.conf || failureCheck
         fi
+    fi
+
+# Modify default wayfire terminal after the user has been created
+    if [ -e /usr/bin/wayfire ]; then
+        commandFailure="Changing Wayfire config has failed."
+        if [ ! -d /home/$createUser/.config ]; then
+            mkdir /home/$createUser/.config || failureCheck
+        fi
+        cp /usr/share/examples/wayfire/wayfire.ini /home/$createUser/.config/wayfire.ini || failureCheck
+        sed -i -e 's/command_terminal = alacritty/command_terminal = foot/g' /home/$createUser/.config/wayfire.ini || failureCheck
+        chown -Rf $createUser:$createUser /home/$createUser/.config || failureCheck
     fi
 
     clear
