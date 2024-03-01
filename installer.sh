@@ -62,7 +62,7 @@ entry() {
     echo -e "Grabbing installer dependencies... \n"
     commandFailure="Dependency installation has failed."
     xbps-install -Suy xbps || failureCheck # Just incase xbps is out of date on the ISO
-    xbps-install -Suy dialog bc parted void-repo-nonfree || failureCheck
+    xbps-install -Suy dialog bc parted || failureCheck
 
     echo -e "Creating .dialogrc... \n"
     dialog --create-rc ~/.dialogrc
@@ -201,9 +201,13 @@ installOptions() {
     if [ "$installType" == "desktop" ]; then
 
         if [ "$muslSelection" == "glibc" ]; then
-            graphicsChoice=$(drawDialog --title "Graphics Drivers" --menu "Both nvidia and nvidia-optimus include the proprietary official driver.\n\nChoose 'Skip' if you want to skip installing graphics drivers." 0 0 0 "intel" "" "amd" "" "nvidia" "" "nvidia-optimus" "")
+            graphicsChoice=$(drawDialog --title 'Graphics Drivers' --checklist 'Select graphics drivers: ' 0 0 0 'intel' '' 'off' 'intel-32bit' '' 'off' 'amd' '' 'off' 'amd-32bit' '' 'off' 'nvidia' '- Proprietary driver' 'off' 'nvidia-32bit' '' 'off' 'nvidia-nouveau' '- Nvidia Nouveau driver (experimental)' 'off' 'nvidia-nouveau-32bit' '' 'off')
         elif [ "$muslSelection" == "musl" ]; then
-            graphicsChoice=$(drawDialog --title "Graphics Drivers" --menu "Note that nvidia drivers are incompatible with musl.\n\nChoose 'Skip' if you want to skip installing graphics drivers." 0 0 0 "intel" "" "amd" "")
+            graphicsChoice=$(drawDialog --title 'Graphics Drivers' --checklist 'Select graphics drivers: ' 0 0 0 'intel' '' 'off' 'amd' '' 'off' 'nvidia-nouveau' '- Nvidia Nouveau driver (experimental)' 'off') 
+        fi
+
+        if [ ! -z "$graphicsChoice" ]; then
+            IFS=" " read -r -a graphicsArray <<< "$graphicsChoice"
         fi
 
         networkChoice=$(drawDialog --title "Networking" --menu "If you are unsure, choose 'NetworkManager'\n\nChoose 'Skip' if you want to skip." 0 0 0 "NetworkManager" "" "dhcpcd" "")
@@ -602,41 +606,76 @@ install() {
 
         commandFailure="Graphics driver installation has failed."
 
-        case $graphicsChoice in
+        for i in "${graphicsArray[@]}"
+        do
 
-            amd)
-                echo -e "Installing AMD graphics drivers... \n"
-                xbps-install -Sy -R $installRepo -r /mnt mesa-dri vulkan-loader mesa-vulkan-radeon mesa-vaapi mesa-vdpau || failureCheck
-                echo -e "AMD graphics drivers have been installed. \n"
-                ;;
+            case $i in
 
-            nvidia)
-                echo -e "Installing NVIDIA graphics drivers... \n"
-                xbps-install -Sy -R $installRepo -r /mnt void-repo-nonfree || failureCheck
-                xmirror -s "$installRepo" -r /mnt || failureCheck
-                xbps-install -Sy -R $installRepo -r /mnt nvidia || failureCheck
-                echo -e "NVIDIA graphics drivers have been installed. \n"
-                ;;
+                amd)
+                    echo -e "Installing AMD graphics drivers... \n"
+                    xbps-install -Sy -R $installRepo -r /mnt mesa-dri vulkan-loader mesa-vulkan-radeon mesa-vaapi mesa-vdpau || failureCheck
+                    echo -e "AMD graphics drivers have been installed. \n"
+                    ;;
 
-            intel)
-                echo -e "Installing INTEL graphics drivers... \n"
-                xbps-install -Sy -R $installRepo -r /mnt mesa-dri vulkan-loader mesa-vulkan-intel intel-video-accel || failureCheck
-                echo -e "INTEL graphics drivers have been installed. \n"
-                ;;
+                amd-32bit)
+                    echo -e "Installing 32-bit AMD graphics drivers... \n"
+                    xbps-install -Sy -R $installRepo -r /mnt void-repo-multilib || failureCheck
+                    xmirror -s "$installRepo" -r /mnt || failureCheck
+                    xbps-install -Sy -R $installRepo -r /mnt libgcc-32bit libstdc++-32bit libdrm-32bit libglvnd-32bit mesa-dri-32bit || failureCheck
+                    echo -e "32-bit AMD graphics drivers have been installed. \n"
+                    ;;
 
-            nvidia-optimus)
-                echo -e "Installing INTEL and NVIDIA graphics drivers... \n"
-                xbps-install -Sy -R $installRepo -r /mnt void-repo-nonfree || failureCheck
-                xmirror -s "$installRepo" -r /mnt || failureCheck
-                xbps-install -Sy -R $installRepo -r /mnt nvidia mesa-dri vulkan-loader mesa-vulkan-intel intel-video-accel || failureCheck
-                echo -e "INTEL and NVIDIA graphics drivers have been installed. \n"
-                ;;
+                nvidia)
+                    echo -e "Installing NVIDIA graphics drivers... \n"
+                    xbps-install -Sy -R $installRepo -r /mnt void-repo-nonfree || failureCheck
+                    xmirror -s "$installRepo" -r /mnt || failureCheck
+                    xbps-install -Sy -R $installRepo -r /mnt nvidia || failureCheck
+                    echo -e "NVIDIA graphics drivers have been installed. \n"
+                    ;;
 
-            *)
-                echo -e "Continuing without graphics drivers... \n"
-                ;;
+                nvidia-32bit)
+                    echo -e "Installing 32-bit NVIDIA graphics drivers... \n"
+                    xbps-install -Sy -R $installRepo -r /mnt void-repo-multilib-nonfree || failureCheck
+                    xmirror -s "$installRepo" -r /mnt || failureCheck
+                    xbps-install -Sy -R $installRepo -r /mnt nvidia-libs-32bit || failureCheck
+                    echo -e "32-bit NVIDIA graphics drivers have been installed. \n"
+                    ;;
 
-        esac
+                intel)
+                    echo -e "Installing INTEL graphics drivers... \n"
+                    xbps-install -Sy -R $installRepo -r /mnt mesa-dri vulkan-loader mesa-vulkan-intel intel-video-accel || failureCheck
+                    echo -e "INTEL graphics drivers have been installed. \n"
+                    ;;
+
+                intel-32bit)
+                    echo -e "Installing 32-bit INTEL graphics drivers... \n"
+                    xbps-install -Sy -R $installRepo -r /mnt void-repo-multilib || failureCheck
+                    xmirror -s "$installRepo" -r /mnt || failureCheck
+                    xbps-install -Sy -R $installRepo -r /mnt libgcc-32bit libstdc++-32bit libdrm-32bit libglvnd-32bit mesa-dri-32bit || failureCheck
+                    echo -e "32-bit INTEL graphics drivers have been installed. \n"
+                    ;;
+
+                nvidia-nouveau)
+                    echo -e "Installing NOUVEAU graphics drivers... \n"
+                    xbps-install -Sy -R $installRepo -r /mnt mesa-dri mesa-nouveau-dri || failureCheck
+                    echo -e "NOUVEAU graphics drivers have been installed. \n"
+                    ;;
+
+                nvidia-nouveau-32bit)
+                    echo -e "Installing 32-bit NOUVEAU graphics drivers... \n"
+                    xbps-install -Sy -R $installRepo -r /mnt void-repo-multilib || failureCheck
+                    xmirror -s "$installRepo" -r /mnt || failureCheck
+                    xbps-install -Sy -R $installRepo -r /mnt libgcc-32bit libstdc++-32bit libdrm-32bit libglvnd-32bit mesa-dri-32bit mesa-nouveau-dri-32bit || failureCheck
+                    echo -e "32-bit NOUVEAU graphics drivers have been installed. \n"
+                    ;;
+
+                *)
+                    echo -e "Continuing without graphics drivers... \n"
+                    ;;
+
+            esac
+
+        done
 
         if [ "$networkChoice" == "NetworkManager" ]; then
             commandFailure="NetworkManager installation has failed."
@@ -671,21 +710,21 @@ install() {
 
             gnome)
                 echo -e "Installing Gnome desktop environment... \n"
-                xbps-install -Sy -R $installRepo -r /mnt gnome-core gnome-disk-utility gnome-console gnome-tweaks gnome-browser-connector gnome-text-editor xdg-user-dirs xorg-minimal || failureCheck
+                xbps-install -Sy -R $installRepo -r /mnt gnome-core gnome-disk-utility gnome-console gnome-tweaks gnome-browser-connector gnome-text-editor xdg-user-dirs xorg-minimal xorg-video-drivers || failureCheck
                 chroot /mnt /bin/bash -c "ln -s /etc/sv/gdm /var/service" || failureCheck
                 echo -e "Gnome has been installed. \n"
                 ;;
 
             kde)
                 echo -e "Installing KDE desktop environment... \n"
-                xbps-install -Sy -R $installRepo -r /mnt kde5 kde5-baseapps xdg-user-dirs xorg-minimal || failureCheck
+                xbps-install -Sy -R $installRepo -r /mnt kde5 kde5-baseapps xdg-user-dirs xorg-minimal xorg-video-drivers || failureCheck
                 chroot /mnt /bin/bash -c "ln -s /etc/sv/sddm /var/service" || failureCheck
                 echo -e "KDE has been installed. \n"
                 ;;
 
             xfce)
                 echo -e "Installing XFCE desktop environment... \n"
-                xbps-install -Sy -R $installRepo -r /mnt xfce4 lightdm lightdm-gtk3-greeter xorg-minimal xdg-user-dirs xorg-fonts || failureCheck
+                xbps-install -Sy -R $installRepo -r /mnt xfce4 lightdm lightdm-gtk3-greeter xorg-minimal xdg-user-dirs xorg-fonts xorg-video-drivers || failureCheck
                 chroot /mnt /bin/bash -c "ln -s /etc/sv/lightdm /var/service" || failureCheck
                 echo -e "XFCE has been installed. \n"
                 ;;
@@ -715,7 +754,7 @@ install() {
 
             i3)
                 echo -e "Installing i3wm... \n"
-                xbps-install -Sy -R $installRepo -r /mnt xorg-minimal xinit xterm i3 xorg-fonts || failureCheck
+                xbps-install -Sy -R $installRepo -r /mnt xorg-minimal xinit xterm i3 xorg-fonts xorg-video-drivers || failureCheck
                 echo -e "i3wm has been installed. \n"
                 if [ "$i3prompt" == "Yes" ]; then
                     echo -e "Installing lightdm... \n"
