@@ -20,7 +20,7 @@ This installer was primarily created to serve as an installer with encryption su
 --With grub setup, encryption will encrypt both /boot and / using luks1
 
 -Option to pre-install and pre-configure the following;
---Graphics drivers (amd, nvidia, intel, nvidia-optimus, none)
+--Graphics drivers (amd, nvidia, intel, nvidia-nouveau, none)
 --Networking (dhcpcd, NetworkManager, none)
 --Audio server (pipewire, pulseaudio, none)
 --DE or WM (gnome, kde, xfce, sway, swayfx, wayfire, i3, none)
