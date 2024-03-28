@@ -630,6 +630,14 @@ install() {
                     xbps-install -Sy -R $installRepo -r /mnt void-repo-nonfree || failureCheck
                     xmirror -s "$installRepo" -r /mnt || failureCheck
                     xbps-install -Sy -R $installRepo -r /mnt nvidia || failureCheck
+
+                    # Enabling mode setting for wayland compositors
+                    if [ "$bootloaderChoice" == "grub" ]; then
+                        sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_DEFAULT="loglevel=4 nvidia_drm.modeset=1/g' /mnt/etc/default/grub || failureCheck 
+                    elif [ "$bootloaderChoice" == "efistub" ]; then
+                        sed -i -e 's/OPTIONS="loglevel=4/OPTIONS="loglevel=4 nvidia_drm.modeset=1/g' /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
+                    fi
+
                     echo -e "NVIDIA graphics drivers have been installed. \n"
                     ;;
 
@@ -792,7 +800,8 @@ chrootFunction() {
     "timezonePrompt $timezonePrompt" \
     "encryptionPrompt $encryptionPrompt" \
     "diskInput $diskInput" \
-    "createUser $createUser")
+    "createUser $createUser" \
+    "desktopChoice $desktopChoice")
 
     for i in "${syschrootVarPairs[@]}"
     do

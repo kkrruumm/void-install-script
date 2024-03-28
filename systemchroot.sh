@@ -156,16 +156,28 @@ else
         fi
     fi
 
-# Modify default wayfire terminal after the user has been created
-    if [ -e /usr/bin/wayfire ]; then
-        commandFailure="Changing Wayfire config has failed."
-        if [ ! -d /home/$createUser/.config ]; then
-            mkdir /home/$createUser/.config || failureCheck
-        fi
-        cp /usr/share/examples/wayfire/wayfire.ini /home/$createUser/.config/wayfire.ini || failureCheck
-        sed -i -e 's/command_terminal = alacritty/command_terminal = foot/g' /home/$createUser/.config/wayfire.ini || failureCheck
-        chown -Rf $createUser:$createUser /home/$createUser/.config || failureCheck
-    fi
+    case $desktopChoice in
+        wayfire)
+            # Modify default wayfire terminal after the user has been created
+            commandFailure="Changing Wayfire config has failed."
+            if [ ! -d /home/$createUser/.config ]; then
+                mkdir /home/$createUser/.config || failureCheck
+            fi
+            cp /usr/share/examples/wayfire/wayfire.ini /home/$createUser/.config/wayfire.ini || failureCheck
+            sed -i -e 's/command_terminal = alacritty/command_terminal = foot/g' /home/$createUser/.config/wayfire.ini || failureCheck
+            chown -Rf $createUser:$createUser /home/$createUser/.config || failureCheck
+            ;;
+
+        gnome)
+            # Cursed fix for gdm not providing a Wayland option if the Nvidia driver is in use, found here: https://wiki.archlinux.org/title/GDM#Wayland_and_the_proprietary_NVIDIA_driver
+            if [ -e /usr/bin/nvidia-smi ]; then
+                if [ ! -d /etc/udev/rules.d ]; then
+                    mkdir -p /etc/udev/rules.d
+                fi
+                ln -s /dev/null /etc/udev/rules.d/61-gdm.rules || failureCheck
+            fi
+            ;;
+    esac
 
     clear
 
