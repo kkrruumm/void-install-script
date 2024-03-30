@@ -99,7 +99,10 @@ Feel free to check out some of the installers included modules for further examp
 
 There are a few options that aren't exposed directly to the user, but can be changed by creating a file that sets these variables and adding it as a flag when executing the installer.
 
-Example: './installer.sh /path/to/file'
+Example: 
+```
+./installer.sh /path/to/file
+```
 
 Such file would contain any or all of the following options, and the following examples are set to their default values:
 
@@ -109,6 +112,8 @@ hash="sha512"
 keysize="512"
 itertime="10000"
 ```
+
+If none of these variables are set in the file, or no file is provided, the above defaults will be used.
 
 The toggle for ACPI can be set to false if you are facing ACPI related issues. This will set the "acpi=off" kernel parameter on the new install. Do not change this setting unless absolutely necessary.
 
