@@ -19,7 +19,7 @@ This installer was primarily created to serve as an installer with encryption su
 --With efistup setup, encryption will encrypt / using luks2
 --With grub setup, encryption will encrypt both /boot and / using luks1
 
--Option to pre-install and pre-configure the following;
+-Option to pre-install and pre-configure the following:
 --Graphics drivers (amd, nvidia, intel, nvidia-nouveau, none)
 --Networking (dhcpcd, NetworkManager, none)
 --Audio server (pipewire, pulseaudio, none)
@@ -55,6 +55,8 @@ Done.
 efistub setup will *not* provide full-disk-encryption as /boot will not be encrypted.
 
 However, root will be encrypted using luks2 instead of luks1, since grub is no longer a constraint here.
+
+Do keep in mind potential security issues regarding weaker key derivation functions, such as pbkdf2 which is used with luks1 here, rather than argon2id with luks2.
 
 efistub *can* be a bit touchy on some (non entirely UEFI standards compliant) motherboards, though this doesn't seem to be much of a problem as long as we "trick" boards into not deleting the boot entry.
 
@@ -92,6 +94,35 @@ Inside of the main() function, you're free to add any commands you'd like to be 
 That's it!
 
 Feel free to check out some of the installers included modules for further example.
+
+# Hidden installer options
+
+There are a few options that aren't exposed directly to the user, but can be changed by creating a file that sets these variables and adding it as a flag when executing the installer.
+
+Example: './installer.sh /path/to/file'
+
+Such file would contain any or all of the following options, and the following examples are set to their default values:
+
+```
+acpi="true"
+hash="sha512"
+keysize="512"
+itertime="10000"
+```
+
+The toggle for ACPI can be set to false if you are facing ACPI related issues. This will set the "acpi=off" kernel parameter on the new install. Do not change this setting unless absolutely necessary.
+
+hash, keysize, and itertime are all variables that change the LUKS settings for encrypted installations.
+
+I do not recommend changing hash and keysize from their default values unless you are absolutely certain you would like to. Research this before changing values.
+
+itertime is a bit less strict. As a TL;DR, the higher this value is, the longer brute-forcing this drive should take. 
+
+The value here will equal the amount of time it takes to unlock the drive in milliseconds calculated for the system this is ran on. If this drive is then put into a system with a faster CPU, it will unlock quicker.
+
+The LUKS default is "2000", or 2 seconds. The default in this installer has been raised with systems that have slower CPUs (and users that are more security conscious) in mind.
+
+The fips140 compliant value here would be 600000 according to owasp, though this would result in a 10 minute disk unlock time.
 
 # Misc notes
 

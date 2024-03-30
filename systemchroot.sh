@@ -159,6 +159,7 @@ else
     case $desktopChoice in
         wayfire)
             # Modify default wayfire terminal after the user has been created
+            echo -e "Modifying default wayfire terminal... \n"
             commandFailure="Changing Wayfire config has failed."
             if [ ! -d /home/$createUser/.config ]; then
                 mkdir /home/$createUser/.config || failureCheck
@@ -170,9 +171,11 @@ else
 
         gnome)
             # Cursed fix for gdm not providing a Wayland option if the Nvidia driver is in use, found here: https://wiki.archlinux.org/title/GDM#Wayland_and_the_proprietary_NVIDIA_driver
+            echo -e "Modifying udev rules for gdm... \n"
+            commandFailure="Modifying udev rules for gdm has failed."
             if [ -e /usr/bin/nvidia-smi ]; then
                 if [ ! -d /etc/udev/rules.d ]; then
-                    mkdir -p /etc/udev/rules.d
+                    mkdir -p /etc/udev/rules.d || failureCheck
                 fi
                 ln -s /dev/null /etc/udev/rules.d/61-gdm.rules || failureCheck
             fi

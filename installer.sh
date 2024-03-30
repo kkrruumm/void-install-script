@@ -13,6 +13,13 @@ GREEN='\033[0;32m'
 YELLOW='\e[1;33m'
 NC='\033[0m'
 
+# Source file that contains "hidden" settings
+if [ "$#" == "1" ]; then
+    echo -e "Sourcing hidden options file... \n"
+    commandFailure="Sourcing hidden options file has failed."
+    . "$1" || failureCheck
+fi
+
 entry() {
 
     # Unsetting to prevent duplicates when the installer scans for modules
@@ -355,16 +362,15 @@ install() {
     if [ "$encryptionPrompt" == "Yes" ]; then
         echo "Configuring partitions for encrypted install..."
 
-        # Cryptsetup options, not exposing to user directly but modify values here if you'd like.
-        hash="sha512"
-        keysize="512"
-        itertime="10000" # Read comments below
-
-        # The higher the itertime value, the longer brute forcing the drive will take.
-        # The value here will equal the amount of time it takes to unlock the drive in milliseconds calculated for the system this is ran on.
-        # However, due to this, if the drive is then put into a system with a faster CPU, it will unlock quicker. Raising this value on systems with slower CPUs may be a good idea.
-        # 10 seconds should be a good enough default for this installer, with the luks default being 2 seconds.
-        # The fips140 compliant value here would be 600000 according to owasp, though this would result in a 10 minute disk unlock time.
+        if [ -z "$hash" ]; then
+            hash="sha512"
+        fi
+        if [ -z "$keysize" ]; then
+            keysize="512"
+        fi
+        if [ -z "$itertime" ]; then
+            itertime="10000"
+        fi
 
         echo -e "${YELLOW}Enter your encryption passphrase here. ${NC}\n"
         if [ "$bootloaderChoice" == "grub" ]; then
@@ -579,6 +585,12 @@ install() {
 
         echo 'OPTIONS="loglevel=4 rd.lvm.vg=void"' >> /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
 
+        if [ "$acpi" == "false" ]; then
+            commandFailure="Disabling ACPI has failed."
+            echo -e "Disabling ACPI... \n"
+            sed -i -e 's/OPTIONS="loglevel=4/OPTIONS="loglevel=4 acpi=off/g' /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
+        fi
+
     elif [ "$bootloaderChoice" == "grub" ]; then
         if [ "$encryptionPrompt" == "Yes" ]; then
             commandFailure="Configuring grub for full disk encryption has failed."
@@ -586,6 +598,12 @@ install() {
             partVar=$(blkid -o value -s UUID $partition2)
             sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4"/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 rd.lvm.vg=void rd.luks.uuid='$partVar'"/g' /mnt/etc/default/grub || failureCheck
             echo "GRUB_ENABLE_CRYPTODISK=y" >> /mnt/etc/default/grub || failureCheck
+        fi
+        
+        if [ "$acpi" == "false" ]; then
+            commandFailure="Disabling ACPI has failed."
+            echo -e "Disabling ACPI... \n"
+            sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 acpi=off/g' /mnt/etc/default/grub || failureCheck
         fi
     fi
 
