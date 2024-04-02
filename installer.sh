@@ -168,7 +168,7 @@ installOptions() {
 
     kernelChoice=$(drawDialog --no-cancel --title "Kernel choice" --menu "If you are unsure, choose 'linux'" 0 0 0 "linux" "- Normal Void kernel" "linux-lts" "- Older LTS kernel" "linux-mainline" "- Bleeding edge kernel")
 
-    bootloaderChoice=$(drawDialog --no-cancel --title "Bootloader choice" --menu "If you are unsure, choose 'grub'" 0 0 0 "grub" "- Traditional bootloader" "efistub" "- Boot kernel directly")
+    bootloaderChoice=$(drawDialog --no-cancel --title "Bootloader choice" --menu "If you are unsure, choose 'grub'" 0 0 0 "grub" "- Traditional bootloader" "efistub" "- Boot kernel directly" "none" "- Installs no bootloader (Advanced)")
 
     hostnameInput=$(drawDialog --no-cancel --title "System hostname" --inputbox "Set your system hostname." 0 0)
 
@@ -373,14 +373,23 @@ install() {
         fi
 
         echo -e "${YELLOW}Enter your encryption passphrase here. ${NC}\n"
-        if [ "$bootloaderChoice" == "grub" ]; then
-            # We need to use luks1 and pbkdf2 to maintain compatibility with grub here.
-            # It should be possible to replace the grub EFI binary to add luks2 support, but for the time being I'm going to leave this as luks1.
-            cryptsetup luksFormat --type luks1 --batch-mode --verify-passphrase --hash $hash --key-size $keysize --iter-time $itertime --pbkdf pbkdf2 --use-urandom $partition2 || failureCheck
-        elif [ "$bootloaderChoice" == "efistub" ]; then
-            # We get to use luks2 here, no need to maintain compatibility.
-            cryptsetup luksFormat --type luks2 --batch-mode --verify-passphrase --hash $hash --key-size $keysize --iter-time $itertime --pbkdf argon2id --use-urandom $partition2 || failureCheck
-        fi
+
+        case $bootloaderChoice in
+            efistub)
+                # We get to use luks2 here, no need to maintain compatibility.
+                cryptsetup luksFormat --type luks2 --batch-mode --verify-passphrase --hash $hash --key-size $keysize --iter-time $itertime --pbkdf argon2id --use-urandom $partition2 || failureCheck
+                ;;
+            none)
+                # Best effort encryption here, should provide options for luks version and pbkdf in the future
+                cryptsetup luksFormat --type luks2 --batch-mode --verify-passphrase --hash $hash --key-size $keysize --iter-time $itertime --pbkdf argon2id --use-urandom $partition2 || failureCheck
+                ;;
+            grub)
+                # We need to use luks1 and pbkdf2 to maintain compatibility with grub here.
+                # It should be possible to replace the grub EFI binary to add luks2 support, but for the time being I'm going to leave this as luks1.
+                cryptsetup luksFormat --type luks1 --batch-mode --verify-passphrase --hash $hash --key-size $keysize --iter-time $itertime --pbkdf pbkdf2 --use-urandom $partition2 || failureCheck
+                ;;
+        esac
+
         echo -e "${YELLOW}Opening new encrypted container... ${NC}\n"
         cryptsetup luksOpen $partition2 void || failureCheck
     else
@@ -541,7 +550,7 @@ install() {
     echo -e "Configuring fstab... \n"
     commandFailure="Fstab configuration has failed."
     partVar=$(blkid -o value -s UUID $partition1)
-    if [ "$bootloaderChoice" == "grub" ]; then
+    if [ "$bootloaderChoice" == "grub" ] || [ "$bootloaderChoice" == "none" ]; then
         echo "UUID=$partVar 	/boot/efi	vfat	defaults	0	0" >> /mnt/etc/fstab || failureCheck
     elif [ "$bootloaderChoice" == "efistub" ]; then
         echo "UUID=$partVar     /boot       vfat    defaults    0   0" >> /mnt/etc/fstab || failureCheck
