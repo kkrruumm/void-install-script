@@ -111,6 +111,7 @@ acpi="true"
 hash="sha512"
 keysize="512"
 itertime="10000"
+basesystem="*" # Define base system packages instead of using metapackage
 ```
 
 If none of these variables are set in the file, or no file is provided, the above defaults will be used.
@@ -128,6 +129,8 @@ The value here will equal the amount of time it takes to unlock the drive in mil
 The LUKS default is "2000", or 2 seconds. The default in this installer has been raised with systems that have slower CPUs (and users that are more security conscious) in mind.
 
 The fips140 compliant value here would be 600000 according to owasp, though this would result in a 10 minute disk unlock time.
+
+The role of the hidden settings feature is to provide lower level control without adding visual bloat to the installer.
 
 # Misc notes
 

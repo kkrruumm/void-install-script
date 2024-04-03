@@ -159,14 +159,22 @@ installOptions() {
         encryptionPrompt="No"
     fi
 
-    baseChoice=$(drawDialog --no-cancel --title "Base system meta package choice" --menu "If you are unsure, choose 'base-system'" 0 0 0 "base-system" "- Traditional base system package" "base-container" "- Minimal base system package targeted at containers and chroots")
+    if [ -z "$basesystem" ]; then
+        baseChoice=$(drawDialog --no-cancel --title "Base system meta package choice" --menu "If you are unsure, choose 'base-system'" 0 0 0 "base-system" "- Traditional base system package" "base-container" "- Minimal base system package targeted at containers and chroots")
+    else
+        baseChoice="Custom"
+    fi
 
     # More filesystems such as btrfs can be added later.
     fsChoice=$(drawDialog --no-cancel --title "Filesystem choice" --menu "If you are unsure, choose 'ext4'" 0 0 0 "ext4" "" "xfs" "")
 
-    suChoice=$(drawDialog --no-cancel --title "SU choice" --menu "If you are unsure, choose 'sudo'" 0 0 0 "sudo" "" "doas" "")
-
-    kernelChoice=$(drawDialog --no-cancel --title "Kernel choice" --menu "If you are unsure, choose 'linux'" 0 0 0 "linux" "- Normal Void kernel" "linux-lts" "- Older LTS kernel" "linux-mainline" "- Bleeding edge kernel")
+    suChoice=$(drawDialog --no-cancel --title "SU choice" --menu "If you are unsure, choose 'sudo'" 0 0 0 "sudo" "" "doas" "" "none" "")
+    
+    if [ -z "$basesystem" ]; then
+        kernelChoice=$(drawDialog --no-cancel --title "Kernel choice" --menu "If you are unsure, choose 'linux'" 0 0 0 "linux" "- Normal Void kernel" "linux-lts" "- Older LTS kernel" "linux-mainline" "- Bleeding edge kernel")
+    else
+        kernelChoice="Custom"
+    fi
 
     bootloaderChoice=$(drawDialog --no-cancel --title "Bootloader choice" --menu "If you are unsure, choose 'grub'" 0 0 0 "grub" "- Traditional bootloader" "efistub" "- Boot kernel directly" "none" "- Installs no bootloader (Advanced)")
 
@@ -463,50 +471,56 @@ install() {
     echo -e "Installing base system... \n"
     commandFailure="Base system installation has failed."
 
-    if [ $baseChoice == "base-container" ]; then
-        XBPS_ARCH=$ARCH xbps-install -Sy -R $installRepo -r /mnt base-container $kernelChoice dosfstools ncurses libgcc bash file less man-pages mdocml pciutils usbutils dhcpcd kbd iproute2 iputils ethtool kmod acpid eudev lvm2 void-artwork || failureCheck
+    case $baseChoice in
+        Custom)
+            XBPS_ARCH=$ARCH xbps-install -Sy -R $installRepo -r /mnt $basesystem || failureCheck
+            ;;
+        base-container)
+            XBPS_ARCH=$ARCH xbps-install -Sy -R $installRepo -r /mnt base-container $kernelChoice dosfstools ncurses libgcc bash file less man-pages mdocml pciutils usbutils dhcpcd kbd iproute2 iputils ethtool kmod acpid eudev lvm2 void-artwork || failureCheck
 
-        case $fsChoice in
+            case $fsChoice in
 
-            xfs)
-                xbps-install -Sy -R $installRepo -r /mnt xfsprogs || failureCheck
-                ;;
+                xfs)
+                    xbps-install -Sy -R $installRepo -r /mnt xfsprogs || failureCheck
+                    ;;
 
-            ext4)
-                xbps-install -Sy -R $installRepo -r /mnt e2fsprogs || failureCheck
-                ;;
+                ext4)
+                    xbps-install -Sy -R $installRepo -r /mnt e2fsprogs || failureCheck
+                    ;;
 
-            *)
-                failureCheck
-                ;;
+                *)
+                    failureCheck
+                    ;;
 
-        esac
-    elif [ $baseChoice == "base-system" ]; then
-        XBPS_ARCH=$ARCH xbps-install -Sy -R $installRepo -r /mnt base-system lvm2 || failureCheck
+            esac            
+            ;;
+        base-system)
+            XBPS_ARCH=$ARCH xbps-install -Sy -R $installRepo -r /mnt base-system lvm2 || failureCheck
 
-        # Ignore some packages provided by base-system and remove them to provide a choice.
-        if [ $kernelChoice != "linux" ]; then
-            echo "ignorepkg=linux" >> /mnt/etc/xbps.d/ignore.conf || failureCheck
+            # Ignore some packages provided by base-system and remove them to provide a choice.
+            if [ $kernelChoice != "linux" ] && [ $kernelChoice != "Custom" ]; then
+                echo "ignorepkg=linux" >> /mnt/etc/xbps.d/ignore.conf || failureCheck
 
-            xbps-install -Sy -R $installRepo -r /mnt $kernelChoice || failureCheck
+                xbps-install -Sy -R $installRepo -r /mnt $kernelChoice || failureCheck
 
-            xbps-remove -ROoy -r /mnt linux || failureCheck
-        fi
+                xbps-remove -ROoy -r /mnt linux || failureCheck
+            fi
 
-        if [ $suChoice != "sudo" ]; then
-            echo "ignorepkg=sudo" >> /mnt/etc/xbps.d/ignore.conf || failureCheck
+            if [ $suChoice != "sudo" ]; then
+                echo "ignorepkg=sudo" >> /mnt/etc/xbps.d/ignore.conf || failureCheck
 
-            xbps-remove -ROoy -r /mnt sudo || failureCheck
-        fi
+                xbps-remove -ROoy -r /mnt sudo || failureCheck
+            fi
 
-        if [[ ! ${modulesChoice[@]} =~ "wifi-firmware" ]]; then
-            echo "ignorepkg=wifi-firmware" >> /mnt/etc/xbps.d/ignore.conf || failureCheck
-            echo "ignorepkg=iw" >> /mnt/etc/xbps.d/ignore.conf || failureCheck
-            echo "ignorepkg=wpa_supplicant" >> /mnt/etc/xbps.d/ignore.conf || failureCheck
+            if [ "$installType" == "desktop" ] && [[ ! ${modulesChoice[@]} =~ "wifi-firmware" ]]; then
+                echo "ignorepkg=wifi-firmware" >> /mnt/etc/xbps.d/ignore.conf || failureCheck
+                echo "ignorepkg=iw" >> /mnt/etc/xbps.d/ignore.conf || failureCheck
+                echo "ignorepkg=wpa_supplicant" >> /mnt/etc/xbps.d/ignore.conf || failureCheck
 
-            xbps-remove -ROoy -r /mnt wifi-firmware iw wpa_supplicant || failureCheck
-        fi
-    fi
+                xbps-remove -ROoy -r /mnt wifi-firmware iw wpa_supplicant || failureCheck
+            fi
+            ;;
+    esac
 
     # The dkms package will install headers for 'linux' rather than '$kernelChoice' unless we create a virtual package here, and we do not need both.
     if [ "$kernelChoice" == "linux-lts" ]; then
