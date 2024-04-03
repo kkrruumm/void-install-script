@@ -430,7 +430,11 @@ install() {
     if [ "$fsChoice" == "ext4" ]; then
         mkfs.ext4 /dev/void/root || failureCheck
     elif [ "$fsChoice" == "xfs" ]; then
-        mkfs.xfs /dev/void/root || failureCheck
+        if [ "$bootloaderChoice" == "grub" ]; then
+            mkfs.xfs -i nrext64=0 /dev/void/root || failureCheck
+        else
+            mkfs.xfs /dev/void/root || failureCheck
+        fi
     fi
 
     if [ "$separateHomePossible" == "1" ]; then
