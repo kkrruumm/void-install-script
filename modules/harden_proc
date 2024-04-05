@@ -1,0 +1,24 @@
+title=harden_proc
+description="- Hardens /proc by setting hidepid=2 and gid=proc"
+status=off
+
+main() {
+    commandFailure="Modifying rc for hideproc has failed."
+    echo -e "Modifying rc for hideproc... \n"
+    echo "mount -o remount,rw,nosuid,nodev,noexec,relatime,hidepid=2,gid=proc /proc" >> /mnt/etc/rc.local || failureCheck
+    echo -e "Modified rc for hideproc. \n"
+
+    commandFailure="Creating group for proc users has failed."
+    echo -e "Creating group for proc users... \n"
+    chroot /mnt /bin/bash -c "groupadd proc" || failureCheck
+    echo -e "Created group for proc users. \n"
+
+    if [ -n "$createUser" ]; then
+        commandFailure="Adding user to proc group has failed."
+        echo -e "Adding user to proc group... \n"
+        chroot /mnt /bin/bash -c "usermod -aG proc $createUser"
+        echo -e "Added user to proc group. \n"
+    fi
+     
+    return 0
+}
