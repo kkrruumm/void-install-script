@@ -13,14 +13,23 @@ main() {
     sed -i -e 's/#unix_sock_group = "libvirt"/unix_sock_group = "libvirt"/g' /mnt/etc/libvirt/libvirtd.conf || failureCheck
     sed -i -e 's/#unix_sock_rw_perms = "0770"/unix_sock_rw_perms = "0770"/g' /mnt/etc/libvirt/libvirtd.conf || failureCheck
 
-    sed -i -e 's/#user = "libvirt"/user = "'$createUser'"/g' /mnt/etc/libvirt/qemu.conf || failureCheck
-    sed -i -e 's/#group = "libvirt"/group = "'$createUser'"/g' /mnt/etc/libvirt/qemu.conf || failureCheck
-    echo -e "Modified qemu and libvirt configs. \n"
+    if [ -n "$createUser" ]; then
+        sed -i -e 's/#user = "libvirt"/user = "'$createUser'"/g' /mnt/etc/libvirt/qemu.conf || failureCheck
+        sed -i -e 's/#group = "libvirt"/group = "'$createUser'"/g' /mnt/etc/libvirt/qemu.conf || failureCheck
+        echo -e "Modified qemu and libvirt configs. \n"
 
-    commandFailure="Adding user to libvirt group has failed."
-    echo -e "Adding user to libvirt group... \n"
-    chroot /mnt /bin/bash -c "usermod -aG libvirt $createUser" || failureCheck
-    echo -e "Added user to libvirt group. \n"
+        commandFailure="Adding user to libvirt group has failed."
+        echo -e "Adding user to libvirt group... \n"
+        chroot /mnt /bin/bash -c "usermod -aG libvirt $createUser" || failureCheck
+        echo -e "Added user to libvirt group. \n"
+    fi
+
+    commandFailure="Enabling virt services has failed."
+    echo -e "Enabling virt services... \n" 
+    chroot /mnt /bin/bash -c "ln -s /etc/sv/libvirtd /var/service" || failureCheck
+    chroot /mnt /bin/bash -c "ln -s /etc/sv/virtlogd /var/service" || failureCheck
+    chroot /mnt /bin/bash -c "ln -s /etc/sv/virtlockd /var/service" || failureCheck
+    echo -e "virt services enabled. \n"
 
     return 0
 }
