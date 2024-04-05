@@ -582,6 +582,7 @@ install() {
     if [ "$homePrompt" == "Yes" ] && [ "$separateHomePossible" == "1" ]; then
         echo "/dev/void/home  /home $fsChoice     defaults              0       0" >> /mnt/etc/fstab || failureCheck
     fi
+    echo "tmpfs		/tmp	tmpfs	nosuid,nodev		0	0" >> /mnt/etc/fstab || failureCheck
 
     if [ "$bootloaderChoice" == "efistub" ]; then
         echo "Configuring dracut for efistub boot..."
