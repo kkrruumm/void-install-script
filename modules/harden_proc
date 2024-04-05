@@ -16,7 +16,7 @@ main() {
     if [ -n "$createUser" ]; then
         commandFailure="Adding user to proc group has failed."
         echo -e "Adding user to proc group... \n"
-        chroot /mnt /bin/bash -c "usermod -aG proc $createUser"
+        chroot /mnt /bin/bash -c "usermod -aG proc $createUser" || failureCheck
         echo -e "Added user to proc group. \n"
     fi
      
