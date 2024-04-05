@@ -3,10 +3,14 @@ description="- Enables esync by raising ulimit"
 status=off
 
 main() {
-    commandFailure="Enabling esync has failed."
-    echo -e "Raising ulimit for esync... \n"
-    echo "$createUser		 hard	 nofile		 524288" >> /mnt/etc/security/limits.conf || failureCheck
-    echo -e "ulimit raised. \n"
+    if [ -n "$createUser" ]; then
+        commandFailure="Enabling esync has failed."
+        echo -e "Raising ulimit for esync... \n"
+        echo "$createUser		 hard	 nofile		 524288" >> /mnt/etc/security/limits.conf || failureCheck
+        echo -e "ulimit raised. \n"
+    else
+        echo -e "User does not exist. Cannot raise ulimit. \n"
+    fi
 
     return 0
 }
