@@ -9,10 +9,12 @@ main() {
     commandFailure="Setting net.ipv4.conf.all.rp_filter has failed."
     if [ "$rpfilterChoice" == "Loose" ]; then
         echo -e "Setting net.ipv4.conf.all.rp_filter... \n"
+        echo "net.ipv4.conf.default.rp_filter = 2" >> /mnt/etc/sysctl.conf || failureCheck
         echo "net.ipv4.conf.all.rp_filter = 2" >> /mnt/etc/sysctl.conf || failureCheck
         echo -e "net.ipv4.conf.all.rp_filter has been set. \n"
     elif [ "$rpfilterChoice" == "Strict" ]; then
         echo -e "Setting net.ipv4.conf.all.rp_filter... \n"
+        echo "net.ipv4.conf.default.rp_filter = 1" >> /mnt/etc/sysctl.conf || failureCheck
         echo "net.ipv4.conf.all.rp_filter = 1" >> /mnt/etc/sysctl.conf || failureCheck
         echo -e "net.ipv4.conf.all.rp_filter has been set. \n"
     fi
