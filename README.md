@@ -3,6 +3,8 @@ TUI Shell script installer for Void Linux
 
 This installer was primarily created to serve as an installer with encryption support while also having general installation options one would want, with sane defaults.
 
+![TUI Image](https://imgur.com/a/pSTqqgB)
+
 # Features
 ```
 -Option to add user-created modules to be executed by the installer, see modules notes
@@ -12,6 +14,7 @@ This installer was primarily created to serve as an installer with encryption su
 --Option to install Flatpak with Flathub repository
 --Option to install and preconfigure qemu and libvirt
 --Option to install nftables with a default firewall config
+-- Various security related modules
 
 -Option to choose between efistub and grub
 
