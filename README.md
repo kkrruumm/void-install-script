@@ -3,8 +3,6 @@ TUI Shell script installer for Void Linux
 
 This installer was primarily created to serve as an installer with encryption support while also having general installation options one would want, with sane defaults.
 
-![TUI Image](https://imgur.com/a/pSTqqgB)
-
 # Features
 ```
 -Option to add user-created modules to be executed by the installer, see modules notes
