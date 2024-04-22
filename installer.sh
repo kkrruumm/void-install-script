@@ -689,7 +689,7 @@ install() {
 
                 nvidia-32bit)
                     echo -e "Installing 32-bit NVIDIA graphics drivers... \n"
-                    xbps-install -Sy -R $installRepo -r /mnt void-repo-multilib-nonfree || failureCheck
+                    xbps-install -Sy -R $installRepo -r /mnt void-repo-multilib-nonfree void-repo-multilib || failureCheck
                     xmirror -s "$installRepo" -r /mnt || failureCheck
                     xbps-install -Sy -R $installRepo -r /mnt nvidia-libs-32bit || failureCheck
                     echo -e "32-bit NVIDIA graphics drivers have been installed. \n"
