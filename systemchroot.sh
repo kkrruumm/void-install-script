@@ -55,19 +55,24 @@ chmod 755 / || failureCheck
 
 echo -e "Enabling all services... \n"
 
-if [ -e "/usr/share/applications/pipewire.desktop" ]; then
+if [ -e "/usr/share/applications/pipewire.desktop" ] && [ -e "/etc/xdg/autostart/" ]; then
     commandFailure="Pipewire configuration has failed."
-    echo "Enabling Pipewire..."
-    ln -s /usr/share/applications/pipewire.desktop /etc/xdg/autostart/pipewire.desktop || echo -e "Autostart dir does not appear to exist... "
-    ln -s /usr/share/applications/pipewire-pulse.desktop /etc/xdg/autostart/pipewire-pulse.desktop || echo -e "Autostart dir does not appear to exist... \n"
+    echo -e "Enabling Pipewire... \n"
+    ln -s /usr/share/applications/pipewire.desktop /etc/xdg/autostart/pipewire.desktop || failureCheck 
+    ln -s /usr/share/applications/pipewire-pulse.desktop /etc/xdg/autostart/pipewire-pulse.desktop || failureCheck
+else
+    echo -e "Cannot enable pipewire via DE autostart. This is likely not an error. \n"
+fi
+
+if [ -e "/usr/share/alsa/alsa.conf.d/50-pipewire.conf" ] && [ -e "/usr/share/alsa/alsa.conf.d/99-pipewire-default.conf" ]; then
+    commandFailure="Pipewire configuration has failed."
     ln -s /usr/share/alsa/alsa.conf.d/50-pipewire.conf /etc/alsa/conf.d || failureCheck
     ln -s /usr/share/alsa/alsa.conf.d/99-pipewire-default.conf /etc/alsa/conf.d || failureCheck
 fi
 
-commandFailure="Enabling all services has failed."
-
 if [ -e /etc/sv/dbus ]; then
-	ln -s /etc/sv/dbus /var/service || failureCheck
+    commandFailure="Enabling dbus has failed."
+    ln -s /etc/sv/dbus /var/service || failureCheck
 fi
 
 if [ -e "/dev/mapper/void-home" ]; then
