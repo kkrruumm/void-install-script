@@ -19,6 +19,14 @@ main() {
         chroot /mnt /bin/bash -c "usermod -aG proc $createUser" || failureCheck
         echo -e "Added user to proc group. \n"
     fi
-     
+    
+    # Required for certain things the installer may deploy to function out of the box.
+    if grep "polkitd" /mnt/etc/passwd ; then
+        commandFailure="Adding polkit user to proc group has failed."
+        echo -e "Adding polkit user to proc group... \n"
+        chroot /mnt /bin/bash -c "usermod -aG proc polkitd" || failureCheck
+        echo -e "Added polkit user to proc group. \n"
+    fi
+
     return 0
 }
