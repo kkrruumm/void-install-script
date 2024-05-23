@@ -3,6 +3,8 @@ TUI Shell script installer for Void Linux
 
 This installer was primarily created to serve as an installer with encryption support while also having general installation options one would want, with sane defaults.
 
+The overall goal of this installer is to deploy a system that is ready to use as soon as the installer exits.
+
 ![TUI Image](https://github.com/kkrruumm/void-install-script/blob/main/images/tuiscreenshot.png)
 
 # Features
