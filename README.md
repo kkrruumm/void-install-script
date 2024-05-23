@@ -14,7 +14,7 @@ This installer was primarily created to serve as an installer with encryption su
 --Option to install Flatpak with Flathub repository
 --Option to install and preconfigure qemu and libvirt
 --Option to install nftables with a default firewall config
--- Various security related modules
+--Various security related modules
 
 -Option to choose between efistub and grub
 
@@ -100,7 +100,7 @@ Feel free to check out some of the installers included modules for further examp
 
 # Hidden installer options
 
-There are a few options that aren't exposed directly to the user, but can be changed by creating a file that sets these variables and adding it as a flag when executing the installer.
+There are a few options that aren't exposed directly to the user because they can potentially be dangerous, but can be changed by creating a file that sets these variables and adding it as a flag when executing the installer.
 
 Example: 
 ```
