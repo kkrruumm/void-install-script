@@ -234,7 +234,7 @@ installOptions() {
         case $desktopChoice in
             sway)
                 drawDialog --msgbox "Sway will have to be started manually on login. This can be done by entering 'dbus-run-session sway' after logging in on the new installation." 0 0
-		;;
+            ;;
 
             swayfx)
                 drawDialog --msgbox "SwayFX will have to be started manually on login. This can be done by entering 'dbus-run-session sway' after logging in on the new installation." 0 0

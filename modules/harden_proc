@@ -28,5 +28,12 @@ main() {
         echo -e "Added polkit user to proc group. \n"
     fi
 
+    if grep "gdm" /mnt/etc/passwd ; then
+        commandFailure="Adding gdm user to proc group has failed."
+        echo -e "Adding gdm user to proc group... \n"
+        chroot /mnt /bin/bash -c "usermod -aG proc gdm" || failureCheck
+        echo -e "Added gdm user to proc group. \n"
+    fi
+
     return 0
 }
