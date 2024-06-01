@@ -775,6 +775,11 @@ install() {
             xfce)
                 echo -e "Installing XFCE desktop environment... \n"
                 xbps-install -Sy -R $installRepo -r /mnt xfce4 lightdm lightdm-gtk3-greeter xorg-minimal xdg-user-dirs xorg-fonts xorg-video-drivers || failureCheck
+
+                if [ "$networkChoice" == "NetworkManager" ]; then
+                    xbps-install -Sy -R $installRepo -r /mnt network-manager-applet || failureCheck
+                fi
+
                 chroot /mnt /bin/bash -c "ln -s /etc/sv/lightdm /var/service" || failureCheck
                 echo -e "XFCE has been installed. \n"
                 ;;
@@ -782,6 +787,11 @@ install() {
             sway)
                 echo -e "Installing Sway window manager... \n"
                 xbps-install -Sy -R $installRepo -r /mnt sway elogind polkit polkit-elogind foot xorg-fonts || failureCheck
+
+                if [ "$networkChoice" == "NetworkManager" ]; then
+                    xbps-install -Sy -R $installRepo -r /mnt network-manager-applet || failureCheck
+                fi
+
                 chroot /mnt /bin/bash -c "ln -s /etc/sv/elogind /var/service && ln -s /etc/sv/polkitd /var/service" || failureCheck
                 echo -e "Sway has been installed. \n"
                 ;;
@@ -789,6 +799,11 @@ install() {
             swayfx)
                 echo -e "Installing SwayFX window manager... \n"
                 xbps-install -Sy -R $installRepo -r /mnt swayfx elogind polkit polkit-elogind foot xorg-fonts || failureCheck
+
+                if [ "$networkChoice" == "NetworkManager" ]; then
+                    xbps-install -Sy -R $installRepo -r /mnt network-manager-applet || failureCheck
+                fi
+
                 chroot /mnt /bin/bash -c "ln -s /etc/sv/elogind /var/service && ln -s /etc/sv/polkitd /var/service" || failureCheck
                 echo -e "SwayFX has been installed. \n"
                 ;;
@@ -796,6 +811,11 @@ install() {
             wayfire)
                 echo -e "Installing Wayfire window manager... \n"
                 xbps-install -Sy -R $installRepo -r /mnt wayfire elogind polkit polkit-elogind foot xorg-fonts || failureCheck
+
+                if [ "$networkChoice" == "NetworkManager" ]; then
+                    xbps-install -Sy -R $installRepo -r /mnt network-manager-applet || failureCheck
+                fi
+
                 # To ensure a consistent experience, I would rather provide foot with all wayland compositors. 
                 # Modifying the default terminal setting so the user doesn't get stuck without a terminal is done post user setup by systemchroot.sh
                 chroot /mnt /bin/bash -c "ln -s /etc/sv/elogind /var/service && ln -s /etc/sv/polkitd /var/service" || failureCheck
@@ -805,6 +825,11 @@ install() {
             i3)
                 echo -e "Installing i3wm... \n"
                 xbps-install -Sy -R $installRepo -r /mnt xorg-minimal xinit xterm i3 xorg-fonts xorg-video-drivers || failureCheck
+
+                if [ "$networkChoice" == "NetworkManager" ]; then
+                    xbps-install -Sy -R $installRepo -r /mnt network-manager-applet || failureCheck
+                fi
+
                 echo -e "i3wm has been installed. \n"
                 if [ "$i3prompt" == "Yes" ]; then
                     echo -e "Installing lightdm... \n"
