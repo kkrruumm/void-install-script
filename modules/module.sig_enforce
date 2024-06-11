@@ -1,3 +1,4 @@
+#!/bin/bash
 title=module.sig_enforce
 description="- Enables module.sig_enforce kernel parameter"
 status=off

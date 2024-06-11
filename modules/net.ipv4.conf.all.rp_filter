@@ -1,3 +1,4 @@
+#!/bin/bash
 title=net.ipv4.conf.all.rp_filter
 description="- Provides a choice to set the net.ipv4.conf.all.rp_filter value"
 status=off

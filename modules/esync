@@ -1,3 +1,4 @@
+#!/bin/bash
 title=esync
 description="- Enables esync by raising ulimit"
 status=off

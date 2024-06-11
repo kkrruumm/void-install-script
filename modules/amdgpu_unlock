@@ -1,3 +1,4 @@
+#!/bin/bash
 title=amdgpu_unlock
 description="- Enables amdgpu overclocking"
 status=off

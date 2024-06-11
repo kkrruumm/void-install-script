@@ -1,3 +1,4 @@
+#!/bin/bash
 title=nftables
 description="- Includes a default firewall config"
 status=on

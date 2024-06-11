@@ -1,3 +1,4 @@
+#!/bin/bash
 title=init_on_free
 description="- Enables init_on_free kernel parameter"
 status=off

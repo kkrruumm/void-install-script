@@ -1,3 +1,4 @@
+#!/bin/bash
 title=openntpd
 description="- OpenNTPD NTP Daemon"
 status=on

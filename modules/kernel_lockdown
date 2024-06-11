@@ -1,3 +1,4 @@
+#!/bin/bash
 title=kernel_lockdown
 description="- Provides a choice to set the kernel lockdown mode"
 status=off

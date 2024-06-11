@@ -1,3 +1,4 @@
+#!/bin/bash
 title=raise_vm.max_map_count
 description="- Raises vm.max_map_count to 1048576"
 status=off

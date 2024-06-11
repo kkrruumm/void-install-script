@@ -1,3 +1,4 @@
+#!/bin/bash
 title=virt
 description="- Installs and configures qemu and libvirt"
 status=off

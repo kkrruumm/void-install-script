@@ -1,3 +1,4 @@
+#!/bin/bash
 title=wifi-firmware
 description="- Wifi firmware and utilities"
 status=on

@@ -1,3 +1,4 @@
+#!/bin/bash
 title=harden_proc
 description="- Hardens /proc by setting hidepid=2 and gid=proc"
 status=off

@@ -1,3 +1,4 @@
+#!/bin/bash
 title=usbguard
 description="- Installs and enables usbguard, allows current devices"
 status=off

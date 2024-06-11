@@ -1,3 +1,4 @@
+#!/bin/bash
 title=flatpak
 description="- Includes Flathub repository"
 status=off

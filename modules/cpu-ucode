@@ -1,3 +1,4 @@
+#!/bin/bash
 title=cpu-ucode
 description="- Installs CPU microcode for Intel or AMD"
 status=off

@@ -1,3 +1,4 @@
+#!/bin/bash
 title=socklog
 description="- Enables system logging"
 status=on
