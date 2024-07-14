@@ -5,7 +5,7 @@ status=off
 
 main() {
 
-    lockdownChoice=$(drawDialog --no-cancel --title "Kernel Lockdown Mode" --menu "" 0 0 0 "integrity" "- Userland to modifying the running kernel is disabled." "confidentiality" "- Extracting confidential information from the kernel is also disabled." "None" "")
+    lockdownChoice=$(drawDialog --no-cancel --title "Kernel Lockdown Mode" --menu "" 0 0 0 "integrity" "- Userland modifying the running kernel is disabled." "confidentiality" "- Extracting confidential information from the kernel is also disabled." "None" "")
 
     commandFailure="Enabling kernel lockdown mode has failed."
     if [ "lockdownChoice" == "integrity" ]; then
