@@ -1,0 +1,18 @@
+#!/bin/bash
+title=chrony
+description="- Chrony NTP Daemon"
+status=on
+
+main() {
+    commandFailure="Chrony installation has failed."
+    echo -e "Installing chrony... \n"
+    xbps-install -Sy -R $installRepo -r /mnt chrony || failureCheck
+    echo -e "Chrony has been installed. \n"
+
+    commandFailure="Enabling chronyd has failed."
+    echo -e "Enabling chronyd... \n"
+    chroot /mnt /bin/bash -c "ln -s /etc/sv/chronyd /var/service" || failureCheck
+    echo -e "chronyd has been enabled. \n"
+
+    return 0
+}
