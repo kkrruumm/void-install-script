@@ -1,0 +1,13 @@
+#!/bin/bash
+title=noto-fonts
+description="- Noto TTF fonts typically used by websites"
+status="off"
+
+main() {
+    commandFailure="Noto TTF fonts installation has failed."
+    echo -e "Installing Noto TTF Fonts"
+    xbps-install -Sy -R $installRepo -r /mnt noto-fonts-ttf noto-fonts-cjk || failureCheck
+    echo -e "Noto TTF fonts have been installed."
+
+    return 0
+}
