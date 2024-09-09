@@ -5,9 +5,6 @@ if [ "$USER" != root ]; then
     exit 1
 fi
 
-locale="LANG=en_US.UTF-8"
-libclocale="en_US.UTF-8 UTF-8"
-
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\e[1;33m'
@@ -165,7 +162,8 @@ installOptions() {
         baseChoice="Custom"
     fi
 
-    # More filesystems such as btrfs can be added later.
+    # More filesystems such as zfs can be added later.
+    # Until btrfs is any bit stable or performant, it will not be accepted as a feature.
     fsChoice=$(drawDialog --no-cancel --title "Filesystem choice" --menu "If you are unsure, choose 'ext4'" 0 0 0 "ext4" "" "xfs" "")
 
     suChoice=$(drawDialog --no-cancel --title "SU choice" --menu "If you are unsure, choose 'sudo'" 0 0 0 "sudo" "" "doas" "" "none" "")
@@ -192,6 +190,20 @@ installOptions() {
 
     location=$(echo $location | tr ' ' '_')
     timezonePrompt="$area/$location"
+
+    # This line is also taken from the normal Void installer.
+    localeList=$(grep -E '\.UTF-8' /etc/default/libc-locales | awk '{print $1}' | sed -e 's/^#//')
+
+    for i in $localeList
+    do
+        # We don't need to specify an item here, only a tag and print it to stdout
+        tmp+=("$i" $(printf '\u200b')) # Use a zero width unicode character for the item
+    done
+
+    localeChoice=$(drawDialog --no-cancel --title "Locale Selection" --menu "Please choose your system locale." 0 0 0 ${tmp[@]})
+
+    locale="LANG=$localeChoice"
+    libclocale="$localeChoice UTF-8"
 
     if drawDialog --title "Repository Mirror" --yesno "Would you like to set your repo mirror?" 0 0 ; then
         xmirror
