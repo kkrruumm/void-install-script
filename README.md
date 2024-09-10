@@ -157,5 +157,7 @@ Niche requests for features that do not fit the scope of this installer are unli
 
 # TODO
 ```
--You tell me.
+-UKI support is planned
+-ZFS support with zfsbootmenu is planned
+-You tell me, or, open a PR adding what you want.
 ```
