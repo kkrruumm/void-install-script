@@ -18,6 +18,11 @@ exitFunction () {
         commandFailure="Setting default boot entry has failed."
         bootEntry=$(efibootmgr --unicode | grep "Void Linux with kernel" | while read c1 c2; do echo $c1; done | sed 's/Boot//g' | sed 's/*//g') || failureCheck
         efibootmgr --bootorder $bootEntry || failureCheck
+    elif [ $bootloaderChoice == "uki" ]; then
+        # Same as above
+        commandFailure="Setting default boot entry has failed."
+        bootEntry=$(efibootmgr --unicode | grep "Void Linux" | while read c1 c2; do echo $c1; done | sed 's/Boot//g' | sed 's/*//g') || failureCheck
+        efibootmgr --bootorder $bootEntry || failureCheck
     fi
 
     exit 0
@@ -115,16 +120,28 @@ if [ $encryptionPrompt == "Yes" ]; then
     fi
 fi
 
-if [ $bootloaderChoice == "efistub" ]; then
-    # Symlink to tell dracut to mount all filesystems listed
-    commandFailure="Dracut fstab symlink has failed."
-    ln -s /etc/fstab /etc/fstab.sys || failureCheck
-elif [ $bootloaderChoice == "grub" ]; then
-    echo -e "Running grub-install... \n"
-    commandFailure="GRUB installation has failed."
-
-    grub-install --removable --target=x86_64-efi --efi-directory=/boot/efi || failureCheck
-fi
+case $bootloaderChoice in
+    uki)
+        commandFailure="Creating ESP path has failed."
+        mkdir -p /boot/efi/EFI/boot || failureCheck
+        commandFailure="Building UKI has failed."
+        ukify build --linux=$(find /boot/vmlinuz*) --initrd=$(find /boot/initramfs*) --cmdline="$(cat /root/kernelparams)" --output=/boot/efi/EFI/boot/bootx64.efi || failureCheck
+        # This file path is wild, but it's to try to prevent shitty motherboards from deleting our boot entry.
+        commandFailure="Creating EFI boot entry has failed."
+        efibootmgr --create --label "Void Linux" --disk $diskInput --part 1 --loader "\EFI\boot\bootx64.efi" || failureCheck
+        # This shouldn't ever need to be regenerated assuming the EFI executable is kept where it's at.
+        ;;
+    efistub)
+        # Symlink to tell dracut to mount all filesystems listed
+        commandFailure="Dracut fstab symlink has failed."
+        ln -s /etc/fstab /etc/fstab.sys || failureCheck
+        ;;
+    grub)
+        echo -e "Running grub-install... \n"
+        commandFailure="GRUB installation has failed."
+        grub-install --removable --target=x86_64-efi --efi-directory=/boot/efi || failureCheck
+        ;;
+esac
 
 clear
 
