@@ -8,7 +8,7 @@ main() {
     lockdownChoice=$(drawDialog --no-cancel --title "Kernel Lockdown Mode" --menu "" 0 0 0 "integrity" "- Userland modifying the running kernel is disabled." "confidentiality" "- Extracting confidential information from the kernel is also disabled." "None" "")
 
     commandFailure="Enabling kernel lockdown mode has failed."
-    if [ "lockdownChoice" == "integrity" ]; then
+    if [ "$lockdownChoice" == "integrity" ]; then
             case $bootloaderChoice in
                 grub)
                     sed -i -e 's/GRUB_CMDLINE_DEFAULT="loglevel=4/GRUB_CMDLINE_DEFAULT="loglevel=4 lockdown=integrity/g' /mnt/etc/default/grub || failureCheck
