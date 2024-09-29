@@ -122,10 +122,13 @@ fi
 
 case $bootloaderChoice in
     uki)
+        commandFailure="Forced kernel reconfigure has failed."
+        xbps-reconfigure -f linux$(find /boot -name vmlinuz\* | tr -d "/boot/vmlinuz-" | cut -c -3) || failureCheck
+        # We need to force a kernel reconfigure before building our UKI.
         commandFailure="Creating ESP path has failed."
         mkdir -p /boot/efi/EFI/boot || failureCheck
         commandFailure="Building UKI has failed."
-        ukify build --linux=$(find /boot/vmlinuz*) --initrd=$(find /boot/initramfs*) --cmdline="$(cat /root/kernelparams)" --output=/boot/efi/EFI/boot/bootx64.efi || failureCheck
+        ukify build --linux="$(find /boot/vmlinuz*)" --initrd="$(find /boot/initramfs*)" --cmdline="$(cat /root/kernelparams)" --output=/boot/efi/EFI/boot/bootx64.efi || failureCheck
         # This file path is wild, but it's to try to prevent shitty motherboards from deleting our boot entry.
         commandFailure="Creating EFI boot entry has failed."
         efibootmgr --create --label "Void Linux" --disk $diskInput --part 1 --loader "\EFI\boot\bootx64.efi" || failureCheck

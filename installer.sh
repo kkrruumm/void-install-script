@@ -674,7 +674,7 @@ install() {
                 partVar=$(blkid -o value -s UUID $partition2)
                 echo "rd.luks.uuid=$partVar root=/dev/void/root rootfstype=$fsChoice rw loglevel=4" >> /mnt/root/kernelparams || failureCheck
             else
-                echo "loglevel=4 rd.lvm.vg=void" >> /mnt/root/kernelparams || failureCheck
+                echo "rd.lvm.vg=void root=/dev/void/root rootfstype=$fsChoice rw loglevel=4" >> /mnt/root/kernelparams || failureCheck
             fi
 
             if [ "$acpi" == "false" ]; then
