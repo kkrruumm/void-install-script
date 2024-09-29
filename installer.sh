@@ -615,7 +615,6 @@ install() {
     if [ "$homePrompt" == "Yes" ] && [ "$separateHomePossible" == "1" ]; then
         echo "/dev/void/home  /home $fsChoice     defaults              0       0" >> /mnt/etc/fstab || failureCheck
     fi
-    echo "tmpfs		/tmp	tmpfs	nosuid,nodev		0	0" >> /mnt/etc/fstab || failureCheck
 
     case $bootloaderChoice in
         efistub)
@@ -673,7 +672,7 @@ install() {
             echo -e "Configuring kernel parameters... \n"
             if [ "$encryptionPrompt" == "Yes" ]; then
                 partVar=$(blkid -o value -s UUID $partition2)
-                echo "rd.luks.uuid=$partVar root=/dev/mapper/void-root rootfstype=$fsChoice rw loglevel=4" >> /mnt/root/kernelparams || failureCheck
+                echo "rd.luks.uuid=$partVar root=/dev/void/root rootfstype=$fsChoice rw loglevel=4" >> /mnt/root/kernelparams || failureCheck
             else
                 echo "loglevel=4 rd.lvm.vg=void" >> /mnt/root/kernelparams || failureCheck
             fi
