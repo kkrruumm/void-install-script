@@ -18,9 +18,10 @@ The overall goal of this installer is to deploy a system that is ready to use as
 --Option to install nftables with a default firewall config
 --Various security related modules
 
--Option to choose between efistub and grub
+-Option to choose between grub, efistub, and experimental UKI support
 
 -Option to encrypt installation disk
+--With UKI setup, encryption will encrypt both /boot and / using luks2
 --With efistup setup, encryption will encrypt / using luks2
 --With grub setup, encryption will encrypt both /boot and / using luks1
 
@@ -55,15 +56,16 @@ Follow on-screen steps
 Done.
 ```
 
-# efistub notes
+# efistub and UKI notes
+
+UKI setup *will* provide full-disk-encryption as both / and /boot will be encrypted with luks2.
 
 efistub setup will *not* provide full-disk-encryption as /boot will not be encrypted.
-
 However, root will be encrypted using luks2 instead of luks1, since grub is no longer a constraint here.
 
 Do keep in mind potential security issues regarding weaker key derivation functions, such as pbkdf2 which is used with luks1 here, rather than argon2id with luks2.
 
-efistub *can* be a bit touchy on some (non entirely UEFI standards compliant) motherboards, though this doesn't seem to be much of a problem as long as we "trick" boards into not deleting the boot entry.
+efistub and UKIs *can* both be a bit touchy on some (non entirely UEFI standards compliant) motherboards, though this doesn't seem to be much of a problem as long as we "trick" boards into not deleting the boot entry.
 
 # Modules notes
 
@@ -157,7 +159,6 @@ Niche requests for features that do not fit the scope of this installer are unli
 
 # TODO
 ```
--UKI support is planned
 -ZFS support with zfsbootmenu is planned
 -You tell me, or, open a PR adding what you want.
 ```
