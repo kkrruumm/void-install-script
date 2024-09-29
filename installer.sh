@@ -174,7 +174,7 @@ installOptions() {
         kernelChoice="Custom"
     fi
 
-    bootloaderChoice=$(drawDialog --no-cancel --title "Bootloader choice" --menu "If you are unsure, choose 'grub'" 0 0 0 "grub" "- Traditional bootloader" "efistub" "- Boot kernel directly" "none" "- Installs no bootloader (Advanced)")
+    bootloaderChoice=$(drawDialog --no-cancel --title "Bootloader choice" --menu "If you are unsure, choose 'grub'" 0 0 0 "grub" "- Traditional bootloader" "efistub" "- Boot kernel directly" "uki" "- Unified Kernel Image (experimental)" "none" "- Installs no bootloader (Advanced)")
 
     hostnameInput=$(drawDialog --no-cancel --title "System hostname" --inputbox "Set your system hostname." 0 0)
 
@@ -395,6 +395,9 @@ install() {
         echo -e "${YELLOW}Enter your encryption passphrase here. ${NC}\n"
 
         case $bootloaderChoice in
+            uki)
+                cryptsetup luksFormat --type luks2 --batch-mode --verify-passphrase --hash $hash --key-size $keysize --iter-time $itertime --pbkdf argon2id --use-urandom $partition2 || failureCheck
+                ;;
             efistub)
                 # We get to use luks2 here, no need to maintain compatibility.
                 cryptsetup luksFormat --type luks2 --batch-mode --verify-passphrase --hash $hash --key-size $keysize --iter-time $itertime --pbkdf argon2id --use-urandom $partition2 || failureCheck
@@ -467,13 +470,20 @@ install() {
     mount /dev/void/root /mnt || failureCheck
     for dir in dev proc sys run; do mkdir -p /mnt/$dir ; mount --rbind /$dir /mnt/$dir ; mount --make-rslave /mnt/$dir ; done || failureCheck
 
-    if [ "$bootloaderChoice" == "grub" ]; then
-        mkdir -p /mnt/boot/efi || failureCheck
-        mount $partition1 /mnt/boot/efi || failureCheck
-    elif [ "$bootloaderChoice" == "efistub" ]; then
-        mkdir -p /mnt/boot || failureCheck
-        mount $partition1 /mnt/boot || failureCheck
-    fi
+    case $bootloaderChoice in
+        uki)
+            mkdir -p /mnt/boot/efi || failureCheck
+            mount $partition1 /mnt/boot/efi || failureCheck
+            ;;
+        efistub)
+            mkdir -p /mnt/boot || failureCheck
+            mount $partition1 /mnt/boot || failureCheck
+            ;;
+        grub)
+            mkdir -p /mnt/boot/efi || failureCheck
+            mount $partition1 /mnt/boot/efi
+            ;;
+    esac
 
     echo -e "Copying keys... \n"
     commandFailure="Copying XBPS keys has failed."
@@ -541,15 +551,23 @@ install() {
         echo "virtualpkg=linux-headers:linux-mainline-headers" >> /mnt/etc/xbps.d/headers.conf || failureCheck
     fi
 
-    if [ "$bootloaderChoice" == "grub" ]; then
-        echo -e "Installing grub... \n"
-        commandFailure="Grub installation has failed."
-        xbps-install -Sy -R $installRepo -r /mnt grub-x86_64-efi || failureCheck
-    elif [ "$bootloaderChoice" == "efistub" ]; then
-        echo -e "Installing efibootmgr... \n"
-        commandFailure="efibootmgr installation has failed."
-        xbps-install -Sy -R $installRepo -r /mnt efibootmgr || failureCheck
-    fi
+    case $bootloaderChoice in
+        grub)
+            echo -e "Installing grub... \n"
+            commandFailure="Grub installation has failed."
+            xbps-install -Sy -R $installRepo -r /mnt grub-x86_64-efi || failureCheck
+            ;;
+        efistub)
+            echo -e "Installing efibootmgr... \n"
+            commandFailure="efibootmgr installation has failed."
+            xbps-install -Sy -R $installRepo -r /mnt efibootmgr || failureCheck
+            ;;
+        uki)
+            echo -e "Installing efibootmgr and ukify... \n"
+            commandFailure="efibootmgr and ukify installation has failed."
+            xbps-install -Sy -R $installRepo -r /mnt efibootmgr ukify systemd-boot-efistub || failureCheck
+            ;;
+    esac
 
     if [ "$installRepo" != "https://repo-default.voidlinux.org/current" ] && [ "$installRepo" != "https://repo-default.voidlinux.org/current/musl" ]; then
         commandFailure="Repo configuration has failed."
@@ -576,11 +594,18 @@ install() {
     echo -e "Configuring fstab... \n"
     commandFailure="Fstab configuration has failed."
     partVar=$(blkid -o value -s UUID $partition1)
-    if [ "$bootloaderChoice" == "grub" ] || [ "$bootloaderChoice" == "none" ]; then
-        echo "UUID=$partVar 	/boot/efi	vfat	defaults	0	0" >> /mnt/etc/fstab || failureCheck
-    elif [ "$bootloaderChoice" == "efistub" ]; then
-        echo "UUID=$partVar     /boot       vfat    defaults    0   0" >> /mnt/etc/fstab || failureCheck
-    fi
+    case $bootloaderChoice in
+        grub)
+            echo "UUID=$partVar     /boot/efi   vfat    defaults›   0   0" >> /mnt/etc/fstab || failureCheck
+            ;;
+        efistub)
+            echo "UUID=$partVar     /boot       vfat    defaults    0   0" >> /mnt/etc/fstab || failureCheck
+            ;;
+        uki)
+            echo "UUID=$partVar     /boot/efi   vfat    defaults    0   0" >> /mnt/etc/fstab || failureCheck
+            ;;
+    esac
+
     echo "/dev/void/root  /     $fsChoice     defaults              0       0" >> /mnt/etc/fstab || failureCheck
 
     if [ "$swapPrompt" == "Yes" ]; then
@@ -590,58 +615,75 @@ install() {
     if [ "$homePrompt" == "Yes" ] && [ "$separateHomePossible" == "1" ]; then
         echo "/dev/void/home  /home $fsChoice     defaults              0       0" >> /mnt/etc/fstab || failureCheck
     fi
-    echo "tmpfs		/tmp	tmpfs	nosuid,nodev		0	0" >> /mnt/etc/fstab || failureCheck
 
-    if [ "$bootloaderChoice" == "efistub" ]; then
-        echo "Configuring dracut for efistub boot..."
-        commandFailure="Dracut configuration has failed."
-        echo 'hostonly="yes"' >> /mnt/etc/dracut.conf.d/30.conf || failureCheck
-        echo 'use_fstab="yes"' >> /mnt/etc/dracut.conf.d/30.conf || failureCheck
+    case $bootloaderChoice in
+        efistub)
+            echo "Configuring dracut for efistub boot..."
+            commandFailure="Dracut configuration has failed."
+            echo 'hostonly="yes"' >> /mnt/etc/dracut.conf.d/30.conf || failureCheck
+            echo 'use_fstab="yes"' >> /mnt/etc/dracut.conf.d/30.conf || failureCheck
 
-        echo 'install_items+=" /etc/crypttab "' >> /mnt/etc/dracut.conf.d/30.conf || failureCheck
-        echo 'add_drivers+=" vfat nls_cp437 nls_iso8859_1 "' >> /mnt/etc/dracut.conf.d/30.conf || failureCheck
+            echo 'install_items+=" /etc/crypttab "' >> /mnt/etc/dracut.conf.d/30.conf || failureCheck
+            echo 'add_drivers+=" vfat nls_cp437 nls_iso8859_1 "' >> /mnt/etc/dracut.conf.d/30.conf || failureCheck
 
-        echo "Moving runit service for efistub boot..."
-        commandFailure="Moving runit service has failed."
-        mv /mnt/etc/runit/core-services/03-filesystems.sh{,.bak} || failureCheck
+            echo "Moving runit service for efistub boot..."
+            commandFailure="Moving runit service has failed."
+            mv /mnt/etc/runit/core-services/03-filesystems.sh{,.bak} || failureCheck
 
-        echo "Configuring xbps for efistub boot..."
-        commandFailure="efistub xbps configuration has failed."
-        echo "noextract=/etc/runit/core-services/03-filesystems.sh" >> /mnt/etc/xbps.d/xbps.conf || failureCheck
+            echo "Configuring xbps for efistub boot..."
+            commandFailure="efistub xbps configuration has failed."
+            echo "noextract=/etc/runit/core-services/03-filesystems.sh" >> /mnt/etc/xbps.d/xbps.conf || failureCheck
 
-        echo "Editing efibootmgr for efistub boot..."
-        commandFailure="efibootmgr configuration has failed."
-        sed -i -e 's/MODIFY_EFI_ENTRIES=0/MODIFY_EFI_ENTRIES=1/g' /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
-        echo DISK="$diskInput" >> /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
-        echo 'PART="1"' >> /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
+            echo "Editing efibootmgr for efistub boot..."
+            commandFailure="efibootmgr configuration has failed."
+            sed -i -e 's/MODIFY_EFI_ENTRIES=0/MODIFY_EFI_ENTRIES=1/g' /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
+            echo DISK="$diskInput" >> /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
+            echo 'PART="1"' >> /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
 
-        # An empty BOOTX64.EFI file needs to exist at the default/fallback efi location to stop some motherboards from nuking our efistub boot entry
-        mkdir -p /mnt/boot/EFI/BOOT || failureCheck
-        touch /mnt/boot/EFI/BOOT/BOOTX64.EFI || failureCheck
+            # An empty BOOTX64.EFI file needs to exist at the default/fallback efi location to stop some motherboards from nuking our efistub boot entry
+            mkdir -p /mnt/boot/EFI/BOOT || failureCheck
+            touch /mnt/boot/EFI/BOOT/BOOTX64.EFI || failureCheck
 
-        echo 'OPTIONS="loglevel=4 rd.lvm.vg=void"' >> /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
+            echo 'OPTIONS="loglevel=4 rd.lvm.vg=void"' >> /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
 
-        if [ "$acpi" == "false" ]; then
-            commandFailure="Disabling ACPI has failed."
-            echo -e "Disabling ACPI... \n"
-            sed -i -e 's/OPTIONS="loglevel=4/OPTIONS="loglevel=4 acpi=off/g' /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
-        fi
+            if [ "$acpi" == "false" ]; then
+                commandFailure="Disabling ACPI has failed."
+                echo -e "Disabling ACPI... \n"
+                sed -i -e 's/OPTIONS="loglevel=4/OPTIONS="loglevel=4 acpi=off/g' /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
+            fi
+            ;;
+        grub)
+            if [ "$encryptionPrompt" == "Yes" ]; then
+                commandFailure="Configuring grub for full disk encryption has failed."
+                echo -e "Configuring grub for full disk encryption... \n"
+                partVar=$(blkid -o value -s UUID $partition2)
+                sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4"/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 rd.lvm.vg=void rd.luks.uuid='$partVar'"/g' /mnt/etc/default/grub || failureCheck
+                echo "GRUB_ENABLE_CRYPTODISK=y" >> /mnt/etc/default/grub || failureCheck
+            fi
 
-    elif [ "$bootloaderChoice" == "grub" ]; then
-        if [ "$encryptionPrompt" == "Yes" ]; then
-            commandFailure="Configuring grub for full disk encryption has failed."
-            echo -e "Configuring grub for full disk encryption... \n"
-            partVar=$(blkid -o value -s UUID $partition2)
-            sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4"/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 rd.lvm.vg=void rd.luks.uuid='$partVar'"/g' /mnt/etc/default/grub || failureCheck
-            echo "GRUB_ENABLE_CRYPTODISK=y" >> /mnt/etc/default/grub || failureCheck
-        fi
-        
-        if [ "$acpi" == "false" ]; then
-            commandFailure="Disabling ACPI has failed."
-            echo -e "Disabling ACPI... \n"
-            sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 acpi=off/g' /mnt/etc/default/grub || failureCheck
-        fi
-    fi
+            if [ "$acpi" == "false" ]; then
+                commandFailure="Disabling ACPI has failed."
+                echo -e "Disabling ACPI... \n"
+                sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 acpi=off/g' /mnt/etc/default/grub || failureCheck
+            fi
+            ;;
+        uki)
+            commandFailure="Configuring UKI kernel parameters has failed."
+            echo -e "Configuring kernel parameters... \n"
+            if [ "$encryptionPrompt" == "Yes" ]; then
+                partVar=$(blkid -o value -s UUID $partition2)
+                echo "rd.luks.uuid=$partVar root=/dev/void/root rootfstype=$fsChoice rw loglevel=4" >> /mnt/root/kernelparams || failureCheck
+            else
+                echo "rd.lvm.vg=void root=/dev/void/root rootfstype=$fsChoice rw loglevel=4" >> /mnt/root/kernelparams || failureCheck
+            fi
+
+            if [ "$acpi" == "false" ]; then
+                commandFailure="Disabling ACPI has failed."
+                echo -e "Disabling ACPI... \n"
+                sed -i -e 's/loglevel=4/loglevel=4 acpi=off' /mnt/root/kernelparams || failureCheck
+            fi
+            ;;
+    esac
 
     if [ "$muslSelection" == "glibc" ]; then
         commandFailure="Locale configuration has failed."
