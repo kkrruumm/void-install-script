@@ -6,13 +6,21 @@ status=off
 main() {
     commandFailure="Enabling amdgpu overclocking has failed."
     echo -e "Enabling amdgpu overclocking... \n"
-    if [ $bootloaderChoice == "grub" ]; then
-        sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 amdgpu.ppfeaturemask=0xffffffff/g' /mnt/etc/default/grub || failureCheck
-        chroot /mnt /bin/bash -c "update-grub" || failureCheck
-    elif [ $bootloaderChoice == "efistub" ]; then
-        sed -i -e 's/OPTIONS="loglevel=4/OPTIONS="loglevel=4 amdgpu.ppfeaturemask=0xffffffff/g' /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
-        chroot /mnt /bin/bash -c "xbps-reconfigure -f linux$(find /mnt/boot -name vmlinuz\* | tr -d "/boot/vmlinuz-" | cut -c -3)" || failureCheck
-    fi
+    case $bootloaderChoice in
+        grub)
+             sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 amdgpu.ppfeaturemask=0xffffffff/g' || failureCheck
+             chroot /mnt /bin/bash -c "update-grub" || failureCheck
+            ;;
+        efistub)
+            sed -i -e 's/OPTIONS="loglevel=4/OPTIONS="loglevel=4 amdgpu.ppfeaturemask=0xffffffff/g' /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
+            chroot /mnt /bin/bash -c "xbps-reconfigure -f linux$(find /mnt/boot -name vmlinuz\* | tr -d "/boot/vmlinuz-" | cut -c -3)" || failureCheck
+            ;;
+        uki)
+            sed -i -e 's/loglevel=4/loglevel=4 amdgpu.ppfeaturemask=0xffffffff/g' /mnt/root/kernelparams || failureCheck
+            chroot /mnt /bin/bash -c 'rm /boot/efi/EFI/boot/bootx64.efi && ukify build --linux="$(find /boot/vmlinuz*)" --initrd="$(find /boot/initramfs*)" --cmdline="$(cat /root/kernelparams)" --output=/boot/efi/EFI/boot/bootx64.efi' || failureCheck
+            ;;
+    esac
+
     echo -e "amdgpu overclocking enabled. \n"
 
     return 0
