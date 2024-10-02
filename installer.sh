@@ -596,7 +596,7 @@ install() {
     partVar=$(blkid -o value -s UUID $partition1)
     case $bootloaderChoice in
         grub)
-            echo "UUID=$partVar     /boot/efi   vfat    defaults›   0   0" >> /mnt/etc/fstab || failureCheck
+            echo "UUID=$partVar     /boot/efi   vfat    defaults    0   0" >> /mnt/etc/fstab || failureCheck
             ;;
         efistub)
             echo "UUID=$partVar     /boot       vfat    defaults    0   0" >> /mnt/etc/fstab || failureCheck
