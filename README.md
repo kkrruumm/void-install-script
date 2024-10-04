@@ -71,6 +71,8 @@ Currently, UKIs are not automatically built on system update. The script uses uk
 
 The default UKI location is ``/boot/efi/EFI/boot/bootx64.efi``, and it is recommended to leave it in this location so as to not have to regenerate the boot entry with efibootmgr, but also to maintain compatibility with spotty UEFI implementations.
 
+With UKIs, kernel parameters are set in ``/root/kernelparams``, to update these, modify this file and give it to ukify when building your new UKI with your added kernel parameters.
+
 # Modules notes
 
 A barebones "module" system has been added to the installer to make adding misc features simpler and more organized.
