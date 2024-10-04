@@ -145,7 +145,7 @@ installOptions() {
 
     if drawDialog --title "Encryption" --yesno "Should this installation be encrypted?" 0 0 ; then
         encryptionPrompt="Yes"
-        if drawDialog --title "Wipe Disk" --yesno "Would you like to securely wipe the selected disk before setup?\n\nThis can take quite a long time depending on how many passes you choose." 0 0 ; then
+        if drawDialog --title "Wipe Disk" --yesno "Would you like to securely wipe the selected disk before setup?\n\nThis can take quite a long time depending on how many passes you choose.\n\nBe aware that doing this on an SSD is likely a bad idea." 0 0 ; then
             wipePrompt="Yes"
             passInput=$(drawDialog --title "Wipe Disk" --inputbox "How many passes would you like to do on this disk?\n\nSane values include 1-3. The more passes you choose, the longer this will take." 0 0)
         else
