@@ -67,6 +67,10 @@ Do keep in mind potential security issues regarding weaker key derivation functi
 
 efistub and UKIs *can* both be a bit touchy on some (non entirely UEFI standards compliant) motherboards, though this doesn't seem to be much of a problem as long as we "trick" boards into not deleting the boot entry.
 
+Currently, UKIs are not automatically built on system update. The script uses ukify to build UKIs, and ukify is left on the system post-installation. This can be used to build new UKIs manually.
+
+The default UKI location is ``/boot/efi/EFI/boot/bootx64.efi``, and it is recommended to leave it in this location so as to not have to regenerate the boot entry with efibootmgr, but also to maintain compatibility with spotty UEFI implementations.
+
 # Modules notes
 
 A barebones "module" system has been added to the installer to make adding misc features simpler and more organized.
