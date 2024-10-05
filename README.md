@@ -47,6 +47,7 @@ The overall goal of this installer is to deploy a system that is ready to use as
 ```
 Boot into a Void Linux live medium
 Login as anon
+sudo xbps-install -Su
 sudo xbps-install -S git
 git clone https://github.com/kkrruumm/void-install-script/
 cd void-install-script
