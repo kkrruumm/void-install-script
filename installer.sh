@@ -727,12 +727,19 @@ install() {
                     xmirror -s "$installRepo" -r /mnt || failureCheck
                     xbps-install -Sy -R $installRepo -r /mnt nvidia || failureCheck
 
-                    # Enabling mode setting for wayland compositors
-                    if [ "$bootloaderChoice" == "grub" ]; then
-                        sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_DEFAULT="loglevel=4 nvidia_drm.modeset=1/g' /mnt/etc/default/grub || failureCheck 
-                    elif [ "$bootloaderChoice" == "efistub" ]; then
-                        sed -i -e 's/OPTIONS="loglevel=4/OPTIONS="loglevel=4 nvidia_drm.modeset=1/g' /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
-                    fi
+                    # Enable mode setting for wayland compositors
+                    # This default should change to drm enabled with more recent nvidia drivers, expect this to be removed in the future.
+                    case $bootloaderChoice in
+                        grub)
+                            sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_DEFAULT="loglevel=4 nvidia_drm.modeset=1/g' /mnt/etc/default/grub || failureCheck
+                            ;;
+                        efistub)
+                            sed -i -e 's/OPTIONS="loglevel=4/OPTIONS="loglevel=4 nvidia_drm.modeset=1/g' /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
+                            ;;
+                        uki)
+                            sed -i -e 's/loglevel=4/loglevel=4 nvidia_drm.modeset=1/g' /mnt/root/kernelparams || failureCheck
+                            ;;
+                    esac
 
                     echo -e "NVIDIA graphics drivers have been installed. \n"
                     ;;
