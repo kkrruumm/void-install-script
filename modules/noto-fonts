@@ -1,7 +1,7 @@
 #!/bin/bash
 title=noto-fonts
 description="- Noto TTF fonts typically used by websites"
-status="off"
+status=off
 
 main() {
     commandFailure="Noto TTF fonts installation has failed."
