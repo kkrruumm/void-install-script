@@ -123,7 +123,7 @@ fi
 case $bootloaderChoice in
     uki)
         commandFailure="Forced kernel reconfigure has failed."
-        xbps-reconfigure -f linux$(find /boot -name vmlinuz\* | tr -d "/boot/vmlinuz-" | cut -c -3) || failureCheck
+        xbps-reconfigure -f linux"$(find /boot -name vmlinuz\* | tr -d "/boot/vmlinuz-" | cut -f1,2 -d".")" || failureCheck
         # We need to force a kernel reconfigure before building our UKI.
         commandFailure="Creating ESP path has failed."
         mkdir -p /boot/efi/EFI/boot || failureCheck

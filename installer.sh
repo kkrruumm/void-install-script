@@ -19,16 +19,15 @@ fi
 
 entry() {
 
-    # Unsetting to prevent duplicates when the installer scans for modules
-    if [ -n "$modulesDialogArray" ]; then
+    # Basic checks before the installer actually starts
+
+    # Unset to prevent duplicates when the installer scans for modules
+    [ -n "$modulesDialogArray" ] &&
         unset modulesDialogArray
-    fi
 
     # This script will only work on UEFI systems.
-    if [ ! -e "/sys/firmware/efi" ]; then
-        commandFailure="This script only supports UEFI systems, but it appears we have booted as BIOS."
-        failureCheck
-    fi
+    [ ! -f "/sys/firmware/efi" ] ||
+        { commandFailure="This script only supports UEFI systems, but it appears we have booted as BIOS." ; failureCheck ;}
 
     # Autodetection for glibc/musl
     if ldd --version | grep GNU ; then
@@ -37,20 +36,14 @@ entry() {
         muslSelection="musl"
     fi
 
-    if [ "$(uname -m)" != "x86_64" ]; then
-        commandFailure="This systems CPU architecture is not currently supported by this install script."
-        failureCheck
-    fi
+    [ "$(uname -m)" != "x86_64" ] &&
+        { commandFailure="This systems CPU architecture is not currently supported by this install script." ; failureCheck ;}
 
-    if [ ! -e "$(pwd)/systemchroot.sh" ]; then
-        commandFailure="Secondary script appears to be missing. This could be because the name of it is incorrect, or it does not exist in $(pwd)."
-        failureCheck
-    fi
+    [ -f "$(pwd)/systemchroot.sh" ] ||
+        { commandFailure="Secondary script appears to be missing. This could be because the name of it is incorrect, or it does not exist in $(pwd)." ; failureCheck ;}
 
-    if [ ! -e "$(pwd)/modules" ]; then
-        commandFailure="Modules directory appears to be missing. This could be because the name of it is incorrect, or it does not exist in $(pwd)."
-        failureCheck
-    fi
+    [ -e "$(pwd)/modules" ] ||
+        { commandFailure="Modules directory appears to be missing. This could be because the name of it is incorrect, or it does not exist in $(pwd)." ; failureCheck ;}
 
     echo -e "Testing network connectivity... \n"
 
