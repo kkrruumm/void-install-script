@@ -8,7 +8,7 @@ main() {
     echo -e "Enabling module.sig_enforce... \n"
     case $bootloaderChoice in
         grub)
-            sed -i -e 's/GRUB_CMDLINE_DEFAULT="loglevel=4/GRUB_CMDLINE_DEFAULT="loglevel=4 module.sig_enforce=1/g' /mnt/etc/default/grub || failureCheck
+            sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 module.sig_enforce=1/g' /mnt/etc/default/grub || failureCheck
             chroot /mnt /bin/bash -c "update-grub" || failureCheck
             ;;
         efistub)

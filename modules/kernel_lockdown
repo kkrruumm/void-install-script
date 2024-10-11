@@ -11,7 +11,7 @@ main() {
     if [ "$lockdownChoice" == "integrity" ]; then
             case $bootloaderChoice in
                 grub)
-                    sed -i -e 's/GRUB_CMDLINE_DEFAULT="loglevel=4/GRUB_CMDLINE_DEFAULT="loglevel=4 lockdown=integrity/g' /mnt/etc/default/grub || failureCheck
+                    sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 lockdown=integrity/g' /mnt/etc/default/grub || failureCheck
                     chroot /mnt /bin/bash -c "update-grub" || failureCheck
                     ;;
                 efistub)
@@ -26,7 +26,7 @@ main() {
     elif [ "$lockdownChoice" == "confidentiality" ]; then
             case $bootloaderChoice in
                 grub)
-                    sed -i -e 's/GRUB_CMDLINE_DEFAULT="loglevel=4/GRUB_CMDLINE_DEFAULT="loglevel=4 lockdown=confidentiality/g' /mnt/etc/default/grub || failureCheck
+                    sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 lockdown=confidentiality/g' /mnt/etc/default/grub || failureCheck
                     chroot /mnt /bin/bash -c "update-grub" || failureCheck
                     ;;
                 efistub)
