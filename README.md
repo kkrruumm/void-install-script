@@ -166,6 +166,8 @@ Niche requests for features that do not fit the scope of this installer are unli
 
 # TODO
 ```
+-Swapfile and ZRAM support
+-Make LVM optional, if LVM is disabled, force swapfile instead of swap partition
 -Create a kernel hook to automatically build new UKIs
 -ZFS support with zfsbootmenu is planned
 -You tell me, or, open a PR adding what you want.
