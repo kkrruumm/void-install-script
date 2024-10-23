@@ -166,6 +166,7 @@ Niche requests for features that do not fit the scope of this installer are unli
 
 # TODO
 ```
+-Add manual partitioning
 -Split security modules into their own menu
 -Swapfile and ZRAM support
 -Make LVM optional, if LVM is disabled, force swapfile instead of swap partition
