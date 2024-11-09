@@ -821,7 +821,7 @@ install() {
 
             kde)
                 echo -e "Installing KDE desktop environment... \n"
-                xbps-install -Sy -R $installRepo -r /mnt kde5 kde5-baseapps xdg-user-dirs xorg-minimal xorg-video-drivers || failureCheck
+                xbps-install -Sy -R $installRepo -r /mnt kde-plasma kde-baseapps xdg-user-dirs xorg-minimal xorg-video-drivers || failureCheck
                 chroot /mnt /bin/bash -c "ln -s /etc/sv/sddm /var/service" || failureCheck
                 echo -e "KDE has been installed. \n"
                 ;;
