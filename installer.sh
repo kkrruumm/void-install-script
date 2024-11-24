@@ -91,18 +91,31 @@ diskConfiguration() {
 
     partOutput=$(partitionerOutput)
 
-    if drawDialog --begin 2 2 --title "Disk Details" --infobox "$partOutput" 0 0 --and-widget --title "Partitioner" --yesno "Would you like to have a swap partition?" 0 0 ; then
+    if drawDialog --title "Partitioner - Encryption" --yesno "Should this installation be encrypted?" 0 0 ; then
+        encryptionPrompt="Yes"
+        if drawDialog --title "Partitioner - Wipe Disk" --yesno "Would you like to securely wipe the selected disk before setup?\n\nThis can take quite a long time depending on how many passes you choose.\n\nBe aware that doing this on an SSD is likely a bad idea." 0 0 ; then
+            wipePrompt="Yes"
+            passInput=$(drawDialog --title "Partitioner - Wipe Disk" --inputbox "How many passes would you like to do on this disk?\n\nSane values include 1-3. The more passes you choose, the longer this will take." 0 0)
+        else
+            wipePrompt="No"
+            passInput=0
+        fi
+    else
+        encryptionPrompt="No"
+    fi
+
+    if drawDialog --begin 2 2 --title "Disk Details" --infobox "$partOutput" 0 0 --and-widget --title "Partitioner - Swap" --yesno "Would you like to have a swap partition?" 0 0 ; then
         swapPrompt="Yes"
         partOutput=$(partitionerOutput)
         
-        swapInput=$(drawDialog --begin 2 2 --title "Disk Details" --infobox "$partOutput" 0 0 --and-widget --no-cancel --title "Partitioner" --inputbox "How large would you like your swap partition to be?\n(Example: '4G')" 0 0)
+        swapInput=$(drawDialog --begin 2 2 --title "Disk Details" --infobox "$partOutput" 0 0 --and-widget --no-cancel --title "Partitioner - Swap" --inputbox "How large would you like your swap partition to be?\n(Example: '4G')" 0 0)
 
         sizeInput=$swapInput
         diskCalculator
         partOutput=$(partitionerOutput)
     fi
 
-    rootPrompt=$(drawDialog --begin 2 2 --title "Disk Details" --infobox "$partOutput" 0 0 --and-widget --no-cancel --title "Partitioner" --inputbox "If you would like to limit the size of your root filesystem, such as to have a separate home partition, you can enter a value such as '50G' here.\n\nOtherwise, if you would like your root partition to take up the entire drive, enter 'full' here." 0 0)
+    rootPrompt=$(drawDialog --begin 2 2 --title "Disk Details" --infobox "$partOutput" 0 0 --and-widget --no-cancel --title "Partitioner - Root" --inputbox "If you would like to limit the size of your root filesystem, such as to have a separate home partition, you can enter a value such as '50G' here.\n\nOtherwise, if you would like your root partition to take up the entire drive, enter 'full' here." 0 0)
 
     # If the user wants the root partition to take up all space after the EFI partition, a separate home on this disk isn't possible.
     if [ "$rootPrompt" == "full" ]; then
@@ -117,9 +130,9 @@ diskConfiguration() {
     fi
 
     if [ "$separateHomePossible" == "1" ]; then
-        if drawDialog --begin 2 2 --title "Disk Details" --infobox "$partOutput" 0 0 --and-widget --title "Partitioner" --yesno "Would you like to have a separate home partition?" 0 0 ; then
+        if drawDialog --begin 2 2 --title "Disk Details" --infobox "$partOutput" 0 0 --and-widget --title "Partitioner - Home" --yesno "Would you like to have a separate home partition?" 0 0 ; then
             homePrompt="Yes"
-            homeInput=$(drawDialog --begin 2 2 --title "Disk Details" --infobox "$partOutput" 0 0 --and-widget --no-cancel --title "Partitioner" --inputbox "How large would you like your home partition to be?\n(Example: '100G')\n\nYou can choose to use the rest of your disk after the root partition by entering 'full' here." 0 0)
+            homeInput=$(drawDialog --begin 2 2 --title "Disk Details" --infobox "$partOutput" 0 0 --and-widget --no-cancel --title "Partitioner - Home" --inputbox "How large would you like your home partition to be?\n(Example: '100G')\n\nYou can choose to use the rest of your disk after the root partition by entering 'full' here." 0 0)
             
             if [ "$homeInput" != "full" ]; then
                 sizeInput=$homeInput
@@ -135,19 +148,6 @@ diskConfiguration() {
 }
 
 installOptions() {
-
-    if drawDialog --title "Encryption" --yesno "Should this installation be encrypted?" 0 0 ; then
-        encryptionPrompt="Yes"
-        if drawDialog --title "Wipe Disk" --yesno "Would you like to securely wipe the selected disk before setup?\n\nThis can take quite a long time depending on how many passes you choose.\n\nBe aware that doing this on an SSD is likely a bad idea." 0 0 ; then
-            wipePrompt="Yes"
-            passInput=$(drawDialog --title "Wipe Disk" --inputbox "How many passes would you like to do on this disk?\n\nSane values include 1-3. The more passes you choose, the longer this will take." 0 0)
-        else
-            wipePrompt="No"
-            passInput=0
-        fi
-    else
-        encryptionPrompt="No"
-    fi
 
     if [ -z "$basesystem" ]; then
         baseChoice=$(drawDialog --no-cancel --title "Base system meta package choice" --menu "If you are unsure, choose 'base-system'" 0 0 0 "base-system" "- Traditional base system package" "base-container" "- Minimal base system package targeted at containers and chroots")
