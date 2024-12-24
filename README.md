@@ -1,4 +1,7 @@
 # void-install-script
+
+This installer is currently undergoing a rewrite/restructure. Updates other than bug fixes will be limited until the rework is finished.
+
 TUI Shell script installer for Void Linux
 
 This installer was primarily created to serve as an installer with encryption support while also having general installation options one would want, with sane defaults.
