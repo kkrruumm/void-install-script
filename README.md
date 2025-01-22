@@ -149,8 +149,6 @@ This installer is not officially supported, and is still fairly work-in-progress
 
 This installer only supports x86_64-efi. I currently have no plans to support anything else.
 
-The base-system metapackage should be chosen in *most* scenarios, though using base-container provides a slightly more minimal install.
-
 If you have found this script useful, do star this repository!
 
 # Contributing
@@ -158,8 +156,6 @@ If you have found this script useful, do star this repository!
 The best way to contribute to this would be to create a pull request adding the feature you would like.
 
 If you would like a change to be made to the script, a request/suggestion in the issues tracker is also a wonderful place to start.
-
-Niche requests for features that do not fit the scope of this installer are unlikely to be entertained, but do not hesitate to suggest ideas.
 
 # TODO
 ```
