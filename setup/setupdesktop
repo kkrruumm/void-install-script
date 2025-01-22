@@ -129,7 +129,7 @@ esac
 commandFailure="Audio server installation has failed."
 case "$audio" in
     pipewire)
-        install pipewire alsao-pipewire wireplumber || die
+        install pipewire alsa-pipewire wireplumber || die
         mkdir -p /mnt/etc/alsa/conf.d || die
         mkdir -p /mnt/etc/pipewire/pipewire.conf.d || die
 
