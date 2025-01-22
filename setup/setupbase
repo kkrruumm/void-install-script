@@ -160,7 +160,7 @@ echo "$hostname" > /mnt/etc/hostname ||
 case "$swapStyle" in
     zram)
         commandFailure="Configuring zram has failed."
-        echo "zram" >> /etc/modules-load.d/zram.conf
+        echo "zram" >> /etc/modules-load.d/zram.conf || die
         echo "zramctl /dev/zram0 --algorithm lz4 --size $swapSize" >> /etc/rc.local || die
         echo "mkswap -U clear /dev/zram0" >> /etc/rc.local || die
         echo "swapon --discard --priority 100 /dev/zram0" >> /etc/rc.local || die

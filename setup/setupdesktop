@@ -11,7 +11,7 @@ do
         amd-32bit)
             install void-repo-multilib || die
             xmirror -s "$repository" -r /mnt || die
-             libgcc-32bit libstdc++-32bit libdrm-32bit libglvnd-32bit mesa-dri-32bit || die
+            install libgcc-32bit libstdc++-32bit libdrm-32bit libglvnd-32bit mesa-dri-32bit || die
         ;;
 
         nvidia)
@@ -72,7 +72,7 @@ commandFailure="DHCP client setup has failed."
 case "$network" in
     NetworkManager)
         install NetworkManager || die
-        chroot /mnt/bin/bash -c "ln -s /etc/sv/NetworkManager /var/service" || die
+        chroot /mnt /bin/bash -c "ln -s /etc/sv/NetworkManager /var/service" || die
     ;;
     dhcpcd)
         chroot /mnt /bin/bash -c "ln -s /etc/sv/dhcpcd /var/service" || die
@@ -87,7 +87,7 @@ case "$desktop" in
     ;;
     kde)
         install kde-plasma kde-baseapps xdg-user-dirs xorg-minimal xorg-video-drivers || die
-        chroot /mnt/bin/bash -c "ln -s /etc/sv/sddm /var/service" || die
+        chroot /mnt /bin/bash -c "ln -s /etc/sv/sddm /var/service" || die
     ;;
     xfce)
         install xfce4 lightdm lightdm-gtk3-greeter xorg-minimal xdg-user-dirs xorg-fonts xorg-video-drivers || die
