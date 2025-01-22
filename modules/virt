@@ -4,33 +4,25 @@ description="- Installs and configures qemu and libvirt"
 status=off
 
 main() {
-    commandFailure="Installing qemu and libvirt has failed."
-    echo -e "Installing qemu and libvirt... \n"
-    xbps-install -Sy -R $installRepo -r /mnt qemu libvirt virtiofsd || failureCheck
-    echo -e "qemu and libvirt installed. \n"
+    install qemu libvirt virtiofsd ||
+        { commandFailure="Installing qemu and libvirt has failed." ; die ; }
 
     commandFailure="Modifying qemu and libvirt configs has failed."
-    echo -e "Modifying qemu and libvirt configs... \n"
-    sed -i -e 's/#unix_sock_group = "libvirt"/unix_sock_group = "libvirt"/g' /mnt/etc/libvirt/libvirtd.conf || failureCheck
-    sed -i -e 's/#unix_sock_rw_perms = "0770"/unix_sock_rw_perms = "0770"/g' /mnt/etc/libvirt/libvirtd.conf || failureCheck
+    sed -i -e 's/#unix_sock_group = "libvirt"/unix_sock_group = "libvirt"/g' /mnt/etc/libvirt/libvirtd.conf || die
+    sed -i -e 's/#unix_sock_rw_perms = "0770"/unix_sock_rw_perms = "0770"/g' /mnt/etc/libvirt/libvirtd.conf || die
 
-    if [ -n "$createUser" ]; then
-        sed -i -e 's/#user = "libvirt"/user = "'$createUser'"/g' /mnt/etc/libvirt/qemu.conf || failureCheck
-        sed -i -e 's/#group = "libvirt"/group = "'$createUser'"/g' /mnt/etc/libvirt/qemu.conf || failureCheck
-        echo -e "Modified qemu and libvirt configs. \n"
+    if [ -n "$username" ]; then
+        sed -i -e 's/#user = "libvirt"/user = "'$username'"/g' /mnt/etc/libvirt/qemu.conf || die
+        sed -i -e 's/#group = "libvirt"/group = "'$username'"/g' /mnt/etc/libvirt/qemu.conf || die
 
-        commandFailure="Adding user to libvirt group has failed."
-        echo -e "Adding user to libvirt group... \n"
-        chroot /mnt /bin/bash -c "usermod -aG libvirt $createUser" || failureCheck
-        echo -e "Added user to libvirt group. \n"
+        chroot /mnt /bin/bash -c "usermod -aG libvirt $username" ||
+            { commandFailure="Adding user to libvirt group has failed." ; die ; }
     fi
 
     commandFailure="Enabling virt services has failed."
-    echo -e "Enabling virt services... \n" 
-    chroot /mnt /bin/bash -c "ln -s /etc/sv/libvirtd /var/service" || failureCheck
-    chroot /mnt /bin/bash -c "ln -s /etc/sv/virtlogd /var/service" || failureCheck
-    chroot /mnt /bin/bash -c "ln -s /etc/sv/virtlockd /var/service" || failureCheck
-    echo -e "virt services enabled. \n"
+    chroot /mnt /bin/bash -c "ln -s /etc/sv/libvirtd /var/service" || die
+    chroot /mnt /bin/bash -c "ln -s /etc/sv/virtlogd /var/service" || die
+    chroot /mnt /bin/bash -c "ln -s /etc/sv/virtlockd /var/service" || die
 
     return 0
 }

@@ -1,0 +1,144 @@
+#!/bin/bash
+
+commandFailure="Graphics driver installation has failed."
+for i in "${graphicsArray[@]}"
+do
+    case $i in
+        amd)
+            install mesa-dri vulkan-loader mesa-vulkan-radeon mesa-vaapi mesa-vdpau || die
+        ;;
+
+        amd-32bit)
+            install void-repo-multilib || die
+            xmirror -s "$repository" -r /mnt || die
+             libgcc-32bit libstdc++-32bit libdrm-32bit libglvnd-32bit mesa-dri-32bit || die
+        ;;
+
+        nvidia)
+            install void-repo-nonfree || die
+            xmirror -s "$repository" -r /mnt || die
+            install nvidia || die
+
+            # Enable mode setting for wayland compositors
+            # This default should change to drm enabled with more recent nvidia drivers, expect this to be removed in the future.
+            case "$bootloader" in
+                grub)
+                    sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 nvidia_drm.modeset=1/g' /mnt/etc/default/grub || die
+                ;;
+                efistub)
+                    sed -i -e 's/OPTIONS="loglevel=4/OPTIONS="loglevel=4 nvidia_drm.modeset=1/g' /mnt/etc/default/efibootmgr-kernel-hook || die
+                ;;
+                uki)
+                    sed -i -e 's/loglevel=4/loglevel=4 nvidia_drm.modeset=1/g' /mnt/root/kernelparams || die
+                ;;
+            esac
+
+        ;;
+
+        nvidia-32bit)
+            install void-repo-multilib-nonfree void-repo-multilib || die
+            xmirror -s "$repository" -r /mnt || die
+            install nvidia-libs-32bit || die
+        ;;
+
+        intel)
+            install mesa-dri vulkan-loader mesa-vulkan-intel intel-video-accel || die
+        ;;
+
+        intel-32bit)
+            install void-repo-multilib || die
+            xmirror -s "$repository" -r /mnt || die
+            install libgcc-32bit libstdc++-32bit libdrm-32bit libglvnd-32bit mesa-dri-32bit || die
+        ;;
+
+        nvidia-nouveau)
+            install mesa-dri mesa-nouveau-dri || die
+        ;;
+
+        nvidia-nouveau-32bit)
+            install void-repo-multilib || die
+            xmirror -s "$repository" -r /mnt || die
+            install libgcc-32bit libstdc++-32bit libdrm-32bit libglvnd-32bit mesa-dri-32bit mesa-nouveau-dri-32bit || die
+        ;;
+
+        *)
+            echo "Continuing without graphics drivers..."
+        ;;
+
+    esac
+done
+
+commandFailure="DHCP client setup has failed."
+case "$network" in
+    NetworkManager)
+        install NetworkManager || die
+        chroot /mnt/bin/bash -c "ln -s /etc/sv/NetworkManager /var/service" || die
+    ;;
+    dhcpcd)
+        chroot /mnt /bin/bash -c "ln -s /etc/sv/dhcpcd /var/service" || die
+    ;;
+esac
+
+commandFailure="GUI installation has failed"
+case "$desktop" in
+    gnome)
+        install gnome-core gnome-console gnome-tweaks gnome-browser-connector gnome-text-editor xdg-user-dirs xorg-minimal xorg-video-drivers || die
+        chroot /mnt /bin/bash -c "ln -s /etc/sv/gdm /var/service" || die
+    ;;
+    kde)
+        install kde-plasma kde-baseapps xdg-user-dirs xorg-minimal xorg-video-drivers || die
+        chroot /mnt/bin/bash -c "ln -s /etc/sv/sddm /var/service" || die
+    ;;
+    xfce)
+        install xfce4 lightdm lightdm-gtk3-greeter xorg-minimal xdg-user-dirs xorg-fonts xorg-video-drivers || die
+
+        [ "$network" == "NetworkManager" ] &&
+            { install network-manager-applet || die ; }
+
+        chroot /mnt /bin/bash -c "ln -s /etc/sv/lightdm /var/service" || die
+    ;;
+    sway)
+        install sway elogind polkit polkit-elogind foot xorg-fonts || die
+
+        [ "$network" == "NetworkManager" ] &&
+            { install network-manager-applet || die ; }
+
+        chroot /mnt /bin/bash -c "ln -s /etc/sv/elogind /var/service && ln -s /etc/sv/polkitd /var/service" || die
+    ;;
+    swayfx)
+        install swayfx elogind polkit polkit-elogind foot xorg-fonts || die
+
+        [ "$network" == "NetworkManager" ] &&
+            { install network-manager-applet || die ; }
+
+        chroot /mnt /bin/bash -c "ln -s /etc/sv/elogind /var/service && ln -s /etc/sv/polkitd /var/service" || die
+    ;;
+    i3)
+        install i3 xorg-minimal xinit xterm xorg-fonts xorg-video-drivers || die
+
+        [ "$network" == "NetworkManager" ] &&
+            { install network-manager-applet || die ; }
+
+        if [ "$lightdm" == "Yes" ]; then
+            install lightdm lightdm-gtk3-greeter || die
+            chroot /mnt /bin/bash -c "ln -s /etc/sv/lightdm /var/service" || die
+        fi
+    ;;
+esac
+
+commandFailure="Audio server installation has failed."
+case "$audio" in
+    pipewire)
+        install pipewire alsao-pipewire wireplumber || die
+        mkdir -p /mnt/etc/alsa/conf.d || die
+        mkdir -p /mnt/etc/pipewire/pipewire.conf.d || die
+
+        # This is now required to start pipewire and its session manager 'wireplumber' in an appropriate order, this should achieve a desireable result system-wide.
+        echo 'context.exec = [ { path = "/usr/bin/wireplumber" args = "" } ]' > /mnt/etc/pipewire/pipewire.conf.d/10-wireplumber.conf || die
+    ;;
+    pulseaudio)
+        install pulseaudio alsa-plugins-pulseaudio || die
+    ;;
+esac
+
+return 0

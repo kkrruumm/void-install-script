@@ -1,0 +1,242 @@
+#!/bin/bash
+
+echo "Running setupdisk..."
+
+if [ -n "$wipedisk" ] && [ "$wipedisk" -gt 0 ]; then
+    shred --verbose --random-source=/dev/urandom -n"$wipedisk" --zero "$diskInput" ||
+        { commandFailure="Disk erase has failed." ; die ; }
+fi
+
+deviceVG=$(pvdisplay $diskInput* | grep "VG Name" | while read c1 c2; do echo $c2; done | sed 's/Name//g')
+
+if [ -n "$deviceVG" ]; then
+    commandFailure="VG destruction has failed."
+    vgchange -a n "$deviceVG" || die
+    vgremove "$deviceVG" || die
+fi
+
+commandFailure="Disk pre-install wipe has failed."
+scanpartitions="$diskInput?*" # We only want child partitions, not the parent drive
+for i in $scanpartitions
+do
+    wipefs --all -f "$i" || die
+done
+
+sfdisk --delete "$diskInput" || die
+
+# I hate everything other than fdisk despite how terrible this is
+(
+    echo g;
+    echo n;
+    echo ;
+    echo ;
+    echo +500M;
+    echo w;
+) | fdisk "$diskInput" ||
+    { commandFailure="Creating ESP partition has failed." ; die ; }
+
+case "$lvm" in
+    Yes)
+        (
+            echo n;
+            echo ;
+            echo ;
+            echo ;
+            echo w;
+        ) | fdisk "$diskInput" ||
+            { commandFailure="Creating root partition has failed." ; die ; }
+    ;;
+
+    No)
+        # Create swap if a normal partition is chosen:
+        if [ "$swapStyle" == "partition" ]; then
+            (
+                echo n;
+                echo ;
+                echo ;
+                echo +"$swapSize";
+                echo w;
+            ) | fdisk "$diskInput" ||
+                { commandFailure="Creating swap partition has failed." ; die ; }
+        fi
+
+        if [ "$rootSize" == "full" ]; then
+            (
+                echo n;
+                echo ;
+                echo ;
+                echo ;
+                echo w;
+            ) | fdisk "$diskInput" ||
+                { commandFailure="Creating root partition has failed." ; die ; }
+        else
+            (
+                echo n;
+                echo ;
+                echo ;
+                echo +"$rootSize";
+                echo w;
+            ) | fdisk "$diskInput" ||
+                { commandFailure="Creating root partition has failed." ; die ; }
+        fi
+
+        if [ -n "$homeSize" ] && [ "$homeSize" == "full" ] && [ "$encryption" == "No" ]; then
+            (
+                echo n;
+                echo ;
+                echo ;
+                echo ;
+                echo w;
+            ) | fdisk "$diskInput" ||
+                { commandFailure="Creating home partition has failed." ; die ; }
+        elif [ -n "$homeSize" ] && [ "$encryption" == "No" ]; then
+            (
+                echo n;
+                echo ;
+                echo ;
+                echo +"$homeSize";
+                echo w;
+            ) | fdisk "$diskInput" ||
+                { commandFailure="Creating home partition has failed." ; die ; }
+        fi
+    ;;
+esac
+
+# if idvar is unset, the following will set partition variables to, for example, sda1 instead of sdap1 (or more appropriately, nvme0n1p1 or likewise)
+# if you see this and can think of a less stupid name for this variable, feel free to make a PR
+if [[ "$diskInput" == /dev/nvme* ]] || [[ "$diskInput" == /dev/mmcblk* ]]; then
+    idvar="p"
+fi
+
+esp="$diskInput""$idvar"1
+
+[ "$lvm" == "Yes" ] &&
+    root="$diskInput""$idvar"2
+
+if [ "$lvm" == "No" ] && [ "$swapStyle" == "partition" ]; then
+    root="$diskInput""$idvar"3
+else
+    root="$diskInput""$idvar"2
+fi
+
+[ "$lvm" == "No" ] && [ "$swapStyle" == "partition" ] &&
+    swap="$diskInput""$idvar"2
+
+[ "$lvm" == "No" ] && [ -n "$homeSize" ] && [ "$encryption" == "No" ] && [ -n "$swap" ] &&
+    home="$diskInput""$idvar"4
+
+[ "$lvm" == "No" ] && [ -n "$homeSize" ] && [ "$encryption" == "No" ] && [ -z "$swap" ] &&
+    home="$diskInput""$idvar"3
+
+mkfs.vfat "$esp" ||
+    { commandFailure="Formatting ESP as vfat has failed." ; die ; }
+
+if [ "$encryption" == "Yes" ]; then
+
+    [ -z "$hash" ] &&
+        hash="sha512"
+
+    [ -z "$keysize" ] &&
+        keysize="512"
+
+    [ -z "$itertime" ] &&
+        itertime="10000"
+
+    clear
+    echo -e "${YELLOW}Enter your encryption passphrase here.${NC}"
+    commandFailure="Encrypting partition has failed."
+    case "$bootloader" in
+        grub)
+            cryptsetup luksFormat --type luks1 --batch-mode --verify-passphrase --hash "$hash" --key-size "$keysize" --iter-time "$itertime" --pbkdf pbkdf2 --use-urandom "$root" || die
+        ;;
+        *)
+            cryptsetup luksFormat --type luks2 --batch-mode --verify-passphrase --hash "$hash" --key-size "$keysize" --iter-time "$itertime" --pbkdf argon2id --use-urandom "$root" || die
+        ;;
+    esac
+
+    echo -e "${YELLOW}Opening new encrypted partition...${NC}"
+    cryptsetup luksOpen "$root" void ||
+        { commandFailure="Opening encrypted partition has failed." ; die ; }
+
+    [ "$lvm" == "Yes" ] &&
+        { vgcreate void /dev/mapper/void || die ; }
+else
+    if [ "$lvm" == "Yes" ]; then
+        pvcreate "$root" || die
+        vgcreate void "$root" || die
+    fi
+fi
+
+if [ "$swapStyle" == "partition" ]; then
+    commandFailure="Creating swap partition has failed."
+    if [ "$lvm" == "Yes" ]; then
+        lvcreate --name swap -L "$swapSize" void || die
+        mkswap /dev/void/swap || die
+    else
+        mkswap "$swap" || die
+    fi
+fi
+
+[ "$rootSize" == "full" ] && [ "$lvm" == "Yes" ] &&
+    { lvcreate --name root -l 100%FREE void || commandFailure="Creating root LV has failed." ; die ; }
+
+[ "$rootSize" != "full" ] && [ "$lvm" == "Yes" ] &&
+    { lvcreate --name root -L "$rootSize" void || commandFailure="Creating root LV has failed." ; die ; }
+
+# TODO: ZFS
+[ "$lvm" == "Yes" ] &&
+    case "$filesystem" in
+        xfs) mkfs.xfs /dev/void/root || die ;;
+        ext4) mkfs.ext4 /dev/void/root || die ;;
+    esac
+
+if [ "$lvm" == "No" ] && [ "$encryption" == "Yes" ]; then
+    case "$filesystem" in
+        xfs) mkfs.xfs /dev/mapper/void || die ;;
+        ext4) mkfs.ext4 /dev/mapper/void || die ;;
+    esac
+elif [ "$lvm" == "No" ] && [ "$encryption" == "No" ]; then
+    case "$filesystem" in
+        xfs) mkfs.xfs "$root" || die ;;
+        ext4) mkfs.ext4 "$root" || die ;;
+    esac
+fi
+
+commandFailure="Creating home partition has failed."
+[ "$separateHomePossible" != "No" ] && [ "$lvm" == "Yes" ] &&
+    if [ -n "$homeSize" ]; then
+        if [ "$homeSize" == "full" ]; then
+            lvcreate --name home -l 100%FREE void || die
+        else
+            lvcreate --name home -L "$homeSize" void || die
+        fi
+
+        case "$filesystem" in
+            xfs) mkfs.xfs /dev/void/home || die ;;
+            ext4) mkfs.ext4 /dev/void/home || die ;;
+        esac
+    fi
+
+commandFailure="Mounting partitions has failed."
+
+[ "$lvm" == "Yes" ] &&
+    { mount /dev/void/root /mnt || die ; }
+
+[ "$lvm" == "No" ] && [ "$encryption" == "Yes" ] &&
+    { mount /dev/mapper/void /mnt || die ; }
+
+[ "$lvm" == "No" ] && [ "$encryption" == "No" ] &&
+    { mount "$root" /mnt || die ; }
+
+[ "$lvm" == "No" ] && [ -n "$home" ] &&
+    { mkdir /mnt/home ; mount "$home" /mnt/home || die ; }
+
+[ "$lvm" == "Yes" ] && [ -e "/dev/mapper/void-home" ] &&
+    { mkdir /mnt/home ; mount /dev/mapper/void-home /mnt/home || { commandFailure="Mounting home directory has failed." ; die ; } ; }
+
+for dir in dev proc sys run; do mkdir -p /mnt/$dir ; mount --rbind /$dir /mnt/$dir ; mount --make-rslave /mnt/$dir ; done || die
+
+mkdir -p /mnt/boot/efi || die
+mount "$esp" /mnt/boot/efi || die
+
+return 0

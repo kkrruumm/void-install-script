@@ -4,15 +4,11 @@ description="- Advanced power management"
 status=off
 
 main() {
-    commandFailure="tlp installation has failed."
-    echo -e "Installing tlp... \n"
-    xbps-install -Sy -R $installRepo -r /mnt tlp || failureCheck
-    echo -e "tlp installed. \n"
-    
-    commandFailure="Enabling tlp has failed."
-    echo -e "Enabling tlp... \n"
-    chroot /mnt /bin/bash -c "ln -s /etc/sv/tlp /var/service" || failureCheck
-    echo -e "tlp enabled. \n"
+    install tlp ||
+        { commandFailure="tlp installation has failed." ; die ; }
+
+    chroot /mnt /bin/bash -c "ln -s /etc/sv/tlp /var/service" ||
+        { commandFailure="Enabling tlp has failed." ; die ; }
 
     return 0
 }

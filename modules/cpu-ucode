@@ -5,17 +5,15 @@ status=off
 
 main() {
     commandFailure="Installing CPU microcode package has failed."
-    echo -e "Installing CPU microcode package... \n"
     if lscpu | grep "GenuineIntel" ; then
-        xbps-install -Sy -R $installRepo -r /mnt void-repo-nonfree || failureCheck
-        xmirror -s "$installRepo" -r /mnt || failureCheck
-        xbps-install -Sy -R $installRepo -r /mnt intel-ucode || failureCheck
-        chroot /mnt /bin/bash -c 'xbps-reconfigure -f linux"$(find /boot -name vmlinuz\* | tr -d "/boot/vmlinuz-" | cut -f1,2 -d".")"' || failureCheck
+        install void-repo-nonfree || die
+        xmirror -s "$repository" -r /mnt || die
+        install intel-ucode || die
+        chroot /mnt /bin/bash -c 'xbps-reconfigure -f linux"$(find /boot -name vmlinuz\* | tr -d "/boot/vmlinuz-" | cut -f1,2 -d".")"' || die
     elif lscpu | grep "AuthenticAMD" ; then
         # This package should already be installed as a dep. of linux-base, but just incase something changes:
-        xbps-install -Sy -R $installRepo -r /mnt linux-firmware-amd || failureCheck
+        install linux-firmware-amd || die
     fi
-    echo -e "CPU microcode package installed. \n"
 
     return 0
 }

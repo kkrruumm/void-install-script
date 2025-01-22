@@ -1,0 +1,53 @@
+#!/bin/bash
+# void-install-script general library for things that are expected to be used multiple times
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\e[1;33m'
+NC='\033[0m'
+
+die() {
+    echo -e "${RED}$commandFailure${NC}\nInstallation will not proceed." && exit 1
+}
+
+drawDialog() {
+    dialog --stdout --cancel-label "Skip" --no-mouse --backtitle "https://github.com/kkrruumm/void-install-script" "$@"
+}
+
+diskCalculator() {
+    diskOperand=$(echo $sizeInput | sed 's/G//g')
+    diskFloat=$(echo $diskFloat - $diskOperand | bc)
+    diskAvailable=$(echo $diskFloat - 0.5 | bc)
+    diskAvailable+="G"
+
+    if [ "$diskFloat" -lt 0 ]; then
+        clear
+        echo -e "${RED}Used disk space cannot exceed the maximum capacity of the chosen disk. Have you over-provisioned your disk? ${NC}\n"
+        read -p "Press Enter to start disk configuration again." </dev/tty
+        diskConfig
+    fi
+
+    return 0
+}
+
+partitionerOutput() {
+    echo -e "Disk: $diskInput"
+    echo -e "Disk size: $diskSize"
+    echo -e "Available disk space: $diskAvailable \n"
+
+    return 0
+}
+
+checkModule() {
+    # We need to make sure a few variables at minimum exist before the installer should accept it.
+    # Past this, I'm going to leave verifying correctness to the author of the module.
+    if grep "title="*"" "modules/$i" && { grep "status=on" "modules/$i" || grep "status=off" "modules/$i" ; } && { grep "description="*"" "modules/$i" ; } && { grep "main()" "modules/$i" ; }; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+install() {
+    xbps-install -Sy -R "$repository" -r /mnt "$@"
+}

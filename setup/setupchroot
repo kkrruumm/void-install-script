@@ -1,0 +1,161 @@
+#!/bin/bash
+
+# Source installer library
+. "/tmp/libviss" ||
+    { echo "/tmp/libviss not found. Cannot continue." ; exit 1 ;}
+
+exitFunction () {
+    xbps-reconfigure -fa ||
+        { commandFailure="xbps-reconfigure has failed." ; die ; }
+
+    if [ "$bootloader" == "uki" ]; then
+        commandFailure="Setting default boot entry has failed."
+        bootEntry=$(efibootmgr --unicode | grep "Void Linux" | while read c1 c2; do echo $c1; done | sed 's/Boot//g' | sed 's/*//g') || die
+        efibootmgr --bootorder $bootEntry || die
+    fi
+
+    exit 0
+}
+
+userPassword() {
+    echo -e "${YELLOW}Set the password for the user $username: ${NC}"
+    passwd "$username" || die
+
+    exitFunction
+}
+
+rootPassword() {
+    echo -e "${YELLOW}Set your root password: ${NC}"
+    passwd root || die
+
+    [ -n "$username" ] &&
+        userPassword
+
+    exitFunction
+}
+
+. /tmp/installerOptions ||
+    { commandFailure="Sourcing installer variable file on the new system has failed." ; die ; }
+
+commandFailure="Setting root directory permissions has failed."
+chown root:root / || die
+chmod 755 / || die
+
+echo -e "Enabling all services... \n"
+
+if [ -e "/usr/share/applications/pipewire.desktop" ] && [ -e "/etc/xdg/autostart/" ]; then
+    commandFailure="Pipewire configuration has failed."
+    echo -e "Enabling Pipewire... \n"
+    ln -s /usr/share/applications/pipewire.desktop /etc/xdg/autostart/pipewire.desktop || die
+    ln -s /usr/share/applications/pipewire-pulse.desktop /etc/xdg/autostart/pipewire-pulse.desktop || die
+else
+    echo -e "Cannot enable pipewire via DE autostart. This is likely not an error. \n"
+fi
+
+if [ -e "/usr/share/alsa/alsa.conf.d/50-pipewire.conf" ] && [ -e "/usr/share/alsa/alsa.conf.d/99-pipewire-default.conf" ]; then
+    commandFailure="Pipewire configuration has failed."
+    ln -s /usr/share/alsa/alsa.conf.d/50-pipewire.conf /etc/alsa/conf.d || die
+    ln -s /usr/share/alsa/alsa.conf.d/99-pipewire-default.conf /etc/alsa/conf.d || die
+fi
+
+[ -e /etc/sv/dbus ] &&
+    { ln -s /etc/sv/dbus /var/service || { commandFailure="Enabling dbus has failed." ; die ; } ; }
+
+partVar=$(blkid -o value -s UUID "$root")
+
+if [ "$encryption" == "Yes" ]; then
+    if [ "$bootloader" == "grub" ]; then
+        commandFailure="Configuring LUKS key has failed."
+
+        echo -e "Configuring LUKS key... \n"
+        dd bs=1 count=64 if=/dev/urandom of=/boot/volume.key || die
+        echo -e "${YELLOW}Enter your encryption passphrase: ${NC}\n"
+        cryptsetup luksAddKey "$root" /boot/volume.key || die
+        chmod 000 /boot/volume.key || die
+        chmod -R g-rwx,o-rwx /boot || die
+
+        echo "void   UUID=$partVar   /boot/volume.key   luks" >> /etc/crypttab || die
+        touch /etc/dracut.conf.d/10-crypt.conf || die
+        dracutConf='install_items+=" /boot/volume.key /etc/crypttab "' || die
+        echo "$dracutConf" >> /etc/dracut.conf.d/10-crypt.conf || die
+    fi
+fi
+
+case "$bootloader" in
+    uki)
+        mkdir -p /boot/efi/EFI/boot ||
+            { commandFailure="Creating ESP path has failed." ; die ; }
+
+        # Force kernel reconfigure to buikd the UKI
+        commandFailure="Forced kernel reconfigure has failed."
+        chmod +x /etc/kernel.d/post-install/60-ukify || die
+        xbps-reconfigure -f linux"$(find /boot -name vmlinuz\* | tr -d "/boot/vmlinuz-" | cut -f1,2 -d".")" || die
+
+        # This shouldn't ever need to be regenerated assuming the EFI executable is kept where it's at.
+        efibootmgr --create --label "Void Linux" --disk "$diskInput" --part 1 --loader "\EFI\boot\bootx64.efi" ||
+            { commandFailure="Creating EFI boot entry has failed." ; die ; }
+    ;;
+    grub)
+        grub-install --removable --target=x86_64-efi --efi-directory=/boot/efi ||
+            { commandFailure="GRUB installation has failed." ; die ; }
+    ;;
+esac
+
+ln -sf /usr/share/zoneinfo/"$timezone" /etc/localtime ||
+    { commandFailure="Setting timezone has failed." ; die ; }
+
+if [ "$su" == "doas" ]; then
+    commandFailure="doas configuration has failed."
+    touch /etc/doas.conf || die
+    chown -c root:root /etc/doas.conf || die
+    chmod -c 0400 /etc/doas.conf || die
+    ln -s $(which doas) /usr/bin/sudo || die
+fi
+
+if [ "$desktop" == "gnome" ]; then
+    # Cursed fix for gdm not providing a Wayland option if the Nvidia driver is in use, found here: https://wiki.archlinux.org/title/GDM#Wayland_and_the_proprietary_NVIDIA_driver
+    commandFailure="Modifying udev rules for gdm has failed."
+    if [ -e /usr/bin/nvidia-smi ]; then
+        [ ! -d /etc/udev/rules.d ] &&
+            { mkdir -p /etc/udev/rules.d || die ; }
+
+        ln -s /dev/null /etc/udev/rules.d/61-gdm.rules || die
+    fi
+fi
+
+if [ -z "$username" ]; then
+    clear
+    rootPassword
+else
+    commandFailure="Creating user has failed."
+    useradd "$username" -m -d /home/"$username" || die
+    usermod -aG audio,video,kvm "$username" || die
+    clear
+    echo -e "Should user "$username" be a superuser? (y/n) \n"
+    read superPrompt
+
+    if [ $superPrompt == "y" ] || [ $superPrompt == "Y" ]; then
+        usermod -aG wheel "$username" || die
+        if [ "$su" == "sudo" ]; then
+            sed -i -e 's/# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/g' /etc/sudoers || die
+        elif [ "$su" == "doas" ]; then
+            echo "permit :wheel" >> /etc/doas.conf || die
+        fi
+    fi
+
+    if [ "$desktop" == "wayfire" ]; then
+        # Modify default wayfire terminal after the user has been created
+        echo -e "Modifying default wayfire terminal... \n"
+        commandFailure="Changing Wayfire config has failed."
+
+        [ ! -d /home/"$username"/.config ] &&
+            { mkdir /home/"$username"/.config || die ; }
+
+        cp /usr/share/examples/wayfire/wayfire.ini /home/"$username"/.config/wayfire.ini || die
+        sed -i -e 's/command_terminal = alacritty/command_terminal = foot/g' /home/"$username"/.config/wayfire.ini || die
+        chown -Rf "$username":"$username" /home/"$username"/.config || die
+    fi
+
+    clear
+    rootPassword
+fi

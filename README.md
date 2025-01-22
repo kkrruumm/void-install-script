@@ -1,12 +1,11 @@
 # void-install-script
-
-This installer is currently undergoing a rewrite/restructure. Updates other than bug fixes will be limited until the rework is finished.
-
 TUI Shell script installer for Void Linux
 
 This installer was primarily created to serve as an installer with encryption support while also having general installation options one would want, with sane defaults.
 
 The overall goal of this installer is to deploy a system that is ready to use as soon as the installer exits.
+
+At the moment, this installer does not have stable releases. The most recent commit should be considered the most recent stable release. Of course, if you run into bugs, please create an issue. (Or, if you're inclined, create a pull request to fix it.)
 
 ![TUI Image](https://github.com/kkrruumm/void-install-script/blob/main/images/tuiscreenshot.png)
 
@@ -21,11 +20,10 @@ The overall goal of this installer is to deploy a system that is ready to use as
 --Option to install nftables with a default firewall config
 --Various security related modules
 
--Option to choose between grub, efistub, and experimental UKI support
+-Option to choose between grub and UKI to boot the system
 
 -Option to encrypt installation disk
 --With UKI setup, encryption will encrypt both /boot and / using luks2
---With efistup setup, encryption will encrypt / using luks2
 --With grub setup, encryption will encrypt both /boot and / using luks1
 
 -Option to pre-install and pre-configure the following:
@@ -35,9 +33,10 @@ The overall goal of this installer is to deploy a system that is ready to use as
 --DE or WM (gnome, kde, xfce, sway, swayfx, wayfire, i3, none)
 --Or, choose to do none of these and install a bare-minimum system
 
--Option to choose between base-system and base-container base system meta packages
+-Option to choose between LVM and a traditional install
+-Option to choose between zswap, swap partition, and normal swapfile
 -Option to securely erase the installation disk with shred
--Option to choose either doas or sudo
+-Option to choose between doas or sudo
 -Option to choose your repository mirror
 -Option to choose between linux, linux-lts, and linux-mainline kernels
 -Option to choose between xfs and ext4 filesystems
@@ -60,22 +59,17 @@ Follow on-screen steps
 Done.
 ```
 
-# efistub and UKI notes
+# UKI notes
 
-UKI setup *will* provide full-disk-encryption as both / and /boot will be encrypted with luks2.
-
-efistub setup will *not* provide full-disk-encryption as /boot will not be encrypted.
-However, root will be encrypted using luks2 instead of luks1, since grub is no longer a constraint here.
+UKI setup *will* provide full-disk-encryption as both / and /boot will be encrypted with luks2 as opposed to luks1 with grub.
 
 Do keep in mind potential security issues regarding weaker key derivation functions, such as pbkdf2 which is used with luks1 here, rather than argon2id with luks2.
 
-efistub and UKIs *can* both be a bit touchy on some (non entirely UEFI standards compliant) motherboards, though this doesn't seem to be much of a problem as long as we "trick" boards into not deleting the boot entry.
-
-Currently, UKIs are not automatically built on system update. The script uses ukify to build UKIs, and ukify is left on the system post-installation. This can be used to build new UKIs manually.
+UKIs *can* both be a bit touchy on some (non entirely UEFI standards compliant) motherboards, though this doesn't seem to be much of a problem as long as we "trick" boards into not deleting the boot entry.
 
 The default UKI location is ``/boot/efi/EFI/boot/bootx64.efi``, and it is recommended to leave it in this location so as to not have to regenerate the boot entry with efibootmgr, but also to maintain compatibility with spotty UEFI implementations.
 
-With UKIs, kernel parameters are set in ``/root/kernelparams``, to update these, modify this file and give it to ukify when building your new UKI with your added kernel parameters.
+With UKIs, kernel parameters are set in ``/etc/kernel.d/post-install/60-ukify``, to update these, modify this file and run a reconfigure on your kernel.
 
 # Modules notes
 
@@ -171,9 +165,7 @@ Niche requests for features that do not fit the scope of this installer are unli
 ```
 -Add manual partitioning
 -Split security modules into their own menu
--Swapfile and ZRAM support
--Make LVM optional, if LVM is disabled, force swapfile instead of swap partition
--Create a kernel hook to automatically build new UKIs
 -ZFS support with zfsbootmenu is planned
+-Add more bootloader choices such as limine and systemd-boot 
 -You tell me, or, open a PR adding what you want.
 ```

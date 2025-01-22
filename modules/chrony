@@ -4,15 +4,11 @@ description="- Chrony NTP Daemon"
 status=on
 
 main() {
-    commandFailure="Chrony installation has failed."
-    echo -e "Installing chrony... \n"
-    xbps-install -Sy -R $installRepo -r /mnt chrony || failureCheck
-    echo -e "Chrony has been installed. \n"
+    install chrony ||
+        { commandFailure="Chrony installation has failed." ; die ; }
 
-    commandFailure="Enabling chronyd has failed."
-    echo -e "Enabling chronyd... \n"
-    chroot /mnt /bin/bash -c "ln -s /etc/sv/chronyd /var/service" || failureCheck
-    echo -e "chronyd has been enabled. \n"
+    chroot /mnt /bin/bash -c "ln -s /etc/sv/chronyd /var/service" ||
+        { commandFailure="Enabling chronyd has failed." ; die ; }
 
     return 0
 }

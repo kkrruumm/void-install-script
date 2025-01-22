@@ -4,36 +4,26 @@ description="- Hardens /proc by setting hidepid=2 and gid=proc"
 status=off
 
 main() {
-    commandFailure="Modifying rc for hideproc has failed."
-    echo -e "Modifying rc for hideproc... \n"
-    echo "mount -o remount,rw,nosuid,nodev,noexec,relatime,hidepid=2,gid=proc /proc" >> /mnt/etc/rc.local || failureCheck
-    echo -e "Modified rc for hideproc. \n"
+    echo "mount -o remount,rw,nosuid,nodev,noexec,relatime,hidepid=2,gid=proc /proc" >> /mnt/etc/rc.local ||
+        { commandFailure="Modifying rc for hideproc has failed." ; die ; }
 
-    commandFailure="Creating group for proc users has failed."
-    echo -e "Creating group for proc users... \n"
-    chroot /mnt /bin/bash -c "groupadd proc" || failureCheck
-    echo -e "Created group for proc users. \n"
+    chroot /mnt /bin/bash -c "groupadd proc" ||
+        { commandFailure="Creating group for proc users has failed." ; die ; }
 
     if [ -n "$createUser" ]; then
-        commandFailure="Adding user to proc group has failed."
-        echo -e "Adding user to proc group... \n"
-        chroot /mnt /bin/bash -c "usermod -aG proc $createUser" || failureCheck
-        echo -e "Added user to proc group. \n"
+        chroot /mnt /bin/bash -c "usermod -aG proc $username" ||
+            { commandFailure="Adding user to proc group has failed." ; die ; }
     fi
     
     # Required for certain things the installer may deploy to function out of the box.
     if grep "polkitd" /mnt/etc/passwd ; then
-        commandFailure="Adding polkit user to proc group has failed."
-        echo -e "Adding polkit user to proc group... \n"
-        chroot /mnt /bin/bash -c "usermod -aG proc polkitd" || failureCheck
-        echo -e "Added polkit user to proc group. \n"
+        chroot /mnt /bin/bash -c "usermod -aG proc polkitd" ||
+            { commandFailure="Adding polkit user to proc group has failed." ; die ; }
     fi
 
     if grep "gdm" /mnt/etc/passwd ; then
-        commandFailure="Adding gdm user to proc group has failed."
-        echo -e "Adding gdm user to proc group... \n"
-        chroot /mnt /bin/bash -c "usermod -aG proc gdm" || failureCheck
-        echo -e "Added gdm user to proc group. \n"
+        chroot /mnt /bin/bash -c "usermod -aG proc gdm" ||
+            { commandFailure="Adding gdm user to proc group has failed." ; die ; }
     fi
 
     return 0

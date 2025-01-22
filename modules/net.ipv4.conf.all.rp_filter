@@ -4,20 +4,15 @@ description="- Provides a choice to set the net.ipv4.conf.all.rp_filter value"
 status=off
 
 main() {
-
-    rpfilterChoice=$(drawDialog --no-cancel --title "net.ipv4.conf.all.rp_filter" --menu "" 0 0 0 "Strict" "" "Loose" "" "None" "")
+    rpfilter=$(drawDialog --no-cancel --title "net.ipv4.conf.all.rp_filter" --menu "" 0 0 0 "Strict" "" "Loose" "" "None" "")
 
     commandFailure="Setting net.ipv4.conf.all.rp_filter has failed."
-    if [ "$rpfilterChoice" == "Loose" ]; then
-        echo -e "Setting net.ipv4.conf.all.rp_filter... \n"
-        echo "net.ipv4.conf.default.rp_filter = 2" >> /mnt/etc/sysctl.conf || failureCheck
-        echo "net.ipv4.conf.all.rp_filter = 2" >> /mnt/etc/sysctl.conf || failureCheck
-        echo -e "net.ipv4.conf.all.rp_filter has been set. \n"
-    elif [ "$rpfilterChoice" == "Strict" ]; then
-        echo -e "Setting net.ipv4.conf.all.rp_filter... \n"
-        echo "net.ipv4.conf.default.rp_filter = 1" >> /mnt/etc/sysctl.conf || failureCheck
-        echo "net.ipv4.conf.all.rp_filter = 1" >> /mnt/etc/sysctl.conf || failureCheck
-        echo -e "net.ipv4.conf.all.rp_filter has been set. \n"
+    if [ "$rpfilter" == "Loose" ]; then
+        echo "net.ipv4.conf.default.rp_filter = 2" >> /mnt/etc/sysctl.conf || die
+        echo "net.ipv4.conf.all.rp_filter = 2" >> /mnt/etc/sysctl.conf || die
+    elif [ "$rpfilter" == "Strict" ]; then
+        echo "net.ipv4.conf.default.rp_filter = 1" >> /mnt/etc/sysctl.conf || die
+        echo "net.ipv4.conf.all.rp_filter = 1" >> /mnt/etc/sysctl.conf || die
     fi
 
     return 0

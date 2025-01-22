@@ -5,38 +5,30 @@ status=off
 
 main() {
 
-    lockdownChoice=$(drawDialog --no-cancel --title "Kernel Lockdown Mode" --menu "" 0 0 0 "integrity" "- Userland modifying the running kernel is disabled." "confidentiality" "- Extracting confidential information from the kernel is also disabled." "None" "")
+    lockdown=$(drawDialog --no-cancel --title "Kernel Lockdown Mode" --menu "" 0 0 0 "integrity" "- Userland modifying the running kernel is disabled." "confidentiality" "- Extracting confidential information from the kernel is also disabled." "None" "")
 
     commandFailure="Enabling kernel lockdown mode has failed."
-    if [ "$lockdownChoice" == "integrity" ]; then
-            case $bootloaderChoice in
+    if [ "$lockdown" == "integrity" ]; then
+            case "$bootloader" in
                 grub)
-                    sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 lockdown=integrity/g' /mnt/etc/default/grub || failureCheck
-                    chroot /mnt /bin/bash -c "update-grub" || failureCheck
-                    ;;
-                efistub)
-                    sed -i -e 's/OPTIONS="loglevel=4/OPTIONS="loglevel=4 lockdown=integrity/g' /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
-                    chroot /mnt /bin/bash -c 'xbps-reconfigure -f linux"$(find /boot -name vmlinuz\* | tr -d "/boot/vmlinuz-" | cut -f1,2 -d".")"' || failureCheck
-                    ;;
+                    sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 lockdown=integrity/g' /mnt/etc/default/grub || die
+                    chroot /mnt /bin/bash -c "update-grub" || die
+                ;;
                 uki)
-                    sed -i -e 's/loglevel=4/loglevel=4 lockdown=integrity/g' /mnt/root/kernelparams || failureCheck
-                    chroot /mnt /bin/bash -c 'rm /boot/efi/EFI/boot/bootx64.efi && ukify build --linux="$(find /boot/vmlinuz*)" --initrd="$(find /boot/initramfs*)" --cmdline="$(cat /root/kernelparams)" --output=/boot/efi/EFI/boot/bootx64.efi' || failureCheck
-                    ;;
+                    sed -i -e 's/loglevel=4/loglevel=4 lockdown=integrity/g' /mnt/etc/kernel.d/post-install/60-ukify || die
+                    chroot /mnt /bin/bash -c 'xbps-reconfigure -f linux"$(find /boot -name vmlinuz\* | tr -d "/boot/vmlinuz-" | cut -f1,2 -d".")"' || die
+                ;;
             esac
-    elif [ "$lockdownChoice" == "confidentiality" ]; then
-            case $bootloaderChoice in
+    elif [ "$lockdown" == "confidentiality" ]; then
+            case "$bootloader" in
                 grub)
-                    sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 lockdown=confidentiality/g' /mnt/etc/default/grub || failureCheck
-                    chroot /mnt /bin/bash -c "update-grub" || failureCheck
-                    ;;
-                efistub)
-                    sed -i -e 's/OPTIONS="loglevel=4/OPTIONS="loglevel=4 lockdown=confidentiality/g' /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
-                    chroot /mnt /bin/bash -c 'xbps-reconfigure -f linux"$(find /boot -name vmlinuz\* | tr -d "/boot/vmlinuz-" | cut -f1,2 -d".")"' || failureCheck
-                    ;;
+                    sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 lockdown=confidentiality/g' /mnt/etc/default/grub || die
+                    chroot /mnt /bin/bash -c "update-grub" || die
+                ;;
                 uki)
-                    sed -i -e 's/loglevel=4/loglevel=4 lockdown=confidentiality/g' /mnt/root/kernelparams || failureCheck
-                    chroot /mnt /bin/bash -c 'rm /boot/efi/EFI/boot/bootx64.efi && ukify build --linux="$(find /boot/vmlinuz*)" --initrd="$(find /boot/initramfs*)" --cmdline="$(cat /root/kernelparams)" --output=/boot/efi/EFI/boot/bootx64.efi' || failureCheck
-                    ;;
+                    sed -i -e 's/loglevel=4/loglevel=4 lockdown=confidentiality/g' /mnt/etc/kernel.d/post-install/60-ukify || die
+                    chroot /mnt /bin/bash -c 'xbps-reconfigure -f linux"$(find /boot -name vmlinuz\* | tr -d "/boot/vmlinuz-" | cut -f1,2 -d".")"' || die
+                ;;
             esac
     fi
 

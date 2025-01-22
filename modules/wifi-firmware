@@ -3,13 +3,12 @@ title=wifi-firmware
 description="- Wifi firmware and utilities"
 status=on
 
+# If this is toggled off, and the user is using the regular base metapackage,
+# the packages will be removed from the system.
+# If the user has defined their own basesystem, install if enabled:
 main() {
-    if [ $baseChoice == "base-container" ]; then
-        commandFailure="Wifi firmware and utility installation has failed."
-        echo -e "Installing wifi firmware and utilities... \n"
-        xbps-install -Sy -R $installRepo -r /mnt iw wpa_supplicant wifi-firmware || failureCheck
-        echo -e "wifi firmware and utilities installed. \n"
-    fi
-    
+    [ "$basesystem" != "base-system" ] &&
+        { commandFailure="Wifi firmware and utility installation has failed." ; install iw wpa_supplicant wifi-firmware || die ; }
+
     return 0
 }

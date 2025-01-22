@@ -1,0 +1,178 @@
+#!/bin/bash
+
+commandFailure="Copying XBPS keys has failed."
+mkdir -p /mnt/var/db/xbps/keys || die
+cp /var/db/xbps/keys/* /mnt/var/db/xbps/keys || die
+
+commandFailure="Base system installation has failed."
+
+case "$basesystem" in
+    base-system)
+        XBPS_ARCH=$ARCH install base-system || die
+
+        [ "$lvm" == "Yes" ] &&
+            { install lvm2 || die ; }
+
+        [ "$encryption" == "Yes" ] &&
+            { install cryptsetup || die ; }
+
+        if [ "$kernel" != "linux" ] && [ "$kernel" != "Custom" ]; then
+            echo "ignorepkg=linux" >> /mnt/etc/xbps.d/ignore.conf || die
+            install "$kernel" || die
+            xbps-remove -ROoy -r /mnt linux || die
+        fi
+
+        if [ "$su" != "sudo" ]; then
+            echo "ignorepkg=sudo" >> /mnt/etc/xbps.d/ignore.conf || die
+            xbps-remove -ROoy -r /mnt sudo || die
+        fi
+
+        [ "$su" == "doas" ] &&
+            { install opendoas || die ; }
+
+        if [ "$profile" == "desktop" ] && [[ ! ${modulesChoice[@]} =~ "wifi-firmware" ]]; then
+            echo "ignorepkg=wifi-firmware" >> /mnt/etc/xbps.d/ignore.conf || die
+            echo "ignorepkg=iw" >> /mnt/etc/xbps.d/ignore.conf || die
+            echo "ignorepkg=wpa_supplicant" >> /mnt/etc/xbps.d/ignore.conf || die
+
+            xbps-remove -ROoy -r /mnt wifi-firmware iw wpa_supplicant || die
+        fi
+    ;;
+    *)
+        XBPS_ARCH=$ARCH install $basesystem || die
+
+        [ "$su" == "sudo" ] &&
+            { install sudo || die ; }
+    ;;
+esac
+
+commandFailure="Bootloader package installation has failed"
+case "$bootloader" in
+    uki) install efibootmgr ukify systemd-boot-efistub || die ;;
+    grub) install grub-x86_64-efi || die ;;
+esac
+
+commandFailure="Creating $kernel virtualpkg has failed."
+case "$kernel" in
+    linux-lts) echo "virtualpkg=linux-headers:linux-lts-headers" >> /mnt/etc/xbps.d/headers.conf || die ;;
+    linux-mainline) echo "virtualpkg=linux-headers:linux-mainline-headers" >> /mnt/etc/xbps.d/headers.conf || die ;;
+esac
+
+if [ "$repository" != "https://repo-default.voidlinux.org/current" ] && [ "$repository" != "https://repo-default.voidlinux.org/current/musl" ]; then
+    xmirror -s "$repository" -r /mnt ||
+        { commandFailure="Repository configuration has failed." ; die ; }
+fi
+
+commandFailure="Confuring fstab has failed."
+partVar=$(blkid -o value -s UUID "$esp")
+echo "UUID=$partVar /boot/efi vfat defaults 0 0" >> /mnt/etc/fstab || die
+
+[ "$lvm" == "Yes" ] &&
+    { echo "/dev/void/root / $filesystem defaults 0 0" >> /mnt/etc/fstab || die ; }
+
+[ "$lvm" == "No" ] && [ "$encryption" == "Yes" ] &&
+    { partVar=$(blkid -o value -s UUID /dev/mapper/void) ; echo "UUID=$partVar / $filesystem defaults 0 0" >> /mnt/etc/fstab || die ; }
+
+[ "$lvm" == "No" ] && [ "$encryption" == "No" ] &&
+    { partVar=$(blkid -o value -s UUID "$root") ; echo "UUID=$partVar / $filesystem defaults 0 0" >> /mnt/etc/fstab || die ; }
+
+[ -n "$swapSize" ] && [ "$swapStyle" == "partition" ] && [ "$lvm" == "Yes" ] &&
+    { echo "/dev/void/swap swap swap defaults 0 0" >> /mnt/etc/fstab || die ; }
+
+[ -n "$swapSize" ] && [ "$swapStyle" == "partition" ] && [ "$lvm" == "No" ] &&
+    { partVar=$(blkid -o value -s UUID "$swap") ; echo "UUID=$partVar swap swap defaults 0 0" >> /mnt/etc/fstab || die ; }
+
+[ -n "$swapSize" ] && [ "$swapStyle" == "swapfile" ] &&
+    { echo "/var/swapfile swap swap defaults 0 0" >> /mnt/etc/fstab || die ; }
+
+[ "$separateHomePossible" != "No" ] && [ -n "$homeSize" ] && [ "$lvm" == "Yes" ] &&
+    { echo "/dev/void/home /home $filesystem defaults 0 0" >> /mnt/etc/fstab || die ; }
+
+[ -n "$homeSize" ] && [ "$lvm" == "No" ] &&
+    { partVar=$(blkid -o value -s UUID "$home") ; echo "UUID=$partVar /home $filesystem defaults 0 0" >> /mnt/etc/fstab || die ; }
+
+case "$bootloader" in
+    uki)
+        echo '#!/bin/sh
+
+set -e
+
+PKGNAME="$1"
+VERSION="$2"
+
+[ -x /usr/bin/ukify ] || exit 0
+
+ukify build \
+    --linux "${ROOTDIR}/boot/vmlinuz-${VERSION}" \
+    --initrd="${ROOTDIR}/boot/initramfs-${VERSION}.img" \
+    --output="${ROOTDIR}/boot/efi/EFI/boot/bootx64.efi" \
+    --uname="${VERSION}" \
+    --cmdline="loglevel=4"' >> /mnt/etc/kernel.d/post-install/60-ukify ||
+            { commandFailure="Configuring ukify kernel hook has failed." ; die ; }
+
+        commandFailure="Configuring uki base kernel parameters has failed."
+        partVar=$(blkid -o value -s UUID "$root")
+        [ "$lvm" == "Yes" ] && [ "$encryption" == "Yes" ] &&
+            { sed -i -e 's:loglevel=4:loglevel=4 rd.luks.uuid='$partVar' root=/dev/void/root rootfstype='$filesystem' rw:g' /mnt/etc/kernel.d/post-install/60-ukify || die ; }
+
+        [ "$lvm" == "Yes" ] && [ "$encryption" == "No" ] &&
+            { sed -i -e 's:loglevel=4:loglevel=4 rd.lvm.vg=void root=/dev/void/root rootfstype='$filesystem' rw:g' /mnt/etc/kernel.d/post-install/60-ukify || die ; }
+
+        [ "$lvm" == "No" ] && [ "$encryption" == "Yes" ] &&
+            { sed -i -e 's:loglevel=4:loglevel=4 rd.luks.uuid='$partVar' rd.luks.name='$partVar'=void-root root=/dev/mapper/void-root rootfstype='$filesystem' rw:g' /mnt/etc/kernel.d/post-install/60-ukify || die ; }
+
+        [ "$lvm" == "No" ] && [ "$encryption" == "No" ] &&
+            { sed -i -e 's/loglevel=4/loglevel=4 root=UUID='$partVar' rootfstype='$filesystem' rw/g' /mnt/etc/kernel.d/post-install/60-ukify || die ; }
+
+        [ "$acpi" == "false" ] &&
+            { sed -i -e 's/loglevel=4/loglevel=4 acpi=off/g' /mnt/root/kernelparams || { commandFailure="Disabling ACPI has failed." ; die ; } ; }
+    ;;
+    grub)
+        commandFailure="Configuring grub base config has failed."
+        if [ "$encryption" == "Yes" ]; then
+            partVar=$(blkid -o value -s UUID "$root")
+            [ "$lvm" == "Yes" ] &&
+                { sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4"/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 rd.lvm.vg=void rd.luks.uuid='$partVar'"/g' /mnt/etc/default/grub || die ; }
+
+            [ "$lvm" == "No" ] &&
+                { sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4"/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 rd.luks.uuid='$partVar'"/g' /mnt/etc/default/grub || die ; }
+
+            echo "GRUB_ENABLE_CRYPTODISK=y" >> /mnt/etc/default/grub || die
+        fi
+
+        [ "$acpi" == "false" ] &&
+            { sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 acpi=off/g' /mnt/etc/default/grub || { commandFailure="Disabling ACPI has failed." ; die ; } ; }
+    ;;
+esac
+
+if [ "$libc" == "glibc" ]; then
+    commandFailure="Locale configuration has failed."
+    echo "$locale" > /mnt/etc/locale.conf || die
+    echo "$libclocale" >> /mnt/etc/default/libc-locales || die
+fi
+
+echo "$hostname" > /mnt/etc/hostname ||
+    { commandFailure="Hostname configuration has failed." ; die ; }
+
+# Configure non-partition methods of swapping
+# I feel like this isn't really the place for this-
+# but neither is setup-disk or otherwise really, so:
+case "$swapStyle" in
+    zram)
+        commandFailure="Configuring zram has failed."
+        echo "zram" >> /etc/modules-load.d/zram.conf
+        echo "zramctl /dev/zram0 --algorithm lz4 --size $swapSize" >> /etc/rc.local || die
+        echo "mkswap -U clear /dev/zram0" >> /etc/rc.local || die
+        echo "swapon --discard --priority 100 /dev/zram0" >> /etc/rc.local || die
+    ;;
+    swapfile)
+        commandFailure="Configuring swapfile has failed."
+        swapSize=$(echo "$swapSize" | sed 's/G//g')
+        echo "Creating swapfile..."
+        dd if=/dev/zero of=/mnt/var/swapfile bs=1024M count="$swapSize" status=progress || die
+        chmod 600 /mnt/var/swapfile || die # root only.
+        mkswap /mnt/var/swapfile || die
+    ;;
+esac
+
+return 0

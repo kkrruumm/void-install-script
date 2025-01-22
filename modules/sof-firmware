@@ -1,0 +1,11 @@
+#!/bin/bash
+title=sof-firmware
+description="- Sound Open Firmware and topology binaries (Audio support for modern laptops)"
+status=off
+
+main() {
+    install sof-firmware ||
+        { commandFailure="SOF Firmware installation has failed." ; die ; }
+
+    return 0
+}

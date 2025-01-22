@@ -4,15 +4,11 @@ description="- Includes Flathub repository"
 status=off
 
 main() {
-    commandFailure="Flatpak installation has failed."
-    echo -e "Installing flatpak... \n"
-    xbps-install -Sy -R $installRepo -r /mnt flatpak || failureCheck
-    echo -e "Flatpak has been installed. \n"
-    
-    commandFailure="Adding flatpak repository has failed."
-    echo -e "Adding flathub repo for flatpak... \n"
-    chroot /mnt /bin/bash -c "flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo" || failureCheck
-    echo -e "Flathub repo has been added. \n"
+    install flatpak ||
+        { commandFailure="Flatpak installation has failed." ; die ; }
+
+    chroot /mnt /bin/bash -c "flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo" ||
+        { commandFailure="Adding flatpak repository has failed." ; die ; }
 
     return 0
 }

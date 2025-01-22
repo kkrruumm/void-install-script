@@ -5,23 +5,16 @@ status=off
 
 main() {
     commandFailure="Enabling init_on_free has failed."
-    echo -e "Enabling init_on_free... \n"
-    case $bootloaderChoice in
+    case "$bootloader" in
         grub)
-            sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 init_on_free=1/g' /mnt/etc/default/grub || failureCheck
-            chroot /mnt /bin/bash -c "update-grub" || failureCheck
-            ;;
-        efistub)
-            sed -i -e 's/OPTIONS="loglevel=4/OPTIONS="loglevel=4 init_on_free=1/g' /mnt/etc/default/efibootmgr-kernel-hook || failureCheck
-            chroot /mnt /bin/bash -c 'xbps-reconfigure -f linux"$(find /boot -name vmlinuz\* | tr -d "/boot/vmlinuz-" | cut -f1,2 -d".")"' || failureCheck
-            ;;
+            sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 init_on_free=1/g' /mnt/etc/default/grub || die
+            chroot /mnt /bin/bash -c "update-grub" || die
+        ;;
         uki)
-            sed -i -e 's/loglevel=4/loglevel=4 init_on_free=1/g' /mnt/root/kernelparams || failureCheck
-            chroot /mnt /bin/bash -c 'rm /boot/efi/EFI/boot/bootx64.efi && ukify build --linux="$(find /boot/vmlinuz*)" --initrd="$(find /boot/initramfs*)" --cmdline="$(cat /root/kernelparams)" --output=/boot/efi/EFI/boot/bootx64.efi' || failureCheck
-            ;;
+            sed -i -e 's/loglevel=4/loglevel=4 init_on_free=1/g' /mnt/etc/kernel.d/post-install/60-ukify || die
+            chroot /mnt /bin/bash -c 'xbps-reconfigure -f linux"$(find /boot -name vmlinuz\* | tr -d "/boot/vmlinuz-" | cut -f1,2 -d".")"' || die
+        ;;
     esac
-
-    echo -e "init_on_free enabled. \n"
 
     return 0
 }
