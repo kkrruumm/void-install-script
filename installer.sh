@@ -73,7 +73,7 @@ diskConfig() {
 
     if [ "$rootSize" == "full" ]; then
         local separateHomePossible="No"
-    elif [ "$lvm" == "No" ] && [ "$encryption" == "No" ]; then
+    elif [ "$lvm" == "No" ] && [ "$encryption" == "Yes" ]; then
         local separateHomePossible="No"
     else
         local sizeInput=$rootSize && diskCalculator && local diskIndicator=$(partitionerOutput)
@@ -259,6 +259,10 @@ else
 fi
 
 settings+="Root size: $rootSize\n"
+
+[ -n "$homeSize" ] &&
+    settings+="Home size: $homeSize"
+
 settings+="Hostname: $hostname\n"
 settings+="Timezone: $timezone\n"
 settings+="Locale: $locale\n"
