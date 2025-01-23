@@ -90,7 +90,7 @@ case "$desktop" in
         chroot /mnt /bin/bash -c "ln -s /etc/sv/sddm /var/service" || die
     ;;
     xfce)
-        install xfce4 lightdm lightdm-gtk3-greeter xorg-minimal xdg-user-dirs xorg-fonts xorg-video-drivers || die
+        install xfce4 xfce4-pulseaudio-plugin lightdm lightdm-gtk3-greeter xorg-minimal xdg-user-dirs xorg-fonts xorg-video-drivers || die
 
         [ "$network" == "NetworkManager" ] &&
             { install network-manager-applet || die ; }
