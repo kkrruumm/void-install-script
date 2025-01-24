@@ -19,10 +19,10 @@ commandFailure="Disk pre-install wipe has failed."
 scanpartitions="$diskInput?*" # We only want child partitions, not the parent drive
 for i in $scanpartitions
 do
-    wipefs --all -f "$i" || die
+    wipefs --all -f "$i" 
 done
 
-sfdisk --delete "$diskInput" || die
+sfdisk --delete "$diskInput"
 
 # I hate everything other than fdisk despite how terrible this is
 (
