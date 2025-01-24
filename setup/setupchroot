@@ -2,13 +2,14 @@
 
 # Source installer library
 . "/tmp/libviss" ||
-    { echo "/tmp/libviss not found. Cannot continue." ; exit 1 ;}
+    { echo "/tmp/libviss not found. Cannot continue." ; exit 1 ; }
 
 exitFunction () {
     xbps-reconfigure -fa ||
         { commandFailure="xbps-reconfigure has failed." ; die ; }
 
     if [ "$bootloader" == "uki" ]; then
+        # For one reason or another, some systems seem to remove our entry without setting it as next to boot.
         commandFailure="Setting default boot entry has failed."
         bootEntry=$(efibootmgr --unicode | grep "Void Linux" | while read c1 c2; do echo $c1; done | sed 's/Boot//g' | sed 's/*//g') || die
         efibootmgr --bootorder $bootEntry || die
@@ -63,7 +64,7 @@ fi
 
 partVar=$(blkid -o value -s UUID "$root")
 
-if [ "$encryption" == "Yes" ]; then
+[ "$encryption" == "Yes" ] &&
     if [ "$bootloader" == "grub" ]; then
         commandFailure="Configuring LUKS key has failed."
 
@@ -79,19 +80,18 @@ if [ "$encryption" == "Yes" ]; then
         dracutConf='install_items+=" /boot/volume.key /etc/crypttab "' || die
         echo "$dracutConf" >> /etc/dracut.conf.d/10-crypt.conf || die
     fi
-fi
 
 case "$bootloader" in
     uki)
         mkdir -p /boot/efi/EFI/boot ||
             { commandFailure="Creating ESP path has failed." ; die ; }
 
-        # Force kernel reconfigure to buikd the UKI
+        # Force kernel reconfigure to build the UKI
         commandFailure="Forced kernel reconfigure has failed."
         chmod +x /etc/kernel.d/post-install/60-ukify || die
         xbps-reconfigure -f linux"$(find /boot -name vmlinuz\* | tr -d "/boot/vmlinuz-" | cut -f1,2 -d".")" || die
 
-        # This shouldn't ever need to be regenerated assuming the EFI executable is kept where it's at.
+        # This shouldn never need to be regenerated assuming the EFI executable is kept where it's at.
         efibootmgr --create --label "Void Linux" --disk "$diskInput" --part 1 --loader "\EFI\boot\bootx64.efi" ||
             { commandFailure="Creating EFI boot entry has failed." ; die ; }
     ;;

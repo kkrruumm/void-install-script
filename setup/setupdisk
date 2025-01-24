@@ -240,6 +240,7 @@ commandFailure="Mounting partitions has failed."
 [ "$lvm" == "Yes" ] && [ -e "/dev/mapper/void-home" ] &&
     { mkdir /mnt/home ; mount /dev/mapper/void-home /mnt/home || { commandFailure="Mounting home directory has failed." ; die ; } ; }
 
+# TODO: xchroot can deal with mounting these.
 for dir in dev proc sys run; do mkdir -p /mnt/$dir ; mount --rbind /$dir /mnt/$dir ; mount --make-rslave /mnt/$dir ; done || die
 
 mkdir -p /mnt/boot/efi || die

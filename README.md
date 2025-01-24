@@ -63,7 +63,7 @@ Done.
 
 UKI setup *will* provide full-disk-encryption as both / and /boot will be encrypted with luks2 as opposed to luks1 with grub.
 
-Do keep in mind potential security issues regarding weaker key derivation functions, such as pbkdf2 which is used with luks1 here, rather than argon2id with luks2.
+Do keep in mind potential security issues regarding weaker key derivation functions, such as pbkdf2 which is used with luks1, rather than argon2id with luks2.
 
 UKIs *can* both be a bit touchy on some (non entirely UEFI standards compliant) motherboards, though this doesn't seem to be much of a problem as long as we "trick" boards into not deleting the boot entry.
 
@@ -141,7 +141,7 @@ The LUKS default is "2000", or 2 seconds. The default in this installer has been
 
 The fips140 compliant value here would be 600000 according to owasp, though this would result in a 10 minute disk unlock time.
 
-The role of the hidden settings feature is to provide lower level control without adding visual bloat to the installer.
+Outside of options that are potentially dangerous, "random" features that do not fit elsewhere can be added via this.
 
 # Misc notes
 
