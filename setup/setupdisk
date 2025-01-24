@@ -19,10 +19,10 @@ commandFailure="Disk pre-install wipe has failed."
 scanpartitions="$diskInput?*" # We only want child partitions, not the parent drive
 for i in $scanpartitions
 do
-    wipefs --all -f "$i"
+    wipefs --all -f "$i" || die
 done
 
-sfdisk --delete "$diskInput"
+sfdisk --delete "$diskInput" || die
 
 # I hate everything other than fdisk despite how terrible this is
 (
@@ -202,8 +202,8 @@ elif [ "$lvm" == "No" ] && [ "$encryption" == "No" ]; then
     esac
 fi
 
-commandFailure="Creating home partition has failed."
-[ "$separateHomePossible" != "No" ] && [ "$lvm" == "Yes" ] &&
+if [ -n "$home" ] && [ "$lvm" == "Yes" ]; then
+    commandFailure="Creating home LV has failed."
     if [ -n "$homeSize" ]; then
         if [ "$homeSize" == "full" ]; then
             lvcreate --name home -l 100%FREE void || die
@@ -216,9 +216,15 @@ commandFailure="Creating home partition has failed."
             ext4) mkfs.ext4 /dev/void/home || die ;;
         esac
     fi
+elif [ -n "$home" ] && [ "$lvm" == "No" ]; then
+    commandFailure="Formatting home partition has failed."
+    case "$filesystem" in
+        xfs) mkfs.xfs "$home" || die ;;
+        ext4) xfs.ext4 "$home" || die ;;
+    esac
+fi
 
 commandFailure="Mounting partitions has failed."
-
 [ "$lvm" == "Yes" ] &&
     { mount /dev/void/root /mnt || die ; }
 

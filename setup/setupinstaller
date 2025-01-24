@@ -32,6 +32,7 @@ else
     libc="musl"
 fi
 
+echo "Testing for network connectivity..."
 ping -c 1 gnu.org &>/dev/null && ping -c 1 fsf.org &>/dev/null ||
     { commandFailure="Network check has failed. Please make sure you are connected to the internet." ; die ; }
 
