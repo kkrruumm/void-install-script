@@ -213,13 +213,14 @@ audioConfig() {
 }
 
 desktopConfig() {
-    desktop=$(drawDialog --no-cancel --title "Desktop Environment" --extra-button --extra-label "Map" --menu "" 0 0 0 "gnome" "" "kde" "" "xfce" "" "sway" "" "swayfx" "" "wayfire" "" "i3" "" "none" "")
+    desktop=$(drawDialog --no-cancel --title "Desktop Environment" --extra-button --extra-label "Map" --menu "" 0 0 0 "gnome" "" "kde" "" "xfce" "" "sway" "" "swayfx" "" "wayfire" "" "i3" "" "niri" "" "none" "")
     [ "$?" == "3" ] && dungeonmap
 
     case "$desktop" in
         sway) drawDialog --extra-button --extra-label "Map" --msgbox "Sway will have to be started manually on login. This can be done by entering 'dbus-run-session sway' after logging in on the new installation." 0 0 ;;
         swayfx) drawDialog --extra-button --extra-label "Map" --msgbox "SwayFX will have to be started manually on login. This can be done by entering 'dbus-run-session sway' after logging in on the new installation." 0 0 ;;
         wayfire) drawDialog --extra-button --extra-label "Map" --msgbox "Wayfire will have to be started manually on login. This can be done by entering 'dbus-run-session wayfire' after logging in on the new installation." 0 0 ;;
+	niri) drawDialog --extra-button --extra-label "Map" --msgbox "Niri will have to be started manually on login. This can be done by entering 'niri --session' after logging in on the new installation." 0 0 ;;
         i3) drawDialog --title "" --extra-button --extra-label "Map" --yesno "Would you like to install lightdm with i3?" 0 0 && lightdm="Yes" ;;
     esac
 
