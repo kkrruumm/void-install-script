@@ -124,6 +124,14 @@ case "$desktop" in
             chroot /mnt /bin/bash -c "ln -s /etc/sv/lightdm /var/service" || die
         fi
     ;;
+    niri)
+        install niri elogind polkit polkit-elogind alacritty fuzzel xorg-fonts || die
+
+        [ "$network" == "NetworkManager" ] &&
+            { install network-manager-applet || die ;}
+
+        chroot /mnt /bin/bash -c "ln -s /etc/sv/elogind /var/service && ln -s /etc/sv/polkitd /var/service" || die
+    ;;
 esac
 
 commandFailure="Audio server installation has failed."

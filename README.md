@@ -30,7 +30,7 @@ At the moment, this installer does not have stable releases. The most recent com
 --Graphics drivers (amd, nvidia, intel, nvidia-nouveau, none)
 --Networking (dhcpcd, NetworkManager, none)
 --Audio server (pipewire, pulseaudio, none)
---DE or WM (gnome, kde, xfce, sway, swayfx, wayfire, i3, none)
+--DE or WM (gnome, kde, xfce, sway, swayfx, wayfire, i3, niri, none)
 --Or, choose to do none of these and install a bare-minimum system
 
 -Option to choose between LVM and a traditional install
