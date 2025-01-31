@@ -237,8 +237,6 @@ modulesConfig() {
     for i in "${modulesList[@]}"
     do
         if [ -e "modules/$i" ] && checkModule ; then
-            . "modules/$i" || 
-                { commandFailure="Importing $i module has failed." ; die ; }
             modulesDialogArray+=("'$title' '$description' '$status'")
         fi
     done

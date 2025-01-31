@@ -1,17 +1,15 @@
 #!/bin/bash
 
 # Don't populate unless a user actually exists
-[ -z "$username" ] && return 0
+[ -z "$username" ] && return 1
 
 title=esync
 description="- Enables esync by raising ulimit"
 status=off
 
 main() {
-    if [ -n "$username" ]; then
-        echo "$username hard nofile 524288" >> /mnt/etc/security/limits.conf ||
-            { commandFailure="Enabling esync has failed." ; die ; }
-    fi
+    echo "$username hard nofile 524288" >> /mnt/etc/security/limits.conf ||
+        { commandFailure="Enabling esync has failed." ; die ; }
 
     return 0
 }

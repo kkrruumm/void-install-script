@@ -128,7 +128,7 @@ case "$desktop" in
         install niri elogind polkit polkit-elogind alacritty fuzzel xorg-fonts || die
 
         [ "$network" == "NetworkManager" ] &&
-            { install network-manager-applet || die ;}
+            { install network-manager-applet || die ; }
 
         chroot /mnt /bin/bash -c "ln -s /etc/sv/elogind /var/service && ln -s /etc/sv/polkitd /var/service" || die
     ;;

@@ -39,9 +39,14 @@ partitionerOutput() {
 }
 
 checkModule() {
-    # We need to make sure a few variables at minimum exist before the installer should accept it.
     # Past this, I'm going to leave verifying correctness to the author of the module.
+    # Check that relevant stuff is even in the file:
     if grep "title="*"" "modules/$i" && { grep "status=on" "modules/$i" || grep "status=off" "modules/$i" ; } && { grep "description="*"" "modules/$i" ; } && { grep "main()" "modules/$i" ; }; then
+
+        # Test for early failures such as the module requiring a username
+        . "modules/$i" ||
+            return 1
+
         return 0
     else
         return 1

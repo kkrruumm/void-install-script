@@ -100,7 +100,7 @@ The status variable tells the installer whether or not the module should be enab
 
 Inside of the main() function, you're free to add any commands you'd like to be executed, and you can access all variables set by the primary install script.
 
-
+If the module script requires a certain value that may or may not be set by the user, you may check if this variable is set at the top of the module file, and return 1 if it is not. If a module returns 1, it will not be shown in the modules menu. The esync module is an example of this as it requires a username in order to function.
 
 That's it!
 
@@ -156,6 +156,14 @@ If you have found this script useful, do star this repository!
 The best way to contribute to this would be to create a pull request adding the feature you would like.
 
 If you would like a change to be made to the script, a request/suggestion in the issues tracker is also a wonderful place to start.
+
+There *are* a few things to keep in mind- 
+
+```
+-No tab characters. Using 4 spaces in place of tab characters is appropriate.
+-Try to follow the scripting and formatting style of the script in general, in order to keep things consistent.
+-Contribute with the mindset that although something may be merged, it also may be mercilessly edited/modified later.
+```
 
 # TODO
 ```
