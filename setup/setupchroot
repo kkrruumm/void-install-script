@@ -143,19 +143,6 @@ else
         fi
     fi
 
-    if [ "$desktop" == "wayfire" ]; then
-        # Modify default wayfire terminal after the user has been created
-        echo -e "Modifying default wayfire terminal... \n"
-        commandFailure="Changing Wayfire config has failed."
-
-        [ ! -d /home/"$username"/.config ] &&
-            { mkdir /home/"$username"/.config || die ; }
-
-        cp /usr/share/examples/wayfire/wayfire.ini /home/"$username"/.config/wayfire.ini || die
-        sed -i -e 's/command_terminal = alacritty/command_terminal = foot/g' /home/"$username"/.config/wayfire.ini || die
-        chown -Rf "$username":"$username" /home/"$username"/.config || die
-    fi
-
     clear
     rootPassword
 fi
