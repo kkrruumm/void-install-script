@@ -30,7 +30,7 @@ case "$basesystem" in
         [ "$su" == "doas" ] &&
             { install opendoas || die ; }
 
-        if [ "$profile" == "desktop" ] && [[ ! ${modulesChoice[@]} =~ "wifi-firmware" ]]; then
+        if [[ ! ${modulesChoice[@]} =~ "wifi-firmware" ]]; then
             echo "ignorepkg=wifi-firmware" >> /mnt/etc/xbps.d/ignore.conf || die
             echo "ignorepkg=iw" >> /mnt/etc/xbps.d/ignore.conf || die
             echo "ignorepkg=wpa_supplicant" >> /mnt/etc/xbps.d/ignore.conf || die
