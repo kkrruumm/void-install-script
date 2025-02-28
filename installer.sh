@@ -149,6 +149,10 @@ timezoneConfig() {
 }
 
 localeConfig() {
+
+    [ "$libc" == "musl" ] &&
+        repositoryConfig
+
     # This line is also taken from the normal Void installer.
     localeList=$(grep -E '\.UTF-8' /etc/default/libc-locales | awk '{print $1}' | sed -e 's/^#//')
 
@@ -381,7 +385,7 @@ _install() {
 
     clear
 
-    [ -z "$modules"  ] &&
+    [ -n "$modules"  ] &&
         for i in ${modules[@]}
         do
             . "modules/$i" ||

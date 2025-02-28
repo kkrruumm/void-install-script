@@ -16,7 +16,7 @@ case "$basesystem" in
         [ "$encryption" == "Yes" ] &&
             { install cryptsetup || die ; }
 
-        if [ "$kernel" != "linux" ] && [ "$kernel" != "Custom" ]; then
+        if [ "$kernel" != "linux" ] ; then
             echo "ignorepkg=linux" >> /mnt/etc/xbps.d/ignore.conf || die
             install "$kernel" || die
             xbps-remove -ROoy -r /mnt linux || die
@@ -41,8 +41,16 @@ case "$basesystem" in
     *)
         XBPS_ARCH=$ARCH install $basesystem || die
 
+        install "$kernel" || die
+
+        [ "$lvm" == "Yes" ] &&
+            { install lvm2 || die ; }
+
         [ "$su" == "sudo" ] &&
             { install sudo || die ; }
+
+        [ "$su" == "doas" ] &&
+            { install opendoas || die ; }
     ;;
 esac
 
