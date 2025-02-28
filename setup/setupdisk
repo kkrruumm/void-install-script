@@ -158,10 +158,14 @@ if [ "$encryption" == "Yes" ]; then
     cryptsetup luksOpen "$root" void ||
         { commandFailure="Opening encrypted partition has failed." ; die ; }
 
-    [ "$lvm" == "Yes" ] &&
-        { vgcreate void /dev/mapper/void || die ; }
+    if [ "$lvm" == "Yes" ]; then
+        vgcreate void /dev/mapper/void ||
+            { commandFailure="Creating volume group has failed." ; die ; }
+    fi
+
 else
     if [ "$lvm" == "Yes" ]; then
+        commandFailure="Creating volume group has failed."
         pvcreate "$root" || die
         vgcreate void "$root" || die
     fi
@@ -177,11 +181,13 @@ if [ "$swapStyle" == "partition" ]; then
     fi
 fi
 
-[ "$rootSize" == "full" ] && [ "$lvm" == "Yes" ] &&
-    { lvcreate --name root -l 100%FREE void || commandFailure="Creating root LV has failed." ; die ; }
-
-[ "$rootSize" != "full" ] && [ "$lvm" == "Yes" ] &&
-    { lvcreate --name root -L "$rootSize" void || commandFailure="Creating root LV has failed." ; die ; }
+if [ "$rootSize" == "full" ] && [ "$lvm" == "Yes" ]; then
+    lvcreate --name root -l 100%FREE void ||
+        { commandFailure="Creating root LV has failed." ; die ; }
+elif [ "$rootSize" != "full" ] && [ "$lvm" == "Yes" ]; then
+    lvcreate --name root -L "$rootSize" void ||
+        { commandFailure="Creating root LV has failed." ; die ; }
+fi
 
 # TODO: ZFS
 [ "$lvm" == "Yes" ] &&
