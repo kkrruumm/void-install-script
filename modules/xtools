@@ -1,0 +1,11 @@
+#!/bin/bash
+title=xtools
+description="- Installs xtools package for working with xbps"
+status=on
+
+main() {
+    install xtools ||
+        { commandFailure="Installing xtools package has failed." ; die ; }
+
+    return 0
+}
