@@ -10,7 +10,7 @@ main() {
     chroot /mnt /bin/bash -c "groupadd proc" ||
         { commandFailure="Creating group for proc users has failed." ; die ; }
 
-    if [ -n "$createUser" ]; then
+    if [ -n "$username" ]; then
         chroot /mnt /bin/bash -c "usermod -aG proc $username" ||
             { commandFailure="Adding user to proc group has failed." ; die ; }
     fi
