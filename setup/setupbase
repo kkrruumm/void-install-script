@@ -43,6 +43,9 @@ case "$basesystem" in
 
         install "$kernel" || die
 
+        [ "$encryption" == "Yes" ] &&
+            { install cryptsetup || die ; }
+
         [ "$lvm" == "Yes" ] &&
             { install lvm2 || die ; }
 
