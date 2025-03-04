@@ -221,10 +221,7 @@ desktopConfig() {
     [ "$?" == "3" ] && dungeonmap
 
     case "$desktop" in
-        sway) drawDialog --extra-button --extra-label "Map" --msgbox "Sway will have to be started manually on login. This can be done by entering 'dbus-run-session sway' after logging in on the new installation." 0 0 ;;
-        swayfx) drawDialog --extra-button --extra-label "Map" --msgbox "SwayFX will have to be started manually on login. This can be done by entering 'dbus-run-session sway' after logging in on the new installation." 0 0 ;;
-        wayfire) drawDialog --extra-button --extra-label "Map" --msgbox "Wayfire will have to be started manually on login. This can be done by entering 'dbus-run-session wayfire' after logging in on the new installation." 0 0 ;;
-        niri) drawDialog --extra-button --extra-label "Map" --msgbox "Niri will have to be started manually on login. This can be done by entering 'dbus-run-session niri --session' after logging in on the new installation." 0 0 ;;
+        sway|swayfx|wayfire|niri) drawDialog --title "" --extra-button --extra-label "Map" --yesno "Would you like to install greetd with $desktop?" 0 0 && greetd="Yes" ;;
         i3) drawDialog --title "" --extra-button --extra-label "Map" --yesno "Would you like to install lightdm with i3?" 0 0 && lightdm="Yes" ;;
     esac
 
@@ -312,7 +309,16 @@ confirm() {
         settings+="Graphics drivers: $graphics\n"
 
     [ "$desktop" == "i3" ] && [ -n "$lightdm" ] &&
-        settings+="Install lightdm with i3?: $lightdm"
+        settings+="Install lightdm with i3?: $lightdm\n"
+
+    for i in sway swayfx niri wayfire
+    do
+        if [ "$desktop" == "$i" ]; then
+            [ -z "$greetd" ] && greetd="No"
+            settings+="Install greetd with $desktop?: $greetd\n"
+            break
+        fi
+    done
 
     [ -n "$modules" ] &&
         settings+="Enabled modules: ${modules[@]}\n"
