@@ -100,7 +100,7 @@ case "$desktop" in
         [ "$network" == "NetworkManager" ] &&
             { install network-manager-applet || die ; }
 
-        chroot /mnt /bin/bash -c "ln -s /etc/sv/elogind /var/service && ln -s /etc/sv/polkitd /var/service" || die
+        chroot /mnt /bin/bash -c "ln -s /etc/sv/polkitd /var/service" || die
     ;;
     swayfx)
         install swayfx elogind polkit polkit-elogind foot xorg-fonts || die
@@ -108,7 +108,7 @@ case "$desktop" in
         [ "$network" == "NetworkManager" ] &&
             { install network-manager-applet || die ; }
 
-        chroot /mnt /bin/bash -c "ln -s /etc/sv/elogind /var/service && ln -s /etc/sv/polkitd /var/service" || die
+        chroot /mnt /bin/bash -c "ln -s /etc/sv/polkitd /var/service" || die
     ;;
     i3)
         install i3 xorg-minimal xinit xterm xorg-fonts xorg-video-drivers || die
@@ -127,7 +127,7 @@ case "$desktop" in
         [ "$network" == "NetworkManager" ] &&
             { install network-manager-applet || die ; }
 
-        chroot /mnt /bin/bash -c "ln -s /etc/sv/elogind /var/service && ln -s /etc/sv/polkitd /var/service" || die
+        chroot /mnt /bin/bash -c "ln -s /etc/sv/polkitd /var/service" || die
     ;;
     wayfire)
         install wayfire elogind polkit polkit-elogind alacritty xorg-fonts || die
@@ -135,7 +135,7 @@ case "$desktop" in
         [ "$network" == "NetworkManager" ] &&
             { install network-manager-applet || die ; }
 
-        chroot /mnt /bin/bash -c "ln -s /etc/sv/elogind /var/service && ln -s /etc/sv/polkitd /var/service" || die
+        chroot /mnt /bin/bash -c "ln -s /etc/sv/polkitd /var/service" || die
     ;;
 esac
 
