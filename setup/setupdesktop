@@ -95,7 +95,7 @@ case "$desktop" in
         chroot /mnt /bin/bash -c "ln -s /etc/sv/lightdm /var/service" || die
     ;;
     sway)
-        install sway elogind polkit polkit-elogind foot xorg-fonts xdg-desktop-portal-wlr || die
+        install sway elogind polkit polkit-elogind foot xorg-fonts xdg-desktop-portal-wlr xdg-user-dirs || die
 
         [ "$network" == "NetworkManager" ] &&
             { install network-manager-applet || die ; }
@@ -103,7 +103,7 @@ case "$desktop" in
         chroot /mnt /bin/bash -c "ln -s /etc/sv/polkitd /var/service" || die
     ;;
     swayfx)
-        install swayfx elogind polkit polkit-elogind foot xorg-fonts xdg-desktop-portal-wlr || die
+        install swayfx elogind polkit polkit-elogind foot xorg-fonts xdg-desktop-portal-wlr xdg-user-dirs || die
 
         [ "$network" == "NetworkManager" ] &&
             { install network-manager-applet || die ; }
@@ -111,7 +111,7 @@ case "$desktop" in
         chroot /mnt /bin/bash -c "ln -s /etc/sv/polkitd /var/service" || die
     ;;
     i3)
-        install i3 xorg-minimal xinit xterm xorg-fonts xorg-video-drivers || die
+        install i3 xorg-minimal xinit xterm xorg-fonts xorg-video-drivers xdg-user-dirs || die
 
         [ "$network" == "NetworkManager" ] &&
             { install network-manager-applet || die ; }
@@ -122,7 +122,7 @@ case "$desktop" in
         fi
     ;;
     niri)
-        install niri elogind polkit polkit-elogind alacritty fuzzel xorg-fonts xdg-desktop-portal-gtk xdg-desktop-portal-gnome || die
+        install niri elogind polkit polkit-elogind alacritty fuzzel xorg-fonts xdg-desktop-portal-gtk xdg-desktop-portal-gnome xdg-user-dirs || die
 
         [ "$network" == "NetworkManager" ] &&
             { install network-manager-applet || die ; }
@@ -130,7 +130,7 @@ case "$desktop" in
         chroot /mnt /bin/bash -c "ln -s /etc/sv/polkitd /var/service" || die
     ;;
     wayfire)
-        install wayfire elogind polkit polkit-elogind alacritty xorg-fonts xdg-desktop-portal-wlr || die
+        install wayfire elogind polkit polkit-elogind alacritty xorg-fonts xdg-desktop-portal-wlr xdg-user-dirs || die
 
         [ "$network" == "NetworkManager" ] &&
             { install network-manager-applet || die ; }

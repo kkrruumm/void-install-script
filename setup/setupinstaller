@@ -26,6 +26,7 @@ done
 [ "$(uname -m)" != "x86_64" ] &&
     { commandFailure="This systems CPU architecture is not currently supported by this installer." ; die ; }
 
+echo "Finding out what libc is being used..."
 if ldd --version | grep GNU ; then
     libc="glibc"
 else

@@ -91,7 +91,7 @@ case "$bootloader" in
         chmod +x /etc/kernel.d/post-install/60-ukify || die
         xbps-reconfigure -f linux"$(find /boot -name vmlinuz\* | tr -d "/boot/vmlinuz-" | cut -f1,2 -d".")" || die
 
-        # This shouldn never need to be regenerated assuming the EFI executable is kept where it's at.
+        # This should never need to be regenerated assuming the EFI executable is kept where it's at.
         efibootmgr --create --label "Void Linux" --disk "$diskInput" --part 1 --loader "\EFI\boot\bootx64.efi" ||
             { commandFailure="Creating EFI boot entry has failed." ; die ; }
     ;;
@@ -142,6 +142,14 @@ else
             echo "permit :wheel" >> /etc/doas.conf || die
         fi
     fi
+
+    # Create users home directories, such as ~/Downloads
+    case "$desktop" in
+        sway|swayfx|wayfire|i3|niri)
+            su "$username" -c 'xdg-user-dirs-update' ||
+                { commandFailure="Executing xdg-user-dirs-update has failed." ; die ; }
+        ;;
+    esac
 
     clear
     rootPassword
