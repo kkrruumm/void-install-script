@@ -292,7 +292,9 @@ confirm() {
 
     settings+="Hostname: $hostname\n"
     settings+="Timezone: $timezone\n"
-    settings+="Locale: $locale\n"
+
+    [ "$libc" == "glibc" ] &&
+        settings+="Locale: $locale\n"
 
     [ -n "$username" ] &&
         settings+="User: $username\n"
