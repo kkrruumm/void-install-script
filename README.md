@@ -30,7 +30,11 @@ At the moment, this installer does not have stable releases. The most recent com
 --Graphics drivers (amd, nvidia, intel, nvidia-nouveau, none)
 --Networking (dhcpcd, NetworkManager, none)
 --Audio server (pipewire, pulseaudio, none)
+
 --DE or WM (gnome, kde, xfce, sway, swayfx, wayfire, i3, niri, none)
+---With i3, there is an option to install lightdm
+---With sway, swayfx, wayfire, and niri there is an option to install greetd
+
 --Or, choose to do none of these and install a bare-minimum system
 
 -Option to choose between LVM and a traditional install
