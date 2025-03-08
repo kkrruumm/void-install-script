@@ -389,7 +389,7 @@ _install() {
 
     cp -f "$(pwd)"/lib/libviss /mnt/tmp/libviss || die
     cp -f "$(pwd)"/setup/setupchroot /mnt/tmp/setupchroot || die
-    chroot /mnt /bin/bash -c "/bin/bash /tmp/setupchroot" || die
+    system "/bin/bash /tmp/setupchroot"
 
     clear
 

@@ -149,9 +149,9 @@ Outside of options that are potentially dangerous, "random" features that do not
 
 # Wrappers
 
-There are wrapper functions for a handful of things, suck as ``install`` and ``system``.
+There are wrapper functions for a handful of things, such as ``install`` and ``system``.
 
-``system command`` will run "command" on the new install via chroot for enabling services or otherwise, rather than repetitively entering full chroot commands. 
+``system command`` will run "command" on the new install via chroot for enabling services or otherwise, rather than repetitively entering full chroot commands. This wrapper does not need to ``|| die``, as this is handled in the function that is called, however, ``commandFailure`` must be set before ``system command`` is run if the command should provide a specific output on command failure. 
 
 ``install package`` will install "package" on the new install.
 
