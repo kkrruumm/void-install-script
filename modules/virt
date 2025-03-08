@@ -15,14 +15,14 @@ main() {
         sed -i -e 's/#user = "libvirt"/user = "'$username'"/g' /mnt/etc/libvirt/qemu.conf || die
         sed -i -e 's/#group = "libvirt"/group = "'$username'"/g' /mnt/etc/libvirt/qemu.conf || die
 
-        chroot /mnt /bin/bash -c "usermod -aG libvirt $username" ||
-            { commandFailure="Adding user to libvirt group has failed." ; die ; }
+        commandFailure="Adding user to libvirt group has failed." &&
+            system "usermod -aG libvirt $username"
     fi
 
     commandFailure="Enabling virt services has failed."
-    chroot /mnt /bin/bash -c "ln -s /etc/sv/libvirtd /var/service" || die
-    chroot /mnt /bin/bash -c "ln -s /etc/sv/virtlogd /var/service" || die
-    chroot /mnt /bin/bash -c "ln -s /etc/sv/virtlockd /var/service" || die
+    system "ln -s /etc/sv/libvirtd /var/service"
+    system "ln -s /etc/sv/virtlogd /var/service"
+    system "ln -s /etc/sv/virtlockd /var/service"
 
     return 0
 }

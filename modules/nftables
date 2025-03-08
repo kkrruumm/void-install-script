@@ -7,34 +7,34 @@ main() {
     install nftables ||
         { commandFailure="nftables installation has failed." ; die ; }
 
-    commandFailure="Setting up nftables config has failed."
+    commandFailure="Configuring nftables firewall has failed."
 
     echo -e '#!/usr/sbin/nft -f \n' >> /mnt/etc/nftables.conf || die
     echo -e 'flush ruleset \n' >> /mnt/etc/nftables.conf || die
 
     # Create table
-    chroot /mnt /bin/bash -c "nft add table inet filter" || die
+    system "nft add table inet filter"
 
     # Input chain
-    chroot /mnt /bin/bash -c "nft add chain inet filter input '{type filter hook input priority 0; policy drop;}' &&
+    system "nft add chain inet filter input '{type filter hook input priority 0; policy drop;}' &&
     nft add rule inet filter input ct state invalid drop &&
     nft add rule inet filter input ct state { established, related } accept &&
     nft add rule inet filter input iif "lo" accept &&
     nft add rule inet filter input iif != "lo" ip daddr 127.0.0.1/8 drop &&
-    nft add rule inet filter input iif != "lo" ip6 daddr ::1 drop" || die
+    nft add rule inet filter input iif != "lo" ip6 daddr ::1 drop"
 
     # Output chain
-    chroot /mnt /bin/bash -c "nft add chain inet filter output '{type filter hook output priority 0; policy accept;}'" || die
+    system "nft add chain inet filter output '{type filter hook output priority 0; policy accept;}'"
 
     # Forward chain 
-    chroot /mnt /bin/bash -c "nft add chain inet filter forward '{type filter hook forward priority 0; policy drop;}'" || die
+    system "nft add chain inet filter forward '{type filter hook forward priority 0; policy drop;}'"
 
     # Save config
-    chroot /mnt /bin/bash -c "nft list ruleset >> /etc/nftables.conf" ||
-        { commandFailure="Saving nftables config has failed." ; die ; }
+    commandFailure="Saving nftables config has failed." &&
+        system "nft list ruleset >> /etc/nftables.conf"
 
-    chroot /mnt /bin/bash -c "ln -s /etc/sv/nftables /var/service" ||
-        { commandFailure="Enabling nftables has failed." ; die ; }
+    commandFailure="Enabling nftables has failed." &&
+        system "ln -s /etc/sv/nftables /var/service"
 
     return 0
 }

@@ -147,6 +147,16 @@ The fips140 compliant value here would be 600000 according to owasp, though this
 
 Outside of options that are potentially dangerous, "random" features that do not fit elsewhere can be added via this.
 
+# Wrappers
+
+There are wrapper functions for a handful of things, suck as ``install`` and ``system``.
+
+``system command`` will run "command" on the new install via chroot for enabling services or otherwise, rather than repetitively entering full chroot commands. 
+
+``install package`` will install "package" on the new install.
+
+All of the current and future wrapper functions will be located in ``lib/libviss``.
+
 # Misc notes
 
 This installer is not officially supported, and is still fairly work-in-progress. If you run into any problems please file them on this github page.

@@ -7,23 +7,23 @@ main() {
     echo "mount -o remount,rw,nosuid,nodev,noexec,relatime,hidepid=2,gid=proc /proc" >> /mnt/etc/rc.local ||
         { commandFailure="Modifying rc for hideproc has failed." ; die ; }
 
-    chroot /mnt /bin/bash -c "groupadd proc" ||
-        { commandFailure="Creating group for proc users has failed." ; die ; }
+    commandFailure="Creating group for proc users has failed." &&
+        system "groupadd proc"
 
     if [ -n "$username" ]; then
-        chroot /mnt /bin/bash -c "usermod -aG proc $username" ||
-            { commandFailure="Adding user to proc group has failed." ; die ; }
+        commandFailure="Adding user to proc group has failed." &&
+            system "usermod -aG proc $username"
     fi
     
     # Required for certain things the installer may deploy to function out of the box.
     if grep "polkitd" /mnt/etc/passwd ; then
-        chroot /mnt /bin/bash -c "usermod -aG proc polkitd" ||
-            { commandFailure="Adding polkit user to proc group has failed." ; die ; }
+        commandFailure="Adding polkit user to proc group has failed." &&
+            system "usermod -aG proc polkitd"
     fi
 
     if grep "gdm" /mnt/etc/passwd ; then
-        chroot /mnt /bin/bash -c "usermod -aG proc gdm" ||
-            { commandFailure="Adding gdm user to proc group has failed." ; die ; }
+        commandFailure="Adding gdm user to proc group has failed." &&
+            system "usermod -aG proc gdm"
     fi
 
     return 0

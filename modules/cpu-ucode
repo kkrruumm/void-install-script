@@ -9,7 +9,7 @@ main() {
         install void-repo-nonfree || die
         xmirror -s "$repository" -r /mnt || die
         install intel-ucode || die
-        chroot /mnt /bin/bash -c 'xbps-reconfigure -f linux"$(find /boot -name vmlinuz\* | tr -d "/boot/vmlinuz-" | cut -f1,2 -d".")"' || die
+        system 'xbps-reconfigure -f linux"$(find /boot -name vmlinuz\* | tr -d "/boot/vmlinuz-" | cut -f1,2 -d".")"'
     elif lscpu | grep "AuthenticAMD" ; then
         # This package should already be installed as a dep. of linux-base, but just incase something changes:
         install linux-firmware-amd || die

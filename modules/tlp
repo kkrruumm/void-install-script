@@ -7,8 +7,8 @@ main() {
     install tlp ||
         { commandFailure="tlp installation has failed." ; die ; }
 
-    chroot /mnt /bin/bash -c "ln -s /etc/sv/tlp /var/service" ||
-        { commandFailure="Enabling tlp has failed." ; die ; }
+    commandFailure="Enabling tlp has failed." &&
+        system "ln -s /etc/sv/tlp /var/service"
 
     return 0
 }

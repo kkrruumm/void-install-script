@@ -56,3 +56,7 @@ checkModule() {
 install() {
     xbps-install -Sy -R "$repository" -r /mnt "$@"
 }
+
+system() {
+    chroot /mnt /bin/bash -c "$@" || die
+}

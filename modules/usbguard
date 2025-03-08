@@ -7,11 +7,11 @@ main() {
     install usbguard ||
         { commandFailure="Installing usbguard has failed." ; die ; }
 
-    chroot /mnt /bin/bash -c "usbguard generate-policy > /etc/usbguard/rules.conf" ||
-        { commandFailure="Configuring usbguard has failed." ; die ; }
+    commandFailure="Configuring usbguard has failed." &&
+        system "usbguard generate-policy > /etc/usbguard/rules.conf"
 
-    chroot /mnt /bin/bash -c "ln -s /etc/sv/usbguard /var/service" ||
-        { commandFailure="Enabling usbguard has failed." ; die ; }
+    commandFailure="Enabling usbguard has failed." &&
+        system "ln -s /etc/sv/usbguard /var/service"
 
     return 0
 }

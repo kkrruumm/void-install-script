@@ -69,10 +69,10 @@ commandFailure="DHCP client setup has failed."
 case "$network" in
     NetworkManager)
         install NetworkManager || die
-        chroot /mnt /bin/bash -c "ln -s /etc/sv/NetworkManager /var/service" || die
+        system "ln -s /etc/sv/NetworkManager /var/service"
     ;;
     dhcpcd)
-        chroot /mnt /bin/bash -c "ln -s /etc/sv/dhcpcd /var/service" || die
+        system "ln -s /etc/sv/dhcpcd /var/service"
     ;;
 esac
 
@@ -80,11 +80,11 @@ commandFailure="GUI installation has failed"
 case "$desktop" in
     gnome)
         install gnome-core gnome-console gnome-tweaks gnome-browser-connector gnome-text-editor xdg-user-dirs xorg-minimal xorg-video-drivers || die
-        chroot /mnt /bin/bash -c "ln -s /etc/sv/gdm /var/service" || die
+        system "ln -s /etc/sv/gdm /var/service"
     ;;
     kde)
         install kde-plasma kde-baseapps xdg-user-dirs xorg-minimal xorg-video-drivers || die
-        chroot /mnt /bin/bash -c "ln -s /etc/sv/sddm /var/service" || die
+        system "ln -s /etc/sv/sddm /var/service"
     ;;
     xfce)
         install xfce4 xfce4-pulseaudio-plugin lightdm lightdm-gtk3-greeter xorg-minimal xdg-user-dirs xorg-fonts xorg-video-drivers || die
@@ -92,7 +92,7 @@ case "$desktop" in
         [ "$network" == "NetworkManager" ] &&
             { install network-manager-applet || die ; }
 
-        chroot /mnt /bin/bash -c "ln -s /etc/sv/lightdm /var/service" || die
+        system "ln -s /etc/sv/lightdm /var/service"
     ;;
     sway)
         install sway elogind polkit polkit-elogind foot xorg-fonts xdg-desktop-portal-wlr xdg-user-dirs || die
@@ -100,17 +100,17 @@ case "$desktop" in
         [ "$network" == "NetworkManager" ] &&
             { install network-manager-applet || die ; }
 
-        chroot /mnt /bin/bash -c "ln -s /etc/sv/polkitd /var/service" || die
+        system "ln -s /etc/sv/polkitd /var/service"
 
         if [ "$greetd" == "Yes" ]; then
             install greetd || die
-            chroot /mnt /bin/bash -c "ln -s /etc/sv/greetd /var/service" || die
+            system "ln -s /etc/sv/greetd /var/service"
             sed -i -e 's,command = "agreety --cmd /bin/sh",command = "agreety --cmd sway-run",' /mnt/etc/greetd/config.toml || die
             cp misc/sway-run /mnt/usr/local/bin/sway-run || die
 
-            chroot /mnt /bin/bash -c "chown root:root /usr/local/bin/sway-run" || die
-            chroot /mnt /bin/bash -c "chmod 755 /usr/local/bin/sway-run" || die
-            chroot /mnt /bin/bash -c "chmod +x /usr/local/bin/sway-run" || die
+            system "chown root:root /usr/local/bin/sway-run"
+            system "chmod 755 /usr/local/bin/sway-run"
+            system "chmod +x /usr/local/bin/sway-run"
         fi
     ;;
     swayfx)
@@ -119,17 +119,17 @@ case "$desktop" in
         [ "$network" == "NetworkManager" ] &&
             { install network-manager-applet || die ; }
 
-        chroot /mnt /bin/bash -c "ln -s /etc/sv/polkitd /var/service" || die
+        system "ln -s /etc/sv/polkitd /var/service"
 
         if [ "$greetd" == "Yes" ]; then
             install greetd || die
-            chroot /mnt /bin/bash -c "ln -s /etc/sv/greetd /var/service" || die
+            system "ln -s /etc/sv/greetd /var/service"
             sed -i -e 's,command = "agreety --cmd /bin/sh",command = "agreety --cmd swayfx-run",' /mnt/etc/greetd/config.toml || die
             cp misc/sway-run /mnt/usr/local/bin/swayfx-run || die
 
-            chroot /mnt /bin/bash -c "chown root:root /usr/local/bin/swayfx-run" || die
-            chroot /mnt /bin/bash -c "chmod 755 /usr/local/bin/swayfx-run" || die
-            chroot /mnt /bin/bash -c "chmod +x /usr/local/bin/swayfx-run" || die
+            system "chown root:root /usr/local/bin/swayfx-run"
+            system "chmod 755 /usr/local/bin/swayfx-run"
+            system "chmod +x /usr/local/bin/swayfx-run"
         fi
     ;;
     i3)
@@ -140,7 +140,7 @@ case "$desktop" in
 
         if [ "$lightdm" == "Yes" ]; then
             install lightdm lightdm-gtk3-greeter || die
-            chroot /mnt /bin/bash -c "ln -s /etc/sv/lightdm /var/service" || die
+            system "ln -s /etc/sv/lightdm /var/service"
         fi
     ;;
     niri)
@@ -149,17 +149,17 @@ case "$desktop" in
         [ "$network" == "NetworkManager" ] &&
             { install network-manager-applet || die ; }
 
-        chroot /mnt /bin/bash -c "ln -s /etc/sv/polkitd /var/service" || die
+        system "ln -s /etc/sv/polkitd /var/service"
 
         if [ "$greetd" == "Yes" ]; then
             install greetd || die
-            chroot /mnt /bin/bash -c "ln -s /etc/sv/greetd /var/service" || die
+            system "ln -s /etc/sv/greetd /var/service"
             sed -i -e 's,command = "agreety --cmd /bin/sh",command = "agreety --cmd niri-run",' /mnt/etc/greetd/config.toml || die
             cp misc/niri-run /mnt/usr/local/bin/niri-run || die
 
-            chroot /mnt /bin/bash -c "chown root:root /usr/local/bin/niri-run" || die
-            chroot /mnt /bin/bash -c "chmod 755 /usr/local/bin/niri-run" || die
-            chroot /mnt /bin/bash -c "chmod +x /usr/local/bin/niri-run" || die
+            system "chown root:root /usr/local/bin/niri-run"
+            system "chmod 755 /usr/local/bin/niri-run"
+            system "chmod +x /usr/local/bin/niri-run"
         fi
     ;;
     wayfire)
@@ -168,17 +168,17 @@ case "$desktop" in
         [ "$network" == "NetworkManager" ] &&
             { install network-manager-applet || die ; }
 
-        chroot /mnt /bin/bash -c "ln -s /etc/sv/polkitd /var/service" || die
+        system "ln -s /etc/sv/polkitd /var/service"
 
         if [ "$greetd" == "Yes" ]; then
             install greetd || die
-            chroot /mnt /bin/bash -c "ln -s /etc/sv/greetd /var/service" || die
+            system "ln -s /etc/sv/greetd /var/service"
             sed -i -e 's,command = "agreety --cmd /bin/sh",command = "agreety --cmd wayfire-run",' /mnt/etc/greetd/config.toml || die
             cp misc/wayfire-run /mnt/usr/local/bin/wayfire-run || die
 
-            chroot /mnt /bin/bash -c "chown root:root /usr/local/bin/wayfire-run" || die
-            chroot /mnt /bin/bash -c "chmod 755 /usr/local/bin/wayfire-run" || die
-            chroot /mnt /bin/bash -c "chmod +x /usr/local/bin/wayfire-run" || die
+            system "chown root:root /usr/local/bin/wayfire-run"
+            system "chmod 755 /usr/local/bin/wayfire-run"
+            system "chmod +x /usr/local/bin/wayfire-run"
         fi
     ;;
 esac

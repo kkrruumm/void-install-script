@@ -7,8 +7,8 @@ main() {
     install flatpak ||
         { commandFailure="Flatpak installation has failed." ; die ; }
 
-    chroot /mnt /bin/bash -c "flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo" ||
-        { commandFailure="Adding flatpak repository has failed." ; die ; }
+    commandFailure="Adding flatpak repository has failed." &&
+        system "flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo"
 
     return 0
 }
