@@ -76,8 +76,9 @@ diskConfig() {
         ;;
     esac
 
-    rootSize=$(drawDialog --begin 2 2 --title "Disk Details" --extra-button --extra-label "Map" --infobox "$diskIndicator" 0 0 --and-widget --no-cancel --title "Partitioner - Root" --inputbox "If you would like to limit the size of your root filesystem, such as to have a separate home partition, you can enter a value such as '50G' here.\n\nOtherwise, if you would like your root partition to take up the entire drive, enter 'full' here." 0 0)
+    rootSize=$(drawDialog --begin 2 2 --title "Disk Details" --infobox "$diskIndicator" 0 0 --and-widget --no-cancel --title "Partitioner - Root" --extra-button --extra-label "Map" --inputbox "If you would like to limit the size of your root filesystem, such as to have a separate home partition, you can enter a value such as '50G' here.\n\nOtherwise, if you would like your root partition to take up the entire drive, leave this empty and press OK." 0 0)
     [ "$?" == "3" ] && dungeonmap
+    [ -z "$rootSize" ] && rootSize="full"
 
     if [ "$rootSize" == "full" ]; then
         local separateHomePossible="No"
