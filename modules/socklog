@@ -4,8 +4,8 @@ description="- Enables system logging"
 status=on
 
 main() {
-    install socklog-void ||
-        { commandFailure="Socklog installation has failed." ; die ; }
+    commandFailure="Socklog installation has failed." &&
+        install socklog-void
 
     commandFailure="Enabling socklog has failed." &&
         system "ln -s /etc/sv/socklog-unix /var/service && ln -s /etc/sv/nanoklogd /var/service"

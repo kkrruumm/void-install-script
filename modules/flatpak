@@ -4,8 +4,8 @@ description="- Includes Flathub repository"
 status=off
 
 main() {
-    install flatpak ||
-        { commandFailure="Flatpak installation has failed." ; die ; }
+    commandFailure="Flatpak installation has failed." &&
+        install flatpak
 
     commandFailure="Adding flatpak repository has failed." &&
         system "flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo"

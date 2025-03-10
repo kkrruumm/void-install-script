@@ -4,7 +4,6 @@ description="- Provides a choice to set the kernel lockdown mode"
 status=off
 
 main() {
-
     lockdown=$(drawDialog --no-cancel --title "Kernel Lockdown Mode" --menu "" 0 0 0 "integrity" "- Userland modifying the running kernel is disabled." "confidentiality" "- Extracting confidential information from the kernel is also disabled." "None" "")
 
     commandFailure="Enabling kernel lockdown mode has failed."

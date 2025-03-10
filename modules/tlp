@@ -4,8 +4,8 @@ description="- Advanced power management"
 status=off
 
 main() {
-    install tlp ||
-        { commandFailure="tlp installation has failed." ; die ; }
+    commandFailure="tlp installation has failed." &&
+        install tlp
 
     commandFailure="Enabling tlp has failed." &&
         system "ln -s /etc/sv/tlp /var/service"

@@ -153,7 +153,7 @@ There are wrapper functions for a handful of things, such as ``install`` and ``s
 
 ``system command`` will run "command" on the new install via chroot for enabling services or otherwise, rather than repetitively entering full chroot commands. This wrapper does not need to ``|| die``, as this is handled in the function that is called, however, ``commandFailure`` must be set before ``system command`` is run if the command should provide a specific output on command failure. 
 
-``install package`` will install "package" on the new install.
+``install package`` will install "package" on the new install, and also does not need to ``|| die``, as this is handled in the ``install`` function, and also must have commandFailure set before the command is run if it should return a specific output on command failure.
 
 All of the current and future wrapper functions will be located in ``lib/libviss``.
 

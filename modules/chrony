@@ -4,8 +4,8 @@ description="- Chrony NTP Daemon"
 status=on
 
 main() {
-    install chrony ||
-        { commandFailure="Chrony installation has failed." ; die ; }
+    commandFailure="Chrony installation has failed." &&
+        install chrony
 
     chroot /mnt /bin/bash -c "ln -s /etc/sv/chronyd /var/service" ||
         { commandFailure="Enabling chronyd has failed." ; die ; }

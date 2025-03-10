@@ -54,7 +54,7 @@ checkModule() {
 }
 
 install() {
-    xbps-install -Sy -R "$repository" -r /mnt "$@"
+    xbps-install -Sy -R "$repository" -r /mnt "$@" || die
 }
 
 system() {

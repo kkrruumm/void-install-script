@@ -8,17 +8,17 @@ commandFailure="Base system installation has failed."
 
 case "$basesystem" in
     base-system)
-        XBPS_ARCH=$ARCH install base-system || die
+        XBPS_ARCH=$ARCH install base-system
 
         [ "$lvm" == "Yes" ] &&
-            { install lvm2 || die ; }
+            install lvm2
 
         [ "$encryption" == "Yes" ] &&
-            { install cryptsetup || die ; }
+            install cryptsetup
 
         if [ "$kernel" != "linux" ] ; then
             echo "ignorepkg=linux" >> /mnt/etc/xbps.d/ignore.conf || die
-            install "$kernel" || die
+            install "$kernel"
             xbps-remove -ROoy -r /mnt linux || die
         fi
 
@@ -28,7 +28,7 @@ case "$basesystem" in
         fi
 
         [ "$su" == "doas" ] &&
-            { install opendoas || die ; }
+            install opendoas
 
         if [[ ! ${modulesChoice[@]} =~ "wifi-firmware" ]]; then
             echo "ignorepkg=wifi-firmware" >> /mnt/etc/xbps.d/ignore.conf || die
@@ -39,28 +39,30 @@ case "$basesystem" in
         fi
     ;;
     *)
-        XBPS_ARCH=$ARCH install $basesystem || die
+        XBPS_ARCH=$ARCH install $basesystem
 
-        install "$kernel" || die
+        install "$kernel"
 
         [ "$encryption" == "Yes" ] &&
-            { install cryptsetup || die ; }
+            install cryptsetup
 
         [ "$lvm" == "Yes" ] &&
-            { install lvm2 || die ; }
+            install lvm2
 
         [ "$su" == "sudo" ] &&
-            { install sudo || die ; }
+            install sudo
 
         [ "$su" == "doas" ] &&
-            { install opendoas || die ; }
+            install opendoas
     ;;
 esac
 
-commandFailure="Bootloader package installation has failed"
+[ -n "$bootloader" ] && [ "$bootloader" != "none" ] &&
+    commandFailure="Bootloader package installation has failed"
+
 case "$bootloader" in
-    uki) install efibootmgr ukify systemd-boot-efistub || die ;;
-    grub) install grub-x86_64-efi || die ;;
+    uki) install efibootmgr ukify systemd-boot-efistub ;;
+    grub) install grub-x86_64-efi ;;
 esac
 
 commandFailure="Creating $kernel virtualpkg has failed."

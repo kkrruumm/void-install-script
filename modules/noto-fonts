@@ -4,8 +4,8 @@ description="- Noto TTF fonts typically used by websites"
 status=off
 
 main() {
-    install noto-fonts-ttf noto-fonts-cjk ||
-        { commandFailure="Noto TTF fonts installation has failed." ; die ; }
+    commandFailure="Noto TTF fonts installation has failed." &&
+        install noto-fonts-ttf noto-fonts-cjk
 
     return 0
 }

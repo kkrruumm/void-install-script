@@ -4,8 +4,8 @@ description="- Includes a default firewall config"
 status=on
 
 main() {
-    install nftables ||
-        { commandFailure="nftables installation has failed." ; die ; }
+    commandFailure="nftables installation has failed." &&
+        install nftables
 
     commandFailure="Configuring nftables firewall has failed."
 

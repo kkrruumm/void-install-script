@@ -226,7 +226,7 @@ elif [ -n "$home" ] && [ "$lvm" == "No" ]; then
     commandFailure="Formatting home partition has failed."
     case "$filesystem" in
         xfs) mkfs.xfs "$home" || die ;;
-        ext4) xfs.ext4 "$home" || die ;;
+        ext4) mkfs.ext4 "$home" || die ;;
     esac
 fi
 

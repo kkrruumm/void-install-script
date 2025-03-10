@@ -4,8 +4,8 @@ description="- Installs and configures qemu and libvirt"
 status=off
 
 main() {
-    install qemu libvirt virtiofsd ||
-        { commandFailure="Installing qemu and libvirt has failed." ; die ; }
+    commandFailure="Installing qemu and libvirt has failed." &&
+        install qemu libvirt virtiofsd
 
     commandFailure="Modifying qemu and libvirt configs has failed."
     sed -i -e 's/#unix_sock_group = "libvirt"/unix_sock_group = "libvirt"/g' /mnt/etc/libvirt/libvirtd.conf || die

@@ -4,8 +4,8 @@ description="- Sound Open Firmware and topology binaries (Audio support for mode
 status=off
 
 main() {
-    install sof-firmware ||
-        { commandFailure="SOF Firmware installation has failed." ; die ; }
+    commandFailure="SOF Firmware installation has failed." &&
+        install sof-firmware
 
     return 0
 }

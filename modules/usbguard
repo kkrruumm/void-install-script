@@ -4,8 +4,8 @@ description="- Installs and enables usbguard, allows current devices"
 status=off
 
 main() {
-    install usbguard ||
-        { commandFailure="Installing usbguard has failed." ; die ; }
+    commandFailure="Installing usbguard has failed." &&
+        install usbguard
 
     commandFailure="Configuring usbguard has failed." &&
         system "usbguard generate-policy > /etc/usbguard/rules.conf"

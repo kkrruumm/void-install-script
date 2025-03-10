@@ -1,23 +1,25 @@
 #!/bin/bash
 
-commandFailure="Graphics driver installation has failed."
+[ -n "$graphicsArray" ] &&
+    commandFailure="Graphics driver installation has failed."
+
 for i in "${graphicsArray[@]}"
 do
     case $i in
         amd)
-            install mesa-dri vulkan-loader mesa-vulkan-radeon mesa-vaapi mesa-vdpau || die
+            install mesa-dri vulkan-loader mesa-vulkan-radeon mesa-vaapi mesa-vdpau
         ;;
 
         amd-32bit)
-            install void-repo-multilib || die
+            install void-repo-multilib
             xmirror -s "$repository" -r /mnt || die
-            install libgcc-32bit libstdc++-32bit libdrm-32bit libglvnd-32bit mesa-dri-32bit || die
+            install libgcc-32bit libstdc++-32bit libdrm-32bit libglvnd-32bit mesa-dri-32bit
         ;;
 
         nvidia)
-            install void-repo-nonfree || die
+            install void-repo-nonfree
             xmirror -s "$repository" -r /mnt || die
-            install nvidia || die
+            install nvidia
 
             # Enable mode setting for wayland compositors
             # This default should change to drm enabled with more recent nvidia drivers, expect this to be removed in the future.
@@ -33,29 +35,29 @@ do
         ;;
 
         nvidia-32bit)
-            install void-repo-multilib-nonfree void-repo-multilib || die
+            install void-repo-multilib-nonfree void-repo-multilib
             xmirror -s "$repository" -r /mnt || die
-            install nvidia-libs-32bit || die
+            install nvidia-libs-32bit
         ;;
 
         intel)
-            install mesa-dri vulkan-loader mesa-vulkan-intel intel-video-accel || die
+            install mesa-dri vulkan-loader mesa-vulkan-intel intel-video-accel
         ;;
 
         intel-32bit)
-            install void-repo-multilib || die
+            install void-repo-multilib
             xmirror -s "$repository" -r /mnt || die
-            install libgcc-32bit libstdc++-32bit libdrm-32bit libglvnd-32bit mesa-dri-32bit || die
+            install libgcc-32bit libstdc++-32bit libdrm-32bit libglvnd-32bit mesa-dri-32bit
         ;;
 
         nvidia-nouveau)
-            install mesa-dri mesa-nouveau-dri || die
+            install mesa-dri mesa-nouveau-dri
         ;;
 
         nvidia-nouveau-32bit)
-            install void-repo-multilib || die
+            install void-repo-multilib
             xmirror -s "$repository" -r /mnt || die
-            install libgcc-32bit libstdc++-32bit libdrm-32bit libglvnd-32bit mesa-dri-32bit mesa-nouveau-dri-32bit || die
+            install libgcc-32bit libstdc++-32bit libdrm-32bit libglvnd-32bit mesa-dri-32bit mesa-nouveau-dri-32bit
         ;;
 
         *)
@@ -65,10 +67,12 @@ do
     esac
 done
 
-commandFailure="DHCP client setup has failed."
+[ -n "$network" ] && [ "$network" != "none" ] &&
+    commandFailure="DHCP client setup has failed."
+
 case "$network" in
     NetworkManager)
-        install NetworkManager || die
+        install NetworkManager
         system "ln -s /etc/sv/NetworkManager /var/service"
     ;;
     dhcpcd)
@@ -76,34 +80,36 @@ case "$network" in
     ;;
 esac
 
-commandFailure="GUI installation has failed"
+[ -n "$desktop" ] && [ "$desktop" != "none" ] &&
+    commandFailure="GUI installation has failed"
+
 case "$desktop" in
     gnome)
-        install gnome-core gnome-console gnome-tweaks gnome-browser-connector gnome-text-editor xdg-user-dirs xorg-minimal xorg-video-drivers || die
+        install gnome-core gnome-console gnome-tweaks gnome-browser-connector gnome-text-editor xdg-user-dirs xorg-minimal xorg-video-drivers
         system "ln -s /etc/sv/gdm /var/service"
     ;;
     kde)
-        install kde-plasma kde-baseapps xdg-user-dirs xorg-minimal xorg-video-drivers || die
+        install kde-plasma kde-baseapps xdg-user-dirs xorg-minimal xorg-video-drivers
         system "ln -s /etc/sv/sddm /var/service"
     ;;
     xfce)
-        install xfce4 xfce4-pulseaudio-plugin lightdm lightdm-gtk3-greeter xorg-minimal xdg-user-dirs xorg-fonts xorg-video-drivers || die
+        install xfce4 xfce4-pulseaudio-plugin lightdm lightdm-gtk3-greeter xorg-minimal xdg-user-dirs xorg-fonts xorg-video-drivers
 
         [ "$network" == "NetworkManager" ] &&
-            { install network-manager-applet || die ; }
+            install network-manager-applet
 
         system "ln -s /etc/sv/lightdm /var/service"
     ;;
     sway)
-        install sway elogind polkit polkit-elogind foot xorg-fonts xdg-desktop-portal-wlr xdg-user-dirs || die
+        install sway elogind polkit polkit-elogind foot xorg-fonts xdg-desktop-portal-wlr xdg-user-dirs
 
         [ "$network" == "NetworkManager" ] &&
-            { install network-manager-applet || die ; }
+            install network-manager-applet
 
         system "ln -s /etc/sv/polkitd /var/service"
 
         if [ "$greetd" == "Yes" ]; then
-            install greetd || die
+            install greetd
             system "ln -s /etc/sv/greetd /var/service"
             sed -i -e 's,command = "agreety --cmd /bin/sh",command = "agreety --cmd sway-run",' /mnt/etc/greetd/config.toml || die
             cp misc/sway-run /mnt/usr/local/bin/sway-run || die
@@ -114,15 +120,15 @@ case "$desktop" in
         fi
     ;;
     swayfx)
-        install swayfx elogind polkit polkit-elogind foot xorg-fonts xdg-desktop-portal-wlr xdg-user-dirs || die
+        install swayfx elogind polkit polkit-elogind foot xorg-fonts xdg-desktop-portal-wlr xdg-user-dirs
 
         [ "$network" == "NetworkManager" ] &&
-            { install network-manager-applet || die ; }
+            install network-manager-applet
 
         system "ln -s /etc/sv/polkitd /var/service"
 
         if [ "$greetd" == "Yes" ]; then
-            install greetd || die
+            install greetd
             system "ln -s /etc/sv/greetd /var/service"
             sed -i -e 's,command = "agreety --cmd /bin/sh",command = "agreety --cmd swayfx-run",' /mnt/etc/greetd/config.toml || die
             cp misc/sway-run /mnt/usr/local/bin/swayfx-run || die
@@ -133,26 +139,26 @@ case "$desktop" in
         fi
     ;;
     i3)
-        install i3 xorg-minimal xinit xterm xorg-fonts xorg-video-drivers xdg-user-dirs || die
+        install i3 xorg-minimal xinit xterm xorg-fonts xorg-video-drivers xdg-user-dirs
 
         [ "$network" == "NetworkManager" ] &&
-            { install network-manager-applet || die ; }
+            install network-manager-applet
 
         if [ "$lightdm" == "Yes" ]; then
-            install lightdm lightdm-gtk3-greeter || die
+            install lightdm lightdm-gtk3-greeter
             system "ln -s /etc/sv/lightdm /var/service"
         fi
     ;;
     niri)
-        install niri elogind polkit polkit-elogind alacritty fuzzel xorg-fonts xdg-desktop-portal-gtk xdg-desktop-portal-gnome xdg-user-dirs || die
+        install niri elogind polkit polkit-elogind alacritty fuzzel xorg-fonts xdg-desktop-portal-gtk xdg-desktop-portal-gnome xdg-user-dirs
 
         [ "$network" == "NetworkManager" ] &&
-            { install network-manager-applet || die ; }
+            install network-manager-applet
 
         system "ln -s /etc/sv/polkitd /var/service"
 
         if [ "$greetd" == "Yes" ]; then
-            install greetd || die
+            install greetd
             system "ln -s /etc/sv/greetd /var/service"
             sed -i -e 's,command = "agreety --cmd /bin/sh",command = "agreety --cmd niri-run",' /mnt/etc/greetd/config.toml || die
             cp misc/niri-run /mnt/usr/local/bin/niri-run || die
@@ -163,15 +169,15 @@ case "$desktop" in
         fi
     ;;
     wayfire)
-        install wayfire elogind polkit polkit-elogind alacritty xorg-fonts xdg-desktop-portal-wlr xdg-user-dirs || die
+        install wayfire elogind polkit polkit-elogind alacritty xorg-fonts xdg-desktop-portal-wlr xdg-user-dirs
 
         [ "$network" == "NetworkManager" ] &&
-            { install network-manager-applet || die ; }
+            install network-manager-applet
 
         system "ln -s /etc/sv/polkitd /var/service"
 
         if [ "$greetd" == "Yes" ]; then
-            install greetd || die
+            install greetd
             system "ln -s /etc/sv/greetd /var/service"
             sed -i -e 's,command = "agreety --cmd /bin/sh",command = "agreety --cmd wayfire-run",' /mnt/etc/greetd/config.toml || die
             cp misc/wayfire-run /mnt/usr/local/bin/wayfire-run || die
@@ -183,10 +189,12 @@ case "$desktop" in
     ;;
 esac
 
-commandFailure="Audio server installation has failed."
+[ -n "$audio" ] && [ "$audio" != "none" ] &&
+    commandFailure="Audio server installation has failed."
+
 case "$audio" in
     pipewire)
-        install pipewire alsa-pipewire wireplumber || die
+        install pipewire alsa-pipewire wireplumber
         mkdir -p /mnt/etc/alsa/conf.d || die
         mkdir -p /mnt/etc/pipewire/pipewire.conf.d || die
 
@@ -194,7 +202,7 @@ case "$audio" in
         echo 'context.exec = [ { path = "/usr/bin/wireplumber" args = "" } ]' > /mnt/etc/pipewire/pipewire.conf.d/10-wireplumber.conf || die
     ;;
     pulseaudio)
-        install pulseaudio alsa-plugins-pulseaudio || die
+        install pulseaudio alsa-plugins-pulseaudio
     ;;
 esac
 
