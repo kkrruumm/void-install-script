@@ -147,16 +147,30 @@ if [ "$encryption" == "Yes" ]; then
     commandFailure="Encrypting partition has failed."
     case "$bootloader" in
         grub)
-            cryptsetup luksFormat --type luks1 --batch-mode --verify-passphrase --hash "$hash" --key-size "$keysize" --iter-time "$itertime" --pbkdf pbkdf2 --use-urandom "$root" || die
+            while true; do
+                cryptsetup luksFormat --type luks1 --batch-mode --verify-passphrase --hash "$hash" --key-size "$keysize" --iter-time "$itertime" --pbkdf pbkdf2 --use-urandom "$root"
+                if [ $? -eq 0 ]; then
+                    break
+                fi
+            done
         ;;
         *)
-            cryptsetup luksFormat --type luks2 --batch-mode --verify-passphrase --hash "$hash" --key-size "$keysize" --iter-time "$itertime" --pbkdf argon2id --use-urandom "$root" || die
+            while true; do
+                cryptsetup luksFormat --type luks2 --batch-mode --verify-passphrase --hash "$hash" --key-size "$keysize" --iter-time "$itertime" --pbkdf argon2id --use-urandom "$root"
+                if [ $? -eq 0 ]; then
+                    break
+                fi
+            done
         ;;
     esac
 
     echo -e "${YELLOW}Opening new encrypted partition...${NC}"
-    cryptsetup luksOpen "$root" void ||
-        { commandFailure="Opening encrypted partition has failed." ; die ; }
+    while true; do
+        cryptsetup luksOpen "$root" void
+        if [ $? -eq 0 ]; then
+            break
+        fi
+    done
 
     if [ "$lvm" == "Yes" ]; then
         vgcreate void /dev/mapper/void ||
