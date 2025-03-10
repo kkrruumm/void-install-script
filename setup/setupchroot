@@ -20,14 +20,22 @@ exitFunction () {
 
 userPassword() {
     echo -e "${YELLOW}Set the password for the user $username: ${NC}"
-    passwd "$username" || die
+
+    while : ; do
+        passwd "$username"
+        [ "$?" -eq 0 ] && break
+    done
 
     exitFunction
 }
 
 rootPassword() {
     echo -e "${YELLOW}Set your root password: ${NC}"
-    passwd root || die
+
+    while : ; do
+        passwd root
+        [ "$?" -eq 0 ] && break
+    done
 
     [ -n "$username" ] &&
         userPassword
@@ -131,7 +139,7 @@ else
     useradd "$username" -m -d /home/"$username" || die
     usermod -aG audio,video,kvm "$username" || die
     clear
-    echo -e "Should user "$username" be a superuser? (y/n) \n"
+    echo -ne "Should user "$username" be a superuser? (y/n) "
     read superPrompt
 
     if [ $superPrompt == "y" ] || [ $superPrompt == "Y" ]; then
