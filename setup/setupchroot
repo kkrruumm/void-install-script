@@ -4,6 +4,9 @@
 . "/tmp/libviss" ||
     { echo "/tmp/libviss not found. Cannot continue." ; exit 1 ; }
 
+. "/tmp/installerOptions" ||
+    { commandFailure="Sourcing installer variable file on the new system has failed." ; die ; }
+
 exitFunction () {
     xbps-reconfigure -fa ||
         { commandFailure="xbps-reconfigure has failed." ; die ; }
@@ -42,9 +45,6 @@ rootPassword() {
 
     exitFunction
 }
-
-. /tmp/installerOptions ||
-    { commandFailure="Sourcing installer variable file on the new system has failed." ; die ; }
 
 commandFailure="Setting root directory permissions has failed."
 chown root:root / || die
