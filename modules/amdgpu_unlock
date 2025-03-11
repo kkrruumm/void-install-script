@@ -7,7 +7,7 @@ main() {
     commandFailure="Enabling amdgpu overclocking has failed."
     case "$bootloader" in
         grub)
-             sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 amdgpu.ppfeaturemask=0xffffffff/g' || die
+             sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 amdgpu.ppfeaturemask=0xffffffff/g' /mnt/etc/default/grub || die
              system "update-grub"
         ;;
         uki)
