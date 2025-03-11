@@ -202,17 +202,20 @@ fi
     case "$filesystem" in
         xfs) mkfs.xfs /dev/void/root || die ;;
         ext4) mkfs.ext4 /dev/void/root || die ;;
+        btrfs) mkfs.btrfs /dev/void/root || die ;;
     esac
 
 if [ "$lvm" == "No" ] && [ "$encryption" == "Yes" ]; then
     case "$filesystem" in
         xfs) mkfs.xfs /dev/mapper/void || die ;;
         ext4) mkfs.ext4 /dev/mapper/void || die ;;
+        btrfs) mkfs.btrfs /dev/mapper/void || die ;;
     esac
 elif [ "$lvm" == "No" ] && [ "$encryption" == "No" ]; then
     case "$filesystem" in
         xfs) mkfs.xfs "$root" || die ;;
         ext4) mkfs.ext4 "$root" || die ;;
+        btrfs) mkfs.btrfs "$root" || die ;;
     esac
 fi
 
@@ -228,6 +231,7 @@ if [ -n "$home" ] && [ "$lvm" == "Yes" ]; then
         case "$filesystem" in
             xfs) mkfs.xfs /dev/void/home || die ;;
             ext4) mkfs.ext4 /dev/void/home || die ;;
+            btrfs) mkfs.btrfs /dev/void/home || die ;;
         esac
     fi
 elif [ -n "$home" ] && [ "$lvm" == "No" ]; then
@@ -235,6 +239,7 @@ elif [ -n "$home" ] && [ "$lvm" == "No" ]; then
     case "$filesystem" in
         xfs) mkfs.xfs "$home" || die ;;
         ext4) mkfs.ext4 "$home" || die ;;
+        btrfs) mkfs.btrfs "$home" || die ;;
     esac
 fi
 
