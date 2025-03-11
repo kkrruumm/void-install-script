@@ -95,7 +95,7 @@ diskConfig() {
             [ "$?" == "3" ] && dungeonmap
         fi
 
-    filesystem=$(drawDialog --no-cancel --title "Partitioner - Filesystem" --extra-button --extra-label "Map" --menu "If you are unsure, choose 'ext4'" 0 0 0 "ext4" "" "xfs" "")
+    filesystem=$(drawDialog --no-cancel --title "Partitioner - Filesystem" --extra-button --extra-label "Map" --menu "If you are unsure, choose 'ext4'" 0 0 0 "ext4" "" "xfs" "" "ntfs" "")
     [ "$?" == "3" ] && dungeonmap
 
     suConfig

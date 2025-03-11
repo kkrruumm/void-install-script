@@ -43,6 +43,7 @@ ping -c 1 gnu.org &>/dev/null && ping -c 1 fsf.org &>/dev/null ||
 commandFailure="Dependency installation has failed."
 xbps-install -Suy xbps || die
 xbps-install -Suy dialog bc || die
+xbps-install -Suy ntfs-3g || die
 
 # it doesn't matter if these fail, do not || die
 dialog --create-rc ~/.dialogrc
