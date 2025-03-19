@@ -73,7 +73,7 @@ diskConfig() {
     fi
 
     if drawDialog --title "Disk Details" --extra-button --extra-label "Map" --no-cancel --title "Partitioner - Swap" --yesno "Would you like to use swap?" 0 0 ; then
-        if [ "$lvm" == "Yes" ] || [ "$encryption" == "No" ]; then
+        if [ "$lvm" == "Yes" ] || [ "$encryption" == "No" ] && [ "$filesystem" != "btrfs" ]; then
             swapStyle=$(drawDialog --begin 2 2 --title "Disk Details" --infobox "$diskIndicator" 0 0 --and-widget --no-cancel --title "Partitioner - Swap" --menu "What style of swap would you like to use?\n\nIf you are unsure, 'swapfile' is recommended." 0 0 0 "swapfile" "- On-filesystem swapfile" "zram" "- RAM in your RAM, but smaller" "partition" "- Traditional swap partition")
         else
             swapStyle=$(drawDialog --begin 2 2 --title "Disk Details" --infobox "$diskIndicator" 0 0 --and-widget --no-cancel --title "Partitioner - Swap" --menu "What style of swap would you like to use?\n\nIf you are unsure, 'swapfile' is recommended." 0 0 0 "swapfile" "- On-filesystem swapfile" "zram" "- RAM in your RAM, but smaller")
