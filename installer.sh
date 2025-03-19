@@ -3,9 +3,6 @@
 # This script is an "orchestrator" for the other scripts that exist in the "setup" directory, and is only responsible for setting values and displaying the TUI.
 # This keeps the installer cleaner and easier to manipulate.
 
-# TODO: REMOVE ME
-btrfsopts="rw,noatime,compress=zstd,discard=async"
-
 # Source installer library
 . "$(pwd)/lib/libviss" ||
     { echo "$(pwd)/lib/libvis not found. Cannot continue." ; exit 1 ; }
