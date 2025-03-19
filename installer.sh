@@ -110,7 +110,7 @@ diskConfig() {
     fi
 
     [ "$separateHomePossible" != "No" ] &&
-        if drawDialog --title "Partitioner - Home" --extra-button --extra-label "Map" --yesno "Would you like to have a separate home partition?" 0 0 ; then
+        if drawDialog --title "Partitioner - Home" --extra-button --extra-label "Map" --yesno "Would you like to have a separate home volume?" 0 0 ; then
             if [ "$filesystem" != "btrfs" ]; then
                 homeSize=$(drawDialog --begin 2 2 --title "Disk Details" --infobox "$diskIndicator" 0 0 --and-widget --no-cancel --title "Partitioner - Home" --inputbox "How large would you like your home partition to be?\n(Example: '100G')\n\nIf you would like the home partition to take up the rest of your disk, leave this empty and press OK." 0 0)
                 [ -z "$homeSize" ] && homeSize="full"
@@ -119,6 +119,8 @@ diskConfig() {
             fi
         else
             [ "$?" == "3" ] && dungeonmap
+            [ "$filesystem" == "btrfs" ] &&
+                createHome="No"
         fi
 
     suConfig
@@ -296,8 +298,13 @@ confirm() {
         settings+="Disk wipe passes: none\n"
     fi
 
-    settings+="LVM: $lvm\n"
+    [ "$filesystem" != "btrfs" ] &&
+        settings+="LVM: $lvm\n"
+
     settings+="Filesystem: $filesystem\n"
+
+    [ "$filesystem" == "btrfs" ] &&
+        settings+="btrfs compression: $compressionType\n"
 
     if [ -n "$swapStyle" ]; then
         settings+="Swap style: $swapStyle\n"
@@ -308,8 +315,12 @@ confirm() {
 
     settings+="Root size: $rootSize\n"
 
-    [ -n "$homeSize" ] &&
-        settings+="Home size: $homeSize\n"
+    if [ "$filesystem" != "btrfs" ]; then
+        [ -n "$homeSize" ] &&
+            settings+="Home size: $homeSize\n"
+    else
+        settings+="Create split home: $createHome\n"
+    fi
 
     settings+="Hostname: $hostname\n"
     settings+="Timezone: $timezone\n"
