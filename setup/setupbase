@@ -49,11 +49,18 @@ case "$basesystem" in
         [ "$lvm" == "Yes" ] &&
             install lvm2
 
-        [ "$su" == "sudo" ] &&
-            install sudo
+        case "$su" in
+            sudo) install sudo ;;
+            doas) install opendoas ;;
+        esac
 
-        [ "$su" == "doas" ] &&
-            install opendoas
+        install dosfstools
+
+        case "$filesystem" in
+            xfs) install xfsprogs ;;
+            ext4) install e2fsprogs ;;
+            btrfs) install btrfs-progs ;;
+        esac
     ;;
 esac
 
