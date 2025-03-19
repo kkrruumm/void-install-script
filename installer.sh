@@ -56,7 +56,7 @@ diskConfig() {
     filesystem=$(drawDialog --no-cancel --title "Partitioner - Filesystem" --extra-button --extra-label "Map" --menu "If you are unsure, choose 'ext4'" 0 0 0 "ext4" "" "xfs" "" "btrfs" "(Experimental)")
     [ "$?" == "3" ] && dungeonmap
 
-    if [ "$filesystem" != "btrfs" ] ; then
+    if [ "$filesystem" != "btrfs" ]; then
         if drawDialog --title "Partitioner - LVM" --extra-button --extra-label "Map" --yesno "Would you like to use LVM?" 0 0 ; then
             lvm="Yes"
         else
@@ -65,6 +65,14 @@ diskConfig() {
         fi
     else
         lvm="No"
+
+        compressionType=$(drawDialog --no-cancel --title "Partitioner - Filesystem" --extra-button --extra-label "Map" --menu "What style of compression would you like to use with btrfs?" 0 0 0 "zstd" "" "lzo" "" "zlib" "" "none" "")
+
+        if [ "$compressionType" == "None" ]; then
+            btrfsopts="rw,noatime,nocompress,discard=async"
+        else
+            btrfsopts="rw,noatime,compress=$compressionType,discard=async"
+        fi
     fi
 
     if drawDialog --title "Disk Details" --extra-button --extra-label "Map" --no-cancel --title "Partitioner - Swap" --yesno "Would you like to use swap?" 0 0 ; then
