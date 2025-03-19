@@ -35,6 +35,19 @@ sfdisk --delete "$diskInput"
 ) | fdisk "$diskInput" ||
     { commandFailure="Creating ESP partition has failed." ; die ; }
 
+# Treating btrfs subvolumes similarly to lvm,
+# we only need one partition to house home and otherwise.
+if [ "$filesystem" == "btrfs" ] ; then
+    (
+        echo n;
+        echo ;
+        echo ;
+        echo ;
+        echo w;
+    ) | fdisk "$diskInput" ||
+        { commandFailure="Creating root partition has failed." ; die ; }
+fi
+
 case "$lvm" in
     Yes)
         (
@@ -113,6 +126,9 @@ esp="$diskInput""$idvar"1
 [ "$lvm" == "Yes" ] &&
     root="$diskInput""$idvar"2
 
+[ "$filesystem" == "btrfs" ] &&
+    root="$diskInput""$idvar"2
+
 if [ "$lvm" == "No" ] && [ "$swapStyle" == "partition" ]; then
     root="$diskInput""$idvar"3
 else
@@ -179,6 +195,32 @@ else
     fi
 fi
 
+[ "$filesystem" == "btrfs" ] &&
+    case "$encryption" in
+        Yes)
+            mkfs.btrfs -L Void /dev/mapper/void || die
+            mount -o "$btrfsopts" /dev/mapper/void /mnt || die
+            btrfs su cr /mnt/@ || die # root subvol
+
+            [ "$createHome" == "Yes" ] &&
+                { btrfs su cr /mnt/@home || die ; }
+
+            btrfs su cr /mnt/@snapshots || die
+            umount /mnt || die
+        ;;
+        No)
+            mkfs.btrfs -L Void "$root" || die
+            mount -o "$btrfsopts" "$root" /mnt || die
+            btrfs su cr /mnt/@ || die # root subvol
+
+            [ "$createHome" == "Yes" ] &&
+                { btrfs su cr /mnt/@home || die ; }
+
+            btrfs su cr /mnt/@snapshots || die
+            umount /mnt || die
+        ;;
+    esac
+
 if [ "$swapStyle" == "partition" ]; then
     commandFailure="Creating swap partition has failed."
     if [ "$lvm" == "Yes" ]; then
@@ -197,7 +239,6 @@ elif [ "$rootSize" != "full" ] && [ "$lvm" == "Yes" ]; then
         { commandFailure="Creating root LV has failed." ; die ; }
 fi
 
-# TODO: ZFS
 [ "$lvm" == "Yes" ] &&
     case "$filesystem" in
         xfs) mkfs.xfs /dev/void/root || die ;;
@@ -248,11 +289,41 @@ commandFailure="Mounting partitions has failed."
 [ "$lvm" == "No" ] && [ "$encryption" == "No" ] &&
     { mount "$root" /mnt || die ; }
 
-[ "$lvm" == "No" ] && [ -n "$home" ] &&
+[ "$lvm" == "No" ] && [ -n "$home" ] && [ "$filesystem" != "btrfs" ] &&
     { mkdir /mnt/home ; mount "$home" /mnt/home || die ; }
 
 [ "$lvm" == "Yes" ] && [ -e "/dev/mapper/void-home" ] &&
-    { mkdir /mnt/home ; mount /dev/mapper/void-home /mnt/home || { commandFailure="Mounting home directory has failed." ; die ; } ; }
+    { mkdir /mnt/home ; mount /dev/mapper/void-home /mnt/home || die ; }
+
+if [ "$filesystem" == "btrfs" ]; then
+    case "$encryption" in
+        Yes)
+            mount -o "$btrfsopts",subvol=@ /dev/mapper/void /mnt || die
+
+            mkdir /mnt/.snapshots || die
+
+            [ "$createHome" == "Yes" ] &&
+                { mkdir /mnt/home ; mount -o "$btrfsopts",subvol=@home /dev/mapper/void /mnt/home || die ; }
+
+            mount -o "$btrfsopts",subvol=@snapshots /dev/mapper/void /mnt/.snapshots || die
+        ;;
+        No)
+            mount -o "$btrfsopts",subvol=@ "$root" /mnt || die
+
+            mkdir /mnt/.snapshots || die
+
+            [ "$createHome" == "Yes" ] &&
+                { mkdir /mnt/home ; mount -o "$btrfsopts",subvol=@home "$root" /mnt/home || die ; }
+
+            mount -o "$btrfsopts",subvol=@snapshots "$root" /mnt/.snapshots || die
+        ;;
+    esac
+
+    mkdir -p /mnt/var/cache || die
+    btrfs su cr /mnt/var/cache/xbps || die
+    btrfs su cr /mnt/var/tmp || die
+    btrfs su cr /mnt/srv || die
+fi
 
 # TODO: xchroot can deal with mounting these.
 for dir in dev proc sys run; do mkdir -p /mnt/$dir ; mount --rbind /$dir /mnt/$dir ; mount --make-rslave /mnt/$dir ; done || die

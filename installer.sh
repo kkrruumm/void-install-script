@@ -3,6 +3,9 @@
 # This script is an "orchestrator" for the other scripts that exist in the "setup" directory, and is only responsible for setting values and displaying the TUI.
 # This keeps the installer cleaner and easier to manipulate.
 
+# TODO: REMOVE ME
+btrfsopts="rw,noatime,compress=zstd,discard=async"
+
 # Source installer library
 . "$(pwd)/lib/libviss" ||
     { echo "$(pwd)/lib/libvis not found. Cannot continue." ; exit 1 ; }
@@ -50,10 +53,17 @@ diskConfig() {
         encryption="No"
     fi
 
-    if drawDialog --title "Partitioner - LVM" --extra-button --extra-label "Map" --yesno "Would you like to use LVM?" 0 0 ; then
-        lvm="Yes"
+    filesystem=$(drawDialog --no-cancel --title "Partitioner - Filesystem" --extra-button --extra-label "Map" --menu "If you are unsure, choose 'ext4'" 0 0 0 "ext4" "" "xfs" "" "btrfs" "(Experimental)")
+    [ "$?" == "3" ] && dungeonmap
+
+    if [ "$filesystem" != "btrfs" ] ; then
+        if drawDialog --title "Partitioner - LVM" --extra-button --extra-label "Map" --yesno "Would you like to use LVM?" 0 0 ; then
+            lvm="Yes"
+        else
+            [ "$?" == "3" ] && dungeonmap
+            lvm="No"
+        fi
     else
-        [ "$?" == "3" ] && dungeonmap
         lvm="No"
     fi
 
@@ -76,11 +86,17 @@ diskConfig() {
         ;;
     esac
 
-    rootSize=$(drawDialog --begin 2 2 --title "Disk Details" --infobox "$diskIndicator" 0 0 --and-widget --no-cancel --title "Partitioner - Root" --extra-button --extra-label "Map" --inputbox "If you would like to limit the size of your root filesystem, such as to have a separate home partition, you can enter a value such as '50G' here.\n\nOtherwise, if you would like your root partition to take up the entire drive, leave this empty and press OK." 0 0)
-    [ "$?" == "3" ] && dungeonmap
-    [ -z "$rootSize" ] && rootSize="full"
+    if [ "$filesystem" != "btrfs" ]; then
+        rootSize=$(drawDialog --begin 2 2 --title "Disk Details" --infobox "$diskIndicator" 0 0 --and-widget --no-cancel --title "Partitioner - Root" --extra-button --extra-label "Map" --inputbox "If you would like to limit the size of your root filesystem, such as to have a separate home partition, you can enter a value such as '50G' here.\n\nOtherwise, if you would like your root partition to take up the entire drive, leave this empty and press OK." 0 0)
+        [ "$?" == "3" ] && dungeonmap
+        [ -z "$rootSize" ] && rootSize="full"
+    else
+        rootSize="full"
+    fi
 
-    if [ "$rootSize" == "full" ]; then
+    if [ "$filesystem" == "btrfs" ]; then
+        local separateHomePossible="Yes"
+    elif [ "$rootSize" == "full" ]; then
         local separateHomePossible="No"
     elif [ "$lvm" == "No" ] && [ "$encryption" == "Yes" ]; then
         local separateHomePossible="No"
@@ -90,13 +106,15 @@ diskConfig() {
 
     [ "$separateHomePossible" != "No" ] &&
         if drawDialog --title "Partitioner - Home" --extra-button --extra-label "Map" --yesno "Would you like to have a separate home partition?" 0 0 ; then
-            homeSize=$(drawDialog --begin 2 2 --title "Disk Details" --infobox "$diskIndicator" 0 0 --and-widget --no-cancel --title "Partitioner - Home" --inputbox "How large would you like your home partition to be?\n(Example: '100G')\n\nYou can choose to use the rest of your disk after the root partition by entering 'full' here." 0 0)
+            if [ "$filesystem" != "btrfs" ]; then
+                homeSize=$(drawDialog --begin 2 2 --title "Disk Details" --infobox "$diskIndicator" 0 0 --and-widget --no-cancel --title "Partitioner - Home" --inputbox "How large would you like your home partition to be?\n(Example: '100G')\n\nIf you would like the home partition to take up the rest of your disk, leave this empty and press OK." 0 0)
+                [ -z "$homeSize" ] && homeSize="full"
+            else
+                createHome="Yes"
+            fi
         else
             [ "$?" == "3" ] && dungeonmap
         fi
-
-    filesystem=$(drawDialog --no-cancel --title "Partitioner - Filesystem" --extra-button --extra-label "Map" --menu "If you are unsure, choose 'ext4'" 0 0 0 "ext4" "" "xfs" "")
-    [ "$?" == "3" ] && dungeonmap
 
     suConfig
 }
