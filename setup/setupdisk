@@ -24,96 +24,20 @@ done
 
 sfdisk --delete "$diskInput"
 
-# I hate everything other than fdisk despite how terrible this is
+# 'echo ;' here is equivalent to pressing enter in fdisk
 (
-    echo g;
-    echo n;
-    echo ;
-    echo ;
-    echo +500M;
+    echo g; # gpt table
+    echo n; echo ; echo ; echo +500M; # ESP
+    [ "$lvm" == "No" ] && [ "$swapStyle" == "partition" ] && echo n; echo ; echo ; echo +"$swapSize";
+    if [ "$filesystem" == "btrfs" ] || [ "$lvm" == "Yes" ] || [ "$rootSize" == "full" ]; then
+        echo n; echo ; echo ; echo ;
+    fi
+    [ "$lvm" == "No" ] && [ "$rootSize" != "full" ] && echo n; echo ; echo ; echo +"$rootSize";
+    [ "$lvm" == "No" ] && [ "$encryption" == "No" ] && [ "$homeSize" != "full" ] && echo n; echo ; echo ; echo +"$homeSize";
+    [ "$lvm" == "No" ] && [ "$encryption" == "No" ] && [ "$homeSize" == "full" ] && echo n; echo ; echo ; echo ;
     echo w;
-) | fdisk "$diskInput" ||
-    { commandFailure="Creating ESP partition has failed." ; die ; }
-
-# Treating btrfs subvolumes similarly to lvm,
-# we only need one partition to house home and otherwise.
-if [ "$filesystem" == "btrfs" ] ; then
-    (
-        echo n;
-        echo ;
-        echo ;
-        echo ;
-        echo w;
-    ) | fdisk "$diskInput" ||
-        { commandFailure="Creating root partition has failed." ; die ; }
-fi
-
-case "$lvm" in
-    Yes)
-        (
-            echo n;
-            echo ;
-            echo ;
-            echo ;
-            echo w;
-        ) | fdisk "$diskInput" ||
-            { commandFailure="Creating root partition has failed." ; die ; }
-    ;;
-
-    No)
-        # Create swap if a normal partition is chosen:
-        if [ "$swapStyle" == "partition" ]; then
-            (
-                echo n;
-                echo ;
-                echo ;
-                echo +"$swapSize";
-                echo w;
-            ) | fdisk "$diskInput" ||
-                { commandFailure="Creating swap partition has failed." ; die ; }
-        fi
-
-        if [ "$rootSize" == "full" ]; then
-            (
-                echo n;
-                echo ;
-                echo ;
-                echo ;
-                echo w;
-            ) | fdisk "$diskInput" ||
-                { commandFailure="Creating root partition has failed." ; die ; }
-        else
-            (
-                echo n;
-                echo ;
-                echo ;
-                echo +"$rootSize";
-                echo w;
-            ) | fdisk "$diskInput" ||
-                { commandFailure="Creating root partition has failed." ; die ; }
-        fi
-
-        if [ -n "$homeSize" ] && [ "$homeSize" == "full" ] && [ "$encryption" == "No" ]; then
-            (
-                echo n;
-                echo ;
-                echo ;
-                echo ;
-                echo w;
-            ) | fdisk "$diskInput" ||
-                { commandFailure="Creating home partition has failed." ; die ; }
-        elif [ -n "$homeSize" ] && [ "$encryption" == "No" ]; then
-            (
-                echo n;
-                echo ;
-                echo ;
-                echo +"$homeSize";
-                echo w;
-            ) | fdisk "$diskInput" ||
-                { commandFailure="Creating home partition has failed." ; die ; }
-        fi
-    ;;
-esac
+) | fdisk -w always "$diskInput" ||
+    { commandFailure="Writing partition table to disk has failed." ; die ; }
 
 # if idvar is unset, the following will set partition variables to, for example, sda1 instead of sdap1 (or more appropriately, nvme0n1p1 or likewise)
 # if you see this and can think of a less stupid name for this variable, feel free to make a PR
