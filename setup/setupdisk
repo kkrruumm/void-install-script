@@ -119,31 +119,30 @@ else
     fi
 fi
 
-[ "$filesystem" == "btrfs" ] &&
+if [ "$filesystem" == "btrfs" ]; then
     case "$encryption" in
         Yes)
             mkfs.btrfs -L Void /dev/mapper/void || die
             mount -o "$btrfsopts" /dev/mapper/void /mnt || die
-            btrfs su cr /mnt/@ || die # root subvol
-
-            [ "$createHome" == "Yes" ] &&
-                { btrfs su cr /mnt/@home || die ; }
-
-            btrfs su cr /mnt/@snapshots || die
-            umount /mnt || die
         ;;
         No)
             mkfs.btrfs -L Void "$root" || die
             mount -o "$btrfsopts" "$root" /mnt || die
-            btrfs su cr /mnt/@ || die # root subvol
-
-            [ "$createHome" == "Yes" ] &&
-                { btrfs su cr /mnt/@home || die ; }
-
-            btrfs su cr /mnt/@snapshots || die
-            umount /mnt || die
         ;;
     esac
+
+    btrfs su cr /mnt/@ || die
+
+    [ "$createHome" == "Yes" ] &&
+        { btrfs su cr /mnt/@home || die ; }
+
+    btrfs su cr /mnt/@snapshots || die
+
+    [ "$swapStyle" == "swapfile" ] &&
+        { btrfs su cr /mnt/@swap || die ; }
+
+    umount /mnt || die
+fi
 
 if [ "$swapStyle" == "partition" ]; then
     commandFailure="Creating swap partition has failed."
@@ -230,6 +229,9 @@ if [ "$filesystem" == "btrfs" ]; then
                 { mkdir /mnt/home ; mount -o "$btrfsopts",subvol=@home /dev/mapper/void /mnt/home || die ; }
 
             mount -o "$btrfsopts",subvol=@snapshots /dev/mapper/void /mnt/.snapshots || die
+
+            [ "$swapStyle" == "swapfile" ] &&
+                { mkdir /mnt/swap ; mount -o rw,nodatacow,subvol=@swap /dev/mapper/void /mnt/swap || die ; }
         ;;
         No)
             mount -o "$btrfsopts",subvol=@ "$root" /mnt || die
@@ -240,6 +242,9 @@ if [ "$filesystem" == "btrfs" ]; then
                 { mkdir /mnt/home ; mount -o "$btrfsopts",subvol=@home "$root" /mnt/home || die ; }
 
             mount -o "$btrfsopts",subvol=@snapshots "$root" /mnt/.snapshots || die
+
+            [ "$swapStyle" == "swapfile" ] &&
+                { mkdir /mnt/swap ; mount -o rw,nodatacow,subvol=@swap "$root" /mnt/swap || die ; }
         ;;
     esac
 

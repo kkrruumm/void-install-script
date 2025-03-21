@@ -103,6 +103,9 @@ if [ "$filesystem" == "btrfs" ]; then
                 { echo "UUID=$partVar /home $filesystem $btrfsopts,subvol=@home 0 2" >> /mnt/etc/fstab || die ; }
 
             echo "UUID=$partVar /.snapshots $filesystem $btrfsopts,subvol=@snapshots 0 2" >> /mnt/etc/fstab || die
+
+            [ -n "$swapSize" ] && [ "$swapStyle" == "swapfile" ] &&
+                { echo "UUID=$partVar /swap $filesystem rw,nodatacow,subvol=@swap 0 0" >> /mnt/etc/fstab || die ; }
         ;;
         No)
             partVar=$(blkid -o value -s UUID "$root")
@@ -112,6 +115,9 @@ if [ "$filesystem" == "btrfs" ]; then
                 { echo "UUID=$partVar /home $filesystem $btrfsopts,subvol=@home 0 2" >> /mnt/etc/fstab || die ; }
 
             echo "UUID=$partVar /.snapshots $filesystem $btrfsopts,subvol=@snapshots 0 2" >> /mnt/etc/fstab || die
+
+            [ -n "$swapSize" ] && [ "$swapStyle" == "swapfile" ] &&
+                { echo "UUID=$partVar /swap $filesystem rw,nodatacow,subvol=@swap 0 0" >> /mnt/etc/fstab || die ; }
         ;;
     esac
 fi
@@ -125,8 +131,11 @@ fi
 [ -n "$swapSize" ] && [ "$swapStyle" == "partition" ] && [ "$lvm" == "No" ] &&
     { partVar=$(blkid -o value -s UUID "$swap") ; echo "UUID=$partVar swap swap defaults 0 0" >> /mnt/etc/fstab || die ; }
 
-[ -n "$swapSize" ] && [ "$swapStyle" == "swapfile" ] &&
+[ -n "$swapSize" ] && [ "$swapStyle" == "swapfile" ] && [ "$filesystem" != "btrfs" ] &&
     { echo "/var/swapfile swap swap defaults 0 0" >> /mnt/etc/fstab || die ; }
+
+[ -n "$swapSize" ] && [ "$swapStyle" == "swapfile" ] && [ "$filesystem" == "btrfs" ] &&
+    { echo "/swap/swapfile none swap defaults 0 0" >> /mnt/etc/fstab || die ; }
 
 [ "$separateHomePossible" != "No" ] && [ -n "$homeSize" ] && [ "$lvm" == "Yes" ] &&
     { echo "/dev/void/home /home $filesystem defaults 0 0" >> /mnt/etc/fstab || die ; }
@@ -215,12 +224,17 @@ case "$swapStyle" in
         echo "swapon --discard --priority 100 /dev/zram0" >> /mnt/etc/rc.local || die
     ;;
     swapfile)
-        commandFailure="Configuring swapfile has failed."
-        swapSize=$(echo "$swapSize" | sed 's/G//g')
-        echo "Creating swapfile..."
-        dd if=/dev/zero of=/mnt/var/swapfile bs=1024M count="$swapSize" status=progress || die
-        chmod 600 /mnt/var/swapfile || die # root only.
-        mkswap /mnt/var/swapfile || die
+        if [ "$filesystem" != "btrfs" ]; then
+            commandFailure="Configuring swapfile has failed."
+            swapSize=$(echo "$swapSize" | sed 's/G//g')
+            echo "Creating swapfile..."
+            dd if=/dev/zero of=/mnt/var/swapfile bs=1024M count="$swapSize" status=progress || die
+            chmod 600 /mnt/var/swapfile || die # root only.
+            mkswap /mnt/var/swapfile || die
+        else
+            btrfs filesystem mkswapfile --size "$swapSize" --uuid clear /mnt/swap/swapfile || die
+            swapon /mnt/swap/swapfile || die
+        fi
     ;;
 esac
 
