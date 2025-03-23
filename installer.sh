@@ -438,7 +438,7 @@ _install() {
 
     clear
     echo -e "${GREEN}Installation complete.${NC}"
-    echo "Please remove installation media and reboot."
+    echo "Please reboot and remove installation media."
     echo -e "Otherwise, you may run 'chroot /mnt' for further config.\n"
     exit 0
 }
