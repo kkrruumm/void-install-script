@@ -360,7 +360,7 @@ confirm() {
 
     drawDialog --yes-label "Install" --no-label "Exit" --extra-button --extra-label "Map" --title "Installation Overview" --yesno "Selecting 'Install' here will DESTROY ALL DATA on the chosen disk and install with the options below. \n\n
 $settings\n
-You can choose 'Restart' to go back to the beginning of the installer and change settings." 0 0
+To change any of these settings, choose 'Map'." 0 0
 
     case $? in
         0)
