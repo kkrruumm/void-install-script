@@ -50,18 +50,17 @@ At the moment, this installer does not have stable releases. The most recent com
 ```
 
 # Instructions
-```
-Boot into a Void Linux live medium
-Login as anon
-sudo xbps-install -Su
-sudo xbps-install -S git
-git clone https://github.com/kkrruumm/void-install-script/
-cd void-install-script
-chmod +x installer.sh
-sudo ./installer.sh
-Follow on-screen steps
-Done.
-```
+
+1. Boot into a Void Linux live medium
+2. Login as `anon` with password `voidlinux`
+3. Run the following commands:
+    - `sudo xbps-install -Su`
+    - `sudo xbps-install -S git`
+    - `git clone https://github.com/kkrruumm/void-install-script.git`
+    - `cd void-install-script`
+    - `sudo ./installer.sh`
+4. Follow on-screen steps
+5. Done.
 
 # UKI notes
 
