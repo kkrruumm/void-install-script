@@ -49,11 +49,18 @@ case "$basesystem" in
         [ "$lvm" == "Yes" ] &&
             install lvm2
 
-        [ "$su" == "sudo" ] &&
-            install sudo
+        case "$su" in
+            sudo) install sudo ;;
+            doas) install opendoas ;;
+        esac
 
-        [ "$su" == "doas" ] &&
-            install opendoas
+        install dosfstools
+
+        case "$filesystem" in
+            xfs) install xfsprogs ;;
+            ext4) install e2fsprogs ;;
+            btrfs) install btrfs-progs ;;
+        esac
     ;;
 esac
 
@@ -83,10 +90,39 @@ echo "UUID=$partVar /boot/efi vfat defaults 0 0" >> /mnt/etc/fstab || die
 [ "$lvm" == "Yes" ] &&
     { echo "/dev/void/root / $filesystem defaults 0 0" >> /mnt/etc/fstab || die ; }
 
-[ "$lvm" == "No" ] && [ "$encryption" == "Yes" ] &&
+[ "$lvm" == "No" ] && [ "$encryption" == "Yes" ] && [ "$filesystem" != "btrfs" ] &&
     { partVar=$(blkid -o value -s UUID /dev/mapper/void) ; echo "UUID=$partVar / $filesystem defaults 0 0" >> /mnt/etc/fstab || die ; }
 
-[ "$lvm" == "No" ] && [ "$encryption" == "No" ] &&
+if [ "$filesystem" == "btrfs" ]; then
+    case "$encryption" in
+        Yes)
+            partVar=$(blkid -o value -s UUID /dev/mapper/void)
+            echo "UUID=$partVar / $filesystem $btrfsopts,subvol=@ 0 1" >> /mnt/etc/fstab || die
+
+            [ "$createHome" == "Yes" ] &&
+                { echo "UUID=$partVar /home $filesystem $btrfsopts,subvol=@home 0 2" >> /mnt/etc/fstab || die ; }
+
+            echo "UUID=$partVar /.snapshots $filesystem $btrfsopts,subvol=@snapshots 0 2" >> /mnt/etc/fstab || die
+
+            [ -n "$swapSize" ] && [ "$swapStyle" == "swapfile" ] &&
+                { echo "UUID=$partVar /swap $filesystem rw,nodatacow,subvol=@swap 0 0" >> /mnt/etc/fstab || die ; }
+        ;;
+        No)
+            partVar=$(blkid -o value -s UUID "$root")
+            echo "UUID=$partVar / $filesystem $btrfsopts,subvol=@ 0 1" >> /mnt/etc/fstab || die
+
+            [ "$createHome" == "Yes" ] &&
+                { echo "UUID=$partVar /home $filesystem $btrfsopts,subvol=@home 0 2" >> /mnt/etc/fstab || die ; }
+
+            echo "UUID=$partVar /.snapshots $filesystem $btrfsopts,subvol=@snapshots 0 2" >> /mnt/etc/fstab || die
+
+            [ -n "$swapSize" ] && [ "$swapStyle" == "swapfile" ] &&
+                { echo "UUID=$partVar /swap $filesystem rw,nodatacow,subvol=@swap 0 0" >> /mnt/etc/fstab || die ; }
+        ;;
+    esac
+fi
+
+[ "$lvm" == "No" ] && [ "$encryption" == "No" ] && [ "$filesystem" != "btrfs" ] &&
     { partVar=$(blkid -o value -s UUID "$root") ; echo "UUID=$partVar / $filesystem defaults 0 0" >> /mnt/etc/fstab || die ; }
 
 [ -n "$swapSize" ] && [ "$swapStyle" == "partition" ] && [ "$lvm" == "Yes" ] &&
@@ -95,8 +131,11 @@ echo "UUID=$partVar /boot/efi vfat defaults 0 0" >> /mnt/etc/fstab || die
 [ -n "$swapSize" ] && [ "$swapStyle" == "partition" ] && [ "$lvm" == "No" ] &&
     { partVar=$(blkid -o value -s UUID "$swap") ; echo "UUID=$partVar swap swap defaults 0 0" >> /mnt/etc/fstab || die ; }
 
-[ -n "$swapSize" ] && [ "$swapStyle" == "swapfile" ] &&
+[ -n "$swapSize" ] && [ "$swapStyle" == "swapfile" ] && [ "$filesystem" != "btrfs" ] &&
     { echo "/var/swapfile swap swap defaults 0 0" >> /mnt/etc/fstab || die ; }
+
+[ -n "$swapSize" ] && [ "$swapStyle" == "swapfile" ] && [ "$filesystem" == "btrfs" ] &&
+    { echo "/swap/swapfile none swap defaults 0 0" >> /mnt/etc/fstab || die ; }
 
 [ "$separateHomePossible" != "No" ] && [ -n "$homeSize" ] && [ "$lvm" == "Yes" ] &&
     { echo "/dev/void/home /home $filesystem defaults 0 0" >> /mnt/etc/fstab || die ; }
@@ -131,14 +170,20 @@ ukify build \
         [ "$lvm" == "Yes" ] && [ "$encryption" == "No" ] &&
             { sed -i -e 's:loglevel=4:loglevel=4 rd.lvm.vg=void root=/dev/void/root rootfstype='$filesystem' rw:g' /mnt/etc/kernel.d/post-install/60-ukify || die ; }
 
-        [ "$lvm" == "No" ] && [ "$encryption" == "Yes" ] &&
-            { sed -i -e 's:loglevel=4:loglevel=4 rd.luks.uuid='$partVar' rd.luks.name='$partVar'=void-root root=/dev/mapper/void-root rootfstype='$filesystem' rw:g' /mnt/etc/kernel.d/post-install/60-ukify || die ; }
+        if [ "$lvm" == "No" ] && [ "$encryption" == "No" ]; then
+            sed -i -e 's/loglevel=4/loglevel=4 root=UUID='$partVar' rootfstype='$filesystem' rw/g' /mnt/etc/kernel.d/post-install/60-ukify || die
 
-        [ "$lvm" == "No" ] && [ "$encryption" == "No" ] &&
-            { sed -i -e 's/loglevel=4/loglevel=4 root=UUID='$partVar' rootfstype='$filesystem' rw/g' /mnt/etc/kernel.d/post-install/60-ukify || die ; }
+            [ "$filesystem" == "btrfs" ] &&
+                { sed -i -e 's/loglevel=4/loglevel=4 rootflags=subvol=@/' /mnt/etc/kernel.d/post-install/60-ukify || die ;}
+        elif [ "$lvm" == "No" ] && [ "$encryption" == "Yes" ]; then
+           sed -i -e 's:loglevel=4:loglevel=4 rd.luks.uuid='$partVar' rd.luks.name='$partVar'=void-root root=/dev/mapper/void-root rootfstype='$filesystem' rw:g' /mnt/etc/kernel.d/post-install/60-ukify || die
+
+           [ "$filesystem" == "btrfs" ] &&
+               { sed -i -e 's/loglevel=4/loglevel=4 rootflags=subvol=@/' /mnt/etc/kernel.d/post-install/60-ukify || die ; }
+        fi
 
         [ "$acpi" == "false" ] &&
-            { sed -i -e 's/loglevel=4/loglevel=4 acpi=off/g' /mnt/root/kernelparams || { commandFailure="Disabling ACPI has failed." ; die ; } ; }
+            { sed -i -e 's/loglevel=4/loglevel=4 acpi=off/g' /mnt/etc/kernel.d/post-install/60-ukify || { commandFailure="Disabling ACPI has failed." ; die ; } ; }
     ;;
     grub)
         commandFailure="Configuring grub base config has failed."
@@ -179,12 +224,17 @@ case "$swapStyle" in
         echo "swapon --discard --priority 100 /dev/zram0" >> /mnt/etc/rc.local || die
     ;;
     swapfile)
-        commandFailure="Configuring swapfile has failed."
-        swapSize=$(echo "$swapSize" | sed 's/G//g')
-        echo "Creating swapfile..."
-        dd if=/dev/zero of=/mnt/var/swapfile bs=1024M count="$swapSize" status=progress || die
-        chmod 600 /mnt/var/swapfile || die # root only.
-        mkswap /mnt/var/swapfile || die
+        if [ "$filesystem" != "btrfs" ]; then
+            commandFailure="Configuring swapfile has failed."
+            swapSize=$(echo "$swapSize" | sed 's/G//g')
+            echo "Creating swapfile..."
+            dd if=/dev/zero of=/mnt/var/swapfile bs=1024M count="$swapSize" status=progress || die
+            chmod 600 /mnt/var/swapfile || die # root only.
+            mkswap /mnt/var/swapfile || die
+        else
+            btrfs filesystem mkswapfile --size "$swapSize" --uuid clear /mnt/swap/swapfile || die
+            swapon /mnt/swap/swapfile || die
+        fi
     ;;
 esac
 

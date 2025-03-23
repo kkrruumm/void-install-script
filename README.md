@@ -43,7 +43,7 @@ At the moment, this installer does not have stable releases. The most recent com
 -Option to choose between doas or sudo
 -Option to choose your repository mirror
 -Option to choose between linux, linux-lts, and linux-mainline kernels
--Option to choose between xfs and ext4 filesystems
+-Option to choose between xfs, ext4, and btrfs filesystems
 -Configure partitions in the installer for home, swap, and root with LVM
 -Support for both glibc and musl
 -User creation and basic configuration

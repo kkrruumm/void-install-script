@@ -50,15 +50,30 @@ diskConfig() {
         encryption="No"
     fi
 
-    if drawDialog --title "Partitioner - LVM" --extra-button --extra-label "Map" --yesno "Would you like to use LVM?" 0 0 ; then
-        lvm="Yes"
+    filesystem=$(drawDialog --no-cancel --title "Partitioner - Filesystem" --extra-button --extra-label "Map" --menu "If you are unsure, choose 'ext4'" 0 0 0 "ext4" "" "xfs" "" "btrfs" "(Experimental)")
+    [ "$?" == "3" ] && dungeonmap
+
+    if [ "$filesystem" != "btrfs" ]; then
+        if drawDialog --title "Partitioner - LVM" --extra-button --extra-label "Map" --yesno "Would you like to use LVM?" 0 0 ; then
+            lvm="Yes"
+        else
+            [ "$?" == "3" ] && dungeonmap
+            lvm="No"
+        fi
     else
-        [ "$?" == "3" ] && dungeonmap
         lvm="No"
+
+        compressionType=$(drawDialog --no-cancel --title "Partitioner - Filesystem" --extra-button --extra-label "Map" --menu "What style of compression would you like to use with btrfs?" 0 0 0 "zstd" "" "lzo" "" "zlib" "" "none" "")
+
+        if [ "$compressionType" == "None" ]; then
+            btrfsopts="rw,noatime,nocompress,discard=async"
+        else
+            btrfsopts="rw,noatime,compress=$compressionType,discard=async"
+        fi
     fi
 
     if drawDialog --title "Disk Details" --extra-button --extra-label "Map" --no-cancel --title "Partitioner - Swap" --yesno "Would you like to use swap?" 0 0 ; then
-        if [ "$lvm" == "Yes" ] || [ "$encryption" == "No" ]; then
+        if [ "$lvm" == "Yes" ] || [ "$encryption" == "No" ] && [ "$filesystem" != "btrfs" ]; then
             swapStyle=$(drawDialog --begin 2 2 --title "Disk Details" --infobox "$diskIndicator" 0 0 --and-widget --no-cancel --title "Partitioner - Swap" --menu "What style of swap would you like to use?\n\nIf you are unsure, 'swapfile' is recommended." 0 0 0 "swapfile" "- On-filesystem swapfile" "zram" "- RAM in your RAM, but smaller" "partition" "- Traditional swap partition")
         else
             swapStyle=$(drawDialog --begin 2 2 --title "Disk Details" --infobox "$diskIndicator" 0 0 --and-widget --no-cancel --title "Partitioner - Swap" --menu "What style of swap would you like to use?\n\nIf you are unsure, 'swapfile' is recommended." 0 0 0 "swapfile" "- On-filesystem swapfile" "zram" "- RAM in your RAM, but smaller")
@@ -76,11 +91,17 @@ diskConfig() {
         ;;
     esac
 
-    rootSize=$(drawDialog --begin 2 2 --title "Disk Details" --infobox "$diskIndicator" 0 0 --and-widget --no-cancel --title "Partitioner - Root" --extra-button --extra-label "Map" --inputbox "If you would like to limit the size of your root filesystem, such as to have a separate home partition, you can enter a value such as '50G' here.\n\nOtherwise, if you would like your root partition to take up the entire drive, leave this empty and press OK." 0 0)
-    [ "$?" == "3" ] && dungeonmap
-    [ -z "$rootSize" ] && rootSize="full"
+    if [ "$filesystem" != "btrfs" ]; then
+        rootSize=$(drawDialog --begin 2 2 --title "Disk Details" --infobox "$diskIndicator" 0 0 --and-widget --no-cancel --title "Partitioner - Root" --extra-button --extra-label "Map" --inputbox "If you would like to limit the size of your root filesystem, such as to have a separate home partition, you can enter a value such as '50G' here.\n\nOtherwise, if you would like your root partition to take up the entire drive, leave this empty and press OK." 0 0)
+        [ "$?" == "3" ] && dungeonmap
+        [ -z "$rootSize" ] && rootSize="full"
+    else
+        rootSize="full"
+    fi
 
-    if [ "$rootSize" == "full" ]; then
+    if [ "$filesystem" == "btrfs" ]; then
+        local separateHomePossible="Yes"
+    elif [ "$rootSize" == "full" ]; then
         local separateHomePossible="No"
     elif [ "$lvm" == "No" ] && [ "$encryption" == "Yes" ]; then
         local separateHomePossible="No"
@@ -89,14 +110,18 @@ diskConfig() {
     fi
 
     [ "$separateHomePossible" != "No" ] &&
-        if drawDialog --title "Partitioner - Home" --extra-button --extra-label "Map" --yesno "Would you like to have a separate home partition?" 0 0 ; then
-            homeSize=$(drawDialog --begin 2 2 --title "Disk Details" --infobox "$diskIndicator" 0 0 --and-widget --no-cancel --title "Partitioner - Home" --inputbox "How large would you like your home partition to be?\n(Example: '100G')\n\nYou can choose to use the rest of your disk after the root partition by entering 'full' here." 0 0)
+        if drawDialog --title "Partitioner - Home" --extra-button --extra-label "Map" --yesno "Would you like to have a separate home volume?" 0 0 ; then
+            if [ "$filesystem" != "btrfs" ]; then
+                homeSize=$(drawDialog --begin 2 2 --title "Disk Details" --infobox "$diskIndicator" 0 0 --and-widget --no-cancel --title "Partitioner - Home" --inputbox "How large would you like your home partition to be?\n(Example: '100G')\n\nIf you would like the home partition to take up the rest of your disk, leave this empty and press OK." 0 0)
+                [ -z "$homeSize" ] && homeSize="full"
+            else
+                createHome="Yes"
+            fi
         else
             [ "$?" == "3" ] && dungeonmap
+            [ "$filesystem" == "btrfs" ] &&
+                createHome="No"
         fi
-
-    filesystem=$(drawDialog --no-cancel --title "Partitioner - Filesystem" --extra-button --extra-label "Map" --menu "If you are unsure, choose 'ext4'" 0 0 0 "ext4" "" "xfs" "")
-    [ "$?" == "3" ] && dungeonmap
 
     suConfig
 }
@@ -273,8 +298,13 @@ confirm() {
         settings+="Disk wipe passes: none\n"
     fi
 
-    settings+="LVM: $lvm\n"
+    [ "$filesystem" != "btrfs" ] &&
+        settings+="LVM: $lvm\n"
+
     settings+="Filesystem: $filesystem\n"
+
+    [ "$filesystem" == "btrfs" ] &&
+        settings+="btrfs compression: $compressionType\n"
 
     if [ -n "$swapStyle" ]; then
         settings+="Swap style: $swapStyle\n"
@@ -285,8 +315,12 @@ confirm() {
 
     settings+="Root size: $rootSize\n"
 
-    [ -n "$homeSize" ] &&
-        settings+="Home size: $homeSize\n"
+    if [ "$filesystem" != "btrfs" ]; then
+        [ -n "$homeSize" ] &&
+            settings+="Home size: $homeSize\n"
+    else
+        settings+="Create split home: $createHome\n"
+    fi
 
     settings+="Hostname: $hostname\n"
     settings+="Timezone: $timezone\n"

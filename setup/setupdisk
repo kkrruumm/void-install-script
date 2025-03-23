@@ -7,7 +7,7 @@ if [ -n "$wipedisk" ] && [ "$wipedisk" -gt 0 ]; then
         { commandFailure="Disk erase has failed." ; die ; }
 fi
 
-deviceVG=$(pvdisplay $diskInput* | grep "VG Name" | while read c1 c2; do echo $c2; done | sed 's/Name//g')
+deviceVG=$(pvdisplay $diskInput* | grep "VG Name" | while read c1 c2; do echo $c2; done | sed 's/Name //g')
 
 if [ -n "$deviceVG" ]; then
     commandFailure="VG destruction has failed."
@@ -24,83 +24,20 @@ done
 
 sfdisk --delete "$diskInput"
 
-# I hate everything other than fdisk despite how terrible this is
+# 'echo ;' here is equivalent to pressing enter in fdisk
 (
-    echo g;
-    echo n;
-    echo ;
-    echo ;
-    echo +500M;
+    echo g; # gpt table
+    echo n; echo ; echo ; echo +500M; # ESP
+    [ "$lvm" == "No" ] && [ "$swapStyle" == "partition" ] && echo n; echo ; echo ; echo +"$swapSize";
+    if [ "$filesystem" == "btrfs" ] || [ "$lvm" == "Yes" ] || [ "$rootSize" == "full" ]; then
+        echo n; echo ; echo ; echo ;
+    fi
+    [ "$lvm" == "No" ] && [ "$rootSize" != "full" ] && echo n; echo ; echo ; echo +"$rootSize";
+    [ "$lvm" == "No" ] && [ "$encryption" == "No" ] && [ "$homeSize" != "full" ] && echo n; echo ; echo ; echo +"$homeSize";
+    [ "$lvm" == "No" ] && [ "$encryption" == "No" ] && [ "$homeSize" == "full" ] && echo n; echo ; echo ; echo ;
     echo w;
-) | fdisk "$diskInput" ||
-    { commandFailure="Creating ESP partition has failed." ; die ; }
-
-case "$lvm" in
-    Yes)
-        (
-            echo n;
-            echo ;
-            echo ;
-            echo ;
-            echo w;
-        ) | fdisk "$diskInput" ||
-            { commandFailure="Creating root partition has failed." ; die ; }
-    ;;
-
-    No)
-        # Create swap if a normal partition is chosen:
-        if [ "$swapStyle" == "partition" ]; then
-            (
-                echo n;
-                echo ;
-                echo ;
-                echo +"$swapSize";
-                echo w;
-            ) | fdisk "$diskInput" ||
-                { commandFailure="Creating swap partition has failed." ; die ; }
-        fi
-
-        if [ "$rootSize" == "full" ]; then
-            (
-                echo n;
-                echo ;
-                echo ;
-                echo ;
-                echo w;
-            ) | fdisk "$diskInput" ||
-                { commandFailure="Creating root partition has failed." ; die ; }
-        else
-            (
-                echo n;
-                echo ;
-                echo ;
-                echo +"$rootSize";
-                echo w;
-            ) | fdisk "$diskInput" ||
-                { commandFailure="Creating root partition has failed." ; die ; }
-        fi
-
-        if [ -n "$homeSize" ] && [ "$homeSize" == "full" ] && [ "$encryption" == "No" ]; then
-            (
-                echo n;
-                echo ;
-                echo ;
-                echo ;
-                echo w;
-            ) | fdisk "$diskInput" ||
-                { commandFailure="Creating home partition has failed." ; die ; }
-        elif [ -n "$homeSize" ] && [ "$encryption" == "No" ]; then
-            (
-                echo n;
-                echo ;
-                echo ;
-                echo +"$homeSize";
-                echo w;
-            ) | fdisk "$diskInput" ||
-                { commandFailure="Creating home partition has failed." ; die ; }
-        fi
-    ;;
-esac
+) | fdisk -w always "$diskInput" ||
+    { commandFailure="Writing partition table to disk has failed." ; die ; }
 
 # if idvar is unset, the following will set partition variables to, for example, sda1 instead of sdap1 (or more appropriately, nvme0n1p1 or likewise)
 # if you see this and can think of a less stupid name for this variable, feel free to make a PR
@@ -111,6 +48,9 @@ fi
 esp="$diskInput""$idvar"1
 
 [ "$lvm" == "Yes" ] &&
+    root="$diskInput""$idvar"2
+
+[ "$filesystem" == "btrfs" ] &&
     root="$diskInput""$idvar"2
 
 if [ "$lvm" == "No" ] && [ "$swapStyle" == "partition" ]; then
@@ -179,6 +119,31 @@ else
     fi
 fi
 
+if [ "$filesystem" == "btrfs" ]; then
+    case "$encryption" in
+        Yes)
+            mkfs.btrfs -L Void /dev/mapper/void || die
+            mount -o "$btrfsopts" /dev/mapper/void /mnt || die
+        ;;
+        No)
+            mkfs.btrfs -L Void "$root" || die
+            mount -o "$btrfsopts" "$root" /mnt || die
+        ;;
+    esac
+
+    btrfs su cr /mnt/@ || die
+
+    [ "$createHome" == "Yes" ] &&
+        { btrfs su cr /mnt/@home || die ; }
+
+    btrfs su cr /mnt/@snapshots || die
+
+    [ "$swapStyle" == "swapfile" ] &&
+        { btrfs su cr /mnt/@swap || die ; }
+
+    umount /mnt || die
+fi
+
 if [ "$swapStyle" == "partition" ]; then
     commandFailure="Creating swap partition has failed."
     if [ "$lvm" == "Yes" ]; then
@@ -197,7 +162,6 @@ elif [ "$rootSize" != "full" ] && [ "$lvm" == "Yes" ]; then
         { commandFailure="Creating root LV has failed." ; die ; }
 fi
 
-# TODO: ZFS
 [ "$lvm" == "Yes" ] &&
     case "$filesystem" in
         xfs) mkfs.xfs /dev/void/root || die ;;
@@ -216,7 +180,7 @@ elif [ "$lvm" == "No" ] && [ "$encryption" == "No" ]; then
     esac
 fi
 
-if [ -n "$home" ] && [ "$lvm" == "Yes" ]; then
+if [ -n "$homeSize" ] && [ "$lvm" == "Yes" ]; then
     commandFailure="Creating home LV has failed."
     if [ -n "$homeSize" ]; then
         if [ "$homeSize" == "full" ]; then
@@ -248,11 +212,47 @@ commandFailure="Mounting partitions has failed."
 [ "$lvm" == "No" ] && [ "$encryption" == "No" ] &&
     { mount "$root" /mnt || die ; }
 
-[ "$lvm" == "No" ] && [ -n "$home" ] &&
+[ "$lvm" == "No" ] && [ -n "$home" ] && [ "$filesystem" != "btrfs" ] &&
     { mkdir /mnt/home ; mount "$home" /mnt/home || die ; }
 
 [ "$lvm" == "Yes" ] && [ -e "/dev/mapper/void-home" ] &&
-    { mkdir /mnt/home ; mount /dev/mapper/void-home /mnt/home || { commandFailure="Mounting home directory has failed." ; die ; } ; }
+    { mkdir /mnt/home ; mount /dev/mapper/void-home /mnt/home || die ; }
+
+if [ "$filesystem" == "btrfs" ]; then
+    case "$encryption" in
+        Yes)
+            mount -o "$btrfsopts",subvol=@ /dev/mapper/void /mnt || die
+
+            mkdir /mnt/.snapshots || die
+
+            [ "$createHome" == "Yes" ] &&
+                { mkdir /mnt/home ; mount -o "$btrfsopts",subvol=@home /dev/mapper/void /mnt/home || die ; }
+
+            mount -o "$btrfsopts",subvol=@snapshots /dev/mapper/void /mnt/.snapshots || die
+
+            [ "$swapStyle" == "swapfile" ] &&
+                { mkdir /mnt/swap ; mount -o rw,nodatacow,subvol=@swap /dev/mapper/void /mnt/swap || die ; }
+        ;;
+        No)
+            mount -o "$btrfsopts",subvol=@ "$root" /mnt || die
+
+            mkdir /mnt/.snapshots || die
+
+            [ "$createHome" == "Yes" ] &&
+                { mkdir /mnt/home ; mount -o "$btrfsopts",subvol=@home "$root" /mnt/home || die ; }
+
+            mount -o "$btrfsopts",subvol=@snapshots "$root" /mnt/.snapshots || die
+
+            [ "$swapStyle" == "swapfile" ] &&
+                { mkdir /mnt/swap ; mount -o rw,nodatacow,subvol=@swap "$root" /mnt/swap || die ; }
+        ;;
+    esac
+
+    mkdir -p /mnt/var/cache || die
+    btrfs su cr /mnt/var/cache/xbps || die
+    btrfs su cr /mnt/var/tmp || die
+    btrfs su cr /mnt/srv || die
+fi
 
 # TODO: xchroot can deal with mounting these.
 for dir in dev proc sys run; do mkdir -p /mnt/$dir ; mount --rbind /$dir /mnt/$dir ; mount --make-rslave /mnt/$dir ; done || die
