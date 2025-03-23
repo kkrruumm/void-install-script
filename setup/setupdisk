@@ -7,7 +7,7 @@ if [ -n "$wipedisk" ] && [ "$wipedisk" -gt 0 ]; then
         { commandFailure="Disk erase has failed." ; die ; }
 fi
 
-deviceVG=$(pvdisplay $diskInput* | grep "VG Name" | while read c1 c2; do echo $c2; done | sed 's/Name//g')
+deviceVG=$(pvdisplay $diskInput* | grep "VG Name" | while read c1 c2; do echo $c2; done | sed 's/Name //g')
 
 if [ -n "$deviceVG" ]; then
     commandFailure="VG destruction has failed."
@@ -180,7 +180,7 @@ elif [ "$lvm" == "No" ] && [ "$encryption" == "No" ]; then
     esac
 fi
 
-if [ -n "$home" ] && [ "$lvm" == "Yes" ]; then
+if [ -n "$homeSize" ] && [ "$lvm" == "Yes" ]; then
     commandFailure="Creating home LV has failed."
     if [ -n "$homeSize" ]; then
         if [ "$homeSize" == "full" ]; then
