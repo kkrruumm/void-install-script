@@ -243,12 +243,12 @@ audioConfig() {
 }
 
 desktopConfig() {
-    desktop=$(drawDialog --no-cancel --title "Desktop Environment" --extra-button --extra-label "Map" --menu "" 0 0 0 "gnome" "" "kde" "" "xfce" "" "sway" "" "swayfx" "" "wayfire" "" "i3" "" "niri" "" "none" "")
+    desktop=$(drawDialog --no-cancel --title "Desktop Environment" --extra-button --extra-label "Map" --menu "" 0 0 0 "none" "" "gnome" "" "i3" "" "kde" "" "mate" "" "niri" "" "sway" "" "swayfx" "" "wayfire" "" "xfce" "")
     [ "$?" == "3" ] && dungeonmap
 
     case "$desktop" in
         sway|swayfx|wayfire|niri) drawDialog --title "" --extra-button --extra-label "Map" --yesno "Would you like to install greetd with $desktop?" 0 0 && greetd="Yes" ;;
-        i3) drawDialog --title "" --extra-button --extra-label "Map" --yesno "Would you like to install lightdm with i3?" 0 0 && lightdm="Yes" ;;
+        i3) drawDialog --title "" --extra-button --extra-label "Map" --yesno "Would you like to install lightdm with $desktop?" 0 0 && lightdm="Yes" ;;
     esac
 
     modulesConfig

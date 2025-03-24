@@ -187,6 +187,14 @@ case "$desktop" in
             system "chmod +x /usr/local/bin/wayfire-run"
         fi
     ;;
+    mate)
+        install mate mate-terminal lightdm lightdm-gtk3-greeter xorg-minimal xdg-user-dirs xorg-fonts xorg-video-drivers
+
+        [ "$network" == "NetworkManager" ] &&
+            install network-manager-applet
+
+        system "ln -s /etc/sv/lightdm /var/service"
+    ;;
 esac
 
 [ -n "$audio" ] && [ "$audio" != "none" ] &&
