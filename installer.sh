@@ -8,8 +8,8 @@
     { echo "$(pwd)/lib/libvis not found. Cannot continue." ; exit 1 ; }
 
 # Source basic installer setup script
-. "$(pwd)/setup/setupinstaller" ||
-    { commandFailure="$(pwd)/setup/setupinstaller not found. Cannot continue." ; die ; }
+. "$(pwd)/setup/installer" ||
+    { commandFailure="$(pwd)/setup/installer not found. Cannot continue." ; die ; }
 
 # Source hidden settings file, if there is one.
 if [ "$#" == "1" ]; then
@@ -398,9 +398,9 @@ dungeonmap() {
 }
 
 _install() {
-    . "$(pwd)"/setup/setupdisk
-    . "$(pwd)"/setup/setupbase
-    . "$(pwd)"/setup/setupdesktop
+    . "$(pwd)"/setup/disk
+    . "$(pwd)"/setup/base
+    . "$(pwd)"/setup/desktop
 
     commandFailure="System chroot has failed."
     cp /etc/resolv.conf /mnt/etc/resolv.conf || die
@@ -423,8 +423,8 @@ _install() {
     done
 
     cp -f "$(pwd)"/lib/libviss /mnt/tmp/libviss || die
-    cp -f "$(pwd)"/setup/setupchroot /mnt/tmp/setupchroot || die
-    system "/bin/bash /tmp/setupchroot"
+    cp -f "$(pwd)"/setup/chroot /mnt/tmp/chroot || die
+    system "/bin/bash /tmp/chroot"
 
     clear
 

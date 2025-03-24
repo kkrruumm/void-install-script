@@ -7,13 +7,14 @@ echo "Running basic checks..."
     echo -e "${RED}Please execute this script as root.${NC}" && exit 1
 
 dependencies=("$(pwd)/modules" \
-"$(pwd)/setup/setupbase" \
-"$(pwd)/setup/setupdesktop" \
-"$(pwd)/setup/setupdisk" \
-"$(pwd)/setup/setupchroot" \
+"$(pwd)/setup/base" \
+"$(pwd)/setup/desktop" \
+"$(pwd)/setup/disk" \
+"$(pwd)/setup/chroot" \
 "$(pwd)/misc/sway-run" \
 "$(pwd)/misc/wayfire-run" \
-"$(pwd)/misc/niri-run")
+"$(pwd)/misc/niri-run" \
+"$(pwd)/misc/60-ukify")
 
 for i in ${dependencies[@]}; do
     [ -e "$i" ] ||

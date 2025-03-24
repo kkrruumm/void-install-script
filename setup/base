@@ -145,22 +145,9 @@ fi
 
 case "$bootloader" in
     uki)
-        echo '#!/bin/sh
-
-set -e
-
-PKGNAME="$1"
-VERSION="$2"
-
-[ -x /usr/bin/ukify ] || exit 0
-
-ukify build \
-    --linux "${ROOTDIR}/boot/vmlinuz-${VERSION}" \
-    --initrd="${ROOTDIR}/boot/initramfs-${VERSION}.img" \
-    --output="${ROOTDIR}/boot/efi/EFI/boot/bootx64.efi" \
-    --uname="${VERSION}" \
-    --cmdline="loglevel=4"' >> /mnt/etc/kernel.d/post-install/60-ukify ||
-            { commandFailure="Configuring ukify kernel hook has failed." ; die ; }
+        commandFailure="Configuring ukify kernel hook has failed."
+        cp "$(pwd)/misc/60-ukify" /mnt/etc/kernel.d/post-install/60-ukify || die
+        chmod 744 /mnt/etc/kernel.d/post-install/60-ukify || die
 
         commandFailure="Configuring uki base kernel parameters has failed."
         partVar=$(blkid -o value -s UUID "$root")

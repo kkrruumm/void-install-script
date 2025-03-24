@@ -1,0 +1,15 @@
+#!/bin/sh
+
+set -e
+
+PKGNAME="$1"
+VERSION="$2"
+
+[ -x /usr/bin/ukify ] || exit 0
+
+ukify build \
+	--linux="${ROOTDIR}/boot/vmlinuz-${VERSION}" \
+	--initrd="${ROOTDIR}/boot/initramfs-${VERSION}.img" \
+	--output="${ROOTDIR}/boot/efi/EFI/boot/bootx64.efi" \
+	--uname="${VERSION}" \
+	--cmdline="loglevel=4"
