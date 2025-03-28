@@ -5,7 +5,7 @@ status=off
 
 main() {
     commandFailure="Installing qemu and libvirt has failed." &&
-        install qemu libvirt virtiofsd
+        install qemu libvirt virtiofsd polkit dbus
 
     commandFailure="Modifying qemu and libvirt configs has failed."
     sed -i -e 's/#unix_sock_group = "libvirt"/unix_sock_group = "libvirt"/g' /mnt/etc/libvirt/libvirtd.conf || die
@@ -23,6 +23,17 @@ main() {
     system "ln -s /etc/sv/libvirtd /var/service"
     system "ln -s /etc/sv/virtlogd /var/service"
     system "ln -s /etc/sv/virtlockd /var/service"
+
+    # dbus and polkitd may or may not be installed by other things, recheck
+    commandFailure="Enabling dbus service has failed."
+    [ ! -x /mnt/var/service/dbus ] &&
+        system "ln -s /etc/sv/dbus /var/service"
+
+    # Allow proc access to polkitd for hardened proc module
+    # if not already done by the harden proc module
+    commandFailure="Adding polkitd user to proc group has failed"
+    grep "gid=proc /proc" /mnt/etc/rc.local &&
+        system "usermod -aG proc polkitd"
 
     return 0
 }
