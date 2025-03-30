@@ -64,7 +64,7 @@ At the moment, this installer does not have stable releases. The most recent com
 
 # UKI notes
 
-UKI setup *will* provide full-disk-encryption as both / and /boot will be encrypted with luks2 as opposed to luks1 with grub.
+UKI setup *will* provide full-disk-encryption as both / and /boot will be encrypted with luks2.
 
 Do keep in mind potential security issues regarding weaker key derivation functions, such as pbkdf2 which is used with luks1, rather than argon2id with luks2.
 

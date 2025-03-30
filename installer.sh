@@ -243,7 +243,7 @@ audioConfig() {
 }
 
 desktopConfig() {
-    desktop=$(drawDialog --no-cancel --title "Desktop Environment" --extra-button --extra-label "Map" --menu "" 0 0 0 "none" "" "gnome" "" "i3" "" "kde" "" "mate" "" "niri" "" "sway" "" "swayfx" "" "wayfire" "" "xfce" "")
+    desktop=$(drawDialog --no-cancel --title "Desktop Environment" --extra-button --extra-label "Map" --menu "" 0 0 0 "gnome" "" "i3" "" "kde" "" "mate" "" "niri" "" "sway" "" "swayfx" "" "wayfire" "" "xfce" "" "none" "")
     [ "$?" == "3" ] && dungeonmap
 
     case "$desktop" in
