@@ -172,17 +172,13 @@ If you would like a change to be made to the script, a request/suggestion in the
 
 There *are* a few things to keep in mind- 
 
-```
--No tab characters. Using 4 spaces in place of tab characters is appropriate.
--Try to follow the scripting and formatting style of the script in general, in order to keep things consistent.
--Contribute with the mindset that although something may be merged, it also may be mercilessly edited/modified later.
-```
+- No tab characters. Using 4 spaces in place of tab characters is appropriate.
+- Try to follow the scripting and formatting style of the script in general, in order to keep things consistent.
+- Contribute with the mindset that although something may be merged, it also may be mercilessly edited/modified/removed later.
 
 # TODO
-```
--Add manual partitioning
--Split security modules into their own menu
--ZFS support with zfsbootmenu is planned
--Add more bootloader choices such as limine and systemd-boot 
--You tell me, or, open a PR adding what you want.
-```
+- Add manual partitioning
+- Split security modules into their own menu
+- ZFS support with zfsbootmenu is planned
+- Add more bootloader choices such as limine and systemd-boot 
+- You tell me, or, open a PR adding what you want.
