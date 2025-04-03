@@ -4,7 +4,7 @@
 # This keeps the installer cleaner and easier to manipulate.
 
 # Source installer library
-. "$(pwd)/lib/libviss" ||
+. "$(pwd)/misc/libviss" ||
     { echo "$(pwd)/lib/libvis not found. Cannot continue." ; exit 1 ; }
 
 # Source basic installer setup script
@@ -422,7 +422,7 @@ _install() {
         echo "$1='$2'" >> /mnt/tmp/installerOptions || die
     done
 
-    cp -f "$(pwd)"/lib/libviss /mnt/tmp/libviss || die
+    cp -f "$(pwd)"/misc/libviss /mnt/tmp/libviss || die
     cp -f "$(pwd)"/setup/chroot /mnt/tmp/chroot || die
     system "/bin/bash /tmp/chroot"
 
