@@ -122,6 +122,7 @@ Such file would contain any or all of the following options, and the following e
 
 ```
 acpi="true"
+intel_pstate="true"
 hash="sha512"
 keysize="512"
 itertime="10000"
@@ -131,6 +132,8 @@ basesystem="*" # Define base system packages instead of using metapackage
 If none of these variables are set in the file, or no file is provided, the above defaults will be used.
 
 The toggle for ACPI can be set to false if you are facing ACPI related issues. This will set the "acpi=off" kernel parameter on the new install. Do not change this setting unless absolutely necessary.
+
+The toggle for intel_pstate can be set to false if you would like to disable intels power management. This is particularly useful on laptops to gain access to the "ondemand" governor and otherwise. This will set the "intel_pstate=disable" kernel parameter on the new install.
 
 hash, keysize, and itertime are all variables that change the LUKS settings for encrypted installations.
 

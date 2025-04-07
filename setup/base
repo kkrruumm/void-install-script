@@ -171,6 +171,9 @@ case "$bootloader" in
 
         [ "$acpi" == "false" ] &&
             { sed -i -e 's/loglevel=4/loglevel=4 acpi=off/g' /mnt/etc/kernel.d/post-install/60-ukify || { commandFailure="Disabling ACPI has failed." ; die ; } ; }
+
+        [ "$intel_pstate" == "false" ] &&
+            { sed -i -e 's/loglevel=4/loglevel=4 intel_pstate=disable/g' /mnt/etc/kernel.d/post-install/60-ukify || { commandFailure="Disabling intel_pstate has failed." ; die ; } ; }
     ;;
     grub)
         commandFailure="Configuring grub base config has failed."
@@ -187,6 +190,9 @@ case "$bootloader" in
 
         [ "$acpi" == "false" ] &&
             { sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 acpi=off/g' /mnt/etc/default/grub || { commandFailure="Disabling ACPI has failed." ; die ; } ; }
+
+        [ "$intel_pstate" == "false" ] &&
+            { sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 intel_pstate=disable/g' /mnt/etc/default/grub || { commandFailure="Disabling intel_pstate has failed." ; die ; } ; }
     ;;
 esac
 
