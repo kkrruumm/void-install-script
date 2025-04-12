@@ -34,7 +34,8 @@ main() {
 
     # allow proc access to polkitd for hardened proc module
     # if not already done by the harden proc module
-    grep "gid=proc /proc" /mnt/etc/rc.local && ! system "groups polkitd | grep proc" &&
+    # regular chroot is being used here because the system wrapper will die on non-0 exit
+    grep "gid=proc /proc" /mnt/etc/rc.local && ! chroot /mnt /bin/bash -c "groups polkitd | grep proc" &&
         { commandFailure="Adding polkitd user to proc group has failed." ; system "usermod -aG proc polkitd" ; }
 
     return 0
