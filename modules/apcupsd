@@ -1,0 +1,14 @@
+#!/bin/bash
+title=apcupsd
+description="- APC UPS Daemon"
+status=off
+
+main() {
+    commandFailure="apcupsd installation has failed." &&
+        install apcupsd
+
+    commandFailure="Enabling apcupsd has failed." &&
+        system "ln -s /etc/sv/apcupsd /var/service"
+
+    return 0
+}

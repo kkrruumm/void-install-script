@@ -7,8 +7,8 @@ main() {
     commandFailure="Chrony installation has failed." &&
         install chrony
 
-    chroot /mnt /bin/bash -c "ln -s /etc/sv/chronyd /var/service" ||
-        { commandFailure="Enabling chronyd has failed." ; die ; }
+    commandFailure="Enabling chronyd has failed." &&
+        system "ln -s /etc/sv/chronyd /var/service"
 
     return 0
 }

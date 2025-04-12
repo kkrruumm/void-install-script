@@ -4,8 +4,11 @@ description="- Installs and configures qemu and libvirt"
 status=off
 
 main() {
+    # netcat is installed here along with everything else because
+    # machines using this box remotely via virt-manager require it,
+    # such as in the context of using void on a virtualization server
     commandFailure="Installing qemu and libvirt has failed." &&
-        install qemu libvirt virtiofsd polkit dbus
+        install qemu libvirt virtiofsd polkit dbus netcat
 
     commandFailure="Modifying qemu and libvirt configs has failed."
     sed -i -e 's/#unix_sock_group = "libvirt"/unix_sock_group = "libvirt"/g' /mnt/etc/libvirt/libvirtd.conf || die
@@ -25,12 +28,13 @@ main() {
     system "ln -s /etc/sv/virtlockd /var/service"
 
     # dbus and polkitd may or may not be installed by other things, recheck
-    [ ! -x /mnt/var/service/dbus ] &&
+    # this will fail if /var/service/dbus is checked as opposed to the default runsvdir
+    [ ! -x /mnt/etc/runit/runsvdir/default/dbus ] &&
         { commandFailure="Enabling dbus service has failed." ; system "ln -s /etc/sv/dbus /var/service" ; }
 
     # allow proc access to polkitd for hardened proc module
     # if not already done by the harden proc module
-    grep "gid=proc /proc" /mnt/etc/rc.local &&
+    grep "gid=proc /proc" /mnt/etc/rc.local && ! system "groups polkitd | grep proc" &&
         { commandFailure="Adding polkitd user to proc group has failed." ; system "usermod -aG proc polkitd" ; }
 
     return 0
