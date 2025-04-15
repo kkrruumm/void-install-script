@@ -47,6 +47,7 @@ At the moment, this installer does not have stable releases. The most recent com
 -Configure partitions in the installer for home, swap, and root with LVM
 -Support for both glibc and musl
 -User creation and basic configuration
+-Custom post_install functionality
 ```
 
 # Instructions
@@ -113,6 +114,8 @@ Feel free to check out some of the installers included modules for further examp
 
 There are a few options that aren't exposed directly to the user because they can potentially be dangerous, but can be changed by creating a file that sets these variables and adding it as a flag when executing the installer.
 
+This feature is also how one may define a `post_install` function to run whatever commands they like as the final thing the installer does.
+
 Example: 
 ```
 ./installer.sh /path/to/file
@@ -127,15 +130,19 @@ hash="sha512"
 keysize="512"
 itertime="10000"
 basesystem="*" # Define base system packages instead of using metapackage
+
+post_install() {
+    # do post-install stuff here
+}
 ```
 
 If none of these variables are set in the file, or no file is provided, the above defaults will be used.
 
-The toggle for ACPI can be set to false if you are facing ACPI related issues. This will set the "acpi=off" kernel parameter on the new install. Do not change this setting unless absolutely necessary.
+- The toggle for ACPI can be set to false if you are facing ACPI related issues. This will set the "acpi=off" kernel parameter on the new install. Do not change this setting unless absolutely necessary.
 
-The toggle for intel_pstate can be set to false if you would like to disable intels power management. This is particularly useful on laptops to gain access to the "ondemand" governor and otherwise. This will set the "intel_pstate=disable" kernel parameter on the new install.
+- The toggle for intel_pstate can be set to false if you would like to disable intels power management. This is particularly useful on laptops to gain access to the "ondemand" governor and otherwise. This will set the "intel_pstate=disable" kernel parameter on the new install.
 
-hash, keysize, and itertime are all variables that change the LUKS settings for encrypted installations.
+- hash, keysize, and itertime are all variables that change the LUKS settings for encrypted installations.
 
 I do not recommend changing hash and keysize from their default values unless you are absolutely certain you would like to. Research this before changing values.
 
@@ -146,6 +153,12 @@ The value here will equal the amount of time it takes to unlock the drive in mil
 The LUKS default is "2000", or 2 seconds. The default in this installer has been raised with systems that have slower CPUs (and users that are more security conscious) in mind.
 
 The fips140 compliant value here would be 600000 according to owasp, though this would result in a 10 minute disk unlock time.
+
+- The `post_install` function may be defined if the user would like to run custom commands once installation has completed.
+
+This function does not need to be defined, but if it is, this will be the last task the installer handles. This function has access to all of the variables defined by the installer, and has access to wrapper commands such as `system` and `install`.
+
+A cool thing that could be done with this file (and as part of this post_install function) is switching based on which device the installer is being run on, do see [my file](https://github.com/kkrruumm/void-basesystem) for an example of this.
 
 Outside of options that are potentially dangerous, "random" features that do not fit elsewhere can be added via this.
 

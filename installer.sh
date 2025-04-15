@@ -436,6 +436,9 @@ _install() {
             main
         done
 
+    declare -F post_install > /dev/null &&
+        { commandFailure="Executing user-defined post_install function has failed." ; post_install ; }
+
     clear
     echo -e "${GREEN}Installation complete.${NC}"
     echo "Please reboot and remove installation media."
