@@ -7,29 +7,16 @@ main() {
     lockdown=$(drawDialog --no-cancel --title "Kernel Lockdown Mode" --menu "" 0 0 0 "integrity" "- Userland modifying the running kernel is disabled." "confidentiality" "- Extracting confidential information from the kernel is also disabled." "None" "")
 
     commandFailure="Enabling kernel lockdown mode has failed."
-    if [ "$lockdown" == "integrity" ]; then
-            case "$bootloader" in
-                grub)
-                    sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 lockdown=integrity/g' /mnt/etc/default/grub || die
-                    system "update-grub"
-                ;;
-                uki)
-                    sed -i -e 's/loglevel=4/loglevel=4 lockdown=integrity/g' /mnt/etc/kernel.d/post-install/60-ukify || die
-                    system 'xbps-reconfigure -f linux"$(find /boot -name vmlinuz\* | tr -d "/boot/vmlinuz-" | cut -f1,2 -d".")"'
-                ;;
-            esac
-    elif [ "$lockdown" == "confidentiality" ]; then
-            case "$bootloader" in
-                grub)
-                    sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 lockdown=confidentiality/g' /mnt/etc/default/grub || die
-                    system "update-grub"
-                ;;
-                uki)
-                    sed -i -e 's/loglevel=4/loglevel=4 lockdown=confidentiality/g' /mnt/etc/kernel.d/post-install/60-ukify || die
-                    system 'xbps-reconfigure -f linux"$(find /boot -name vmlinuz\* | tr -d "/boot/vmlinuz-" | cut -f1,2 -d".")"'
-                ;;
-            esac
-    fi
+    case "$bootloader" in
+        grub)
+            sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 lockdown='$lockdown'/g' /mnt/etc/default/grub || die
+        ;;
+        uki)
+            sed -i -e 's/loglevel=4/loglevel=4 lockdown='$lockdown'/g' /mnt/etc/kernel.d/post-install/60-ukify || die
+        ;;
+    esac
+
+    kernelparam_update="true"
 
     return 0
 }

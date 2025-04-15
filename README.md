@@ -106,6 +106,8 @@ Inside of the main() function, you're free to add any commands you'd like to be 
 
 If the module script requires a certain value that may or may not be set by the user, you may check if this variable is set at the top of the module file, and return 1 if it is not. If a module returns 1, it will not be shown in the modules menu. The esync module is an example of this as it requires a username in order to function.
 
+If the module script changes kernel parameters, you may set 'kernelparam_update="true"' in the module script, and the installer will update the grub config (or run a reconfigure on the kernel in the case of UKIs) once all of the modules have finished running. The `amdgpu_unlock` module is an example of this.
+
 That's it!
 
 Feel free to check out some of the installers included modules for further example.

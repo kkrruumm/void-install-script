@@ -436,6 +436,12 @@ _install() {
             main
         done
 
+    [ "$kernelparam_update" == "true" ] &&
+        case "$bootloader" in
+            grub) system 'update-grub' ;;
+            uki) system 'xbps-reconfigure -f linux"$(find /boot -name vmlinuz\* | tr -d "/boot/vmlinuz-" | cut -f1,2 -d".")"' ;;
+        esac
+
     declare -F post_install > /dev/null &&
         { commandFailure="Executing user-defined post_install function has failed." ; post_install ; }
 
