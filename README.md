@@ -157,7 +157,7 @@ There are wrapper functions for a handful of things, such as ``install`` and ``s
 
 ``install package`` will install "package" on the new install, and also does not need to ``|| die``, as this is handled in the ``install`` function, and also must have commandFailure set before the command is run if it should return a specific output on command failure.
 
-All of the current and future wrapper functions will be located in ``lib/libviss``.
+All of the current and future wrapper functions will be located in ``misc/libviss``.
 
 # Misc notes
 
