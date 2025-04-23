@@ -141,8 +141,7 @@ if [ "$filesystem" == "btrfs" ]; then
     [ "$swapStyle" == "swapfile" ] &&
         { btrfs su cr /mnt/@swap || die ; }
 
-    # split off var/log so that grub-btrfs can be used with read-only snapshots
-    btrfs su cr /mnt/@var_log || die
+    btrfs su cr /mnt/@var || die
 
     umount /mnt || die
 fi
@@ -234,9 +233,9 @@ if [ "$filesystem" == "btrfs" ]; then
             mount -o "$btrfsopts",subvol=@snapshots /dev/mapper/void /mnt/.snapshots || die
 
             [ "$swapStyle" == "swapfile" ] &&
-                { mkdir /mnt/swap ; mount -o rw,nodatacow,subvol=@swap /dev/mapper/void /mnt/swap || die ; }
+                { mkdir /mnt/swap ; mount -o rw,nodatacow,compress=none,subvol=@swap /dev/mapper/void /mnt/swap || die ; }
 
-            mkdir -p /mnt/var/log ; mount -o "$btrfsopts",subvol=@var_log /dev/mapper/void /mnt/var/log || die
+            mkdir -p /mnt/var ; mount -o "$btrfsopts",nodatacow,subvol=@var /dev/mapper/void /mnt/var || die
         ;;
         No)
             mount -o "$btrfsopts",subvol=@ "$root" /mnt || die
@@ -249,16 +248,26 @@ if [ "$filesystem" == "btrfs" ]; then
             mount -o "$btrfsopts",subvol=@snapshots "$root" /mnt/.snapshots || die
 
             [ "$swapStyle" == "swapfile" ] &&
-                { mkdir /mnt/swap ; mount -o rw,nodatacow,subvol=@swap "$root" /mnt/swap || die ; }
+                { mkdir /mnt/swap ; mount -o rw,nodatacow,compress=none,subvol=@swap "$root" /mnt/swap || die ; }
 
-            mkdir -p /mnt/var/log ; mount -o "$btrfsopts",subvol=@var_log "$root" /mnt/var/log || die
+            mkdir -p /mnt/var ; mount -o "$btrfsopts",nodatacow,subvol=@var "$root" /mnt/var || die
         ;;
     esac
 
-    mkdir -p /mnt/var/cache || die
-    btrfs su cr /mnt/var/cache/xbps || die
-    btrfs su cr /mnt/var/tmp || die
-    btrfs su cr /mnt/srv || die
+    for i in root tmp srv ;
+    do
+        btrfs su cr /mnt/"$i" ||
+            { commandFailure="Spawning btrfs subvol /mnt/$i has failed." ; die ; }
+    done
+
+    mkdir /mnt/usr || die
+    btrfs su cr /mnt/usr/local || die
+
+    [ "$bootloader" == "grub" ] &&
+        { mkdir -p /mnt/boot/grub ; btrfs su cr /mnt/boot/grub/x86_64-efi || die ; }
+
+    # Disable copy-on-write on a per-directory basis
+    chattr +C /mnt/var || die
 fi
 
 # TODO: xchroot can deal with mounting these.

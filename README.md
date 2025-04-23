@@ -171,16 +171,20 @@ Do note that btrfs support in this installer is still considered experimental, m
 Currently, the btrfs option will deploy a "typical" btrfs setup, with the following subvolumes:
 
 - `@` - root
-- `@home` - home subvol, created if the user chooses to split off home
-- `@swap` - swap volume, created if a swapfile is chosen as opposed to zram, mounted at `/swap`
-- `@var_log` - volume to hold `/var/log`, created so grub-btrfs can use read-only snapshots
-- `@snapshots` - snapshots volume, mounted at `/.snapshots`
+- `@home` - created if the user chooses to split off home
+- `@snapshots` - mounted at `/.snapshots`
+- `@swap` - created to disable compression as it seems like the `+m` attribute is currently non functional, mounted at `/swap`
+- `@var` - copy-on-write disabled
 
-A few other subvolumes are created, because the contents of which typically are undesired as part of snapshots:
+A few other subvolumes are created, because the contents of which typically are undesired as part of snapshots and/or their contents should persist through rollbacks:
 
-- `/var/cache/xbps`
-- `/var/tmp`
+- `/root`
+- `/tmp`
 - `/srv`
+- `/usr/local`
+- `/boot/grub/x86_64-efi` - only if grub is the chosen bootloader
+
+To some extent, this script tries to mirror the OpenSUSE btrfs setup, which is detailed [here](https://en.opensuse.org/SDB:BTRFS).
 
 # Wrappers
 

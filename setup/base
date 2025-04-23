@@ -105,9 +105,9 @@ if [ "$filesystem" == "btrfs" ]; then
             echo "UUID=$partVar /.snapshots $filesystem $btrfsopts,subvol=@snapshots 0 2" >> /mnt/etc/fstab || die
 
             [ -n "$swapSize" ] && [ "$swapStyle" == "swapfile" ] &&
-                { echo "UUID=$partVar /swap $filesystem rw,nodatacow,subvol=@swap 0 0" >> /mnt/etc/fstab || die ; }
+                { echo "UUID=$partVar /swap $filesystem rw,nodatacow,compress=none,subvol=@swap 0 0" >> /mnt/etc/fstab || die ; }
 
-            echo "UUID=$partVar /var/log $filesystem $btrfsopts,subvol=@var_log 0 0" >> /mnt/etc/fstab || die
+            echo "UUID=$partVar /var $filesystem $btrfsopts,nodatacow,subvol=@var 0 2" >> /mnt/etc/fstab || die
         ;;
         No)
             partVar=$(blkid -o value -s UUID "$root")
@@ -119,9 +119,9 @@ if [ "$filesystem" == "btrfs" ]; then
             echo "UUID=$partVar /.snapshots $filesystem $btrfsopts,subvol=@snapshots 0 2" >> /mnt/etc/fstab || die
 
             [ -n "$swapSize" ] && [ "$swapStyle" == "swapfile" ] &&
-                { echo "UUID=$partVar /swap $filesystem rw,nodatacow,subvol=@swap 0 0" >> /mnt/etc/fstab || die ; }
+                { echo "UUID=$partVar /swap $filesystem rw,nodatacow,compress=none,subvol=@swap 0 0" >> /mnt/etc/fstab || die ; }
 
-            echo "UUID=$partVar /var/log $filesystem $btrfsopts,subvol=@var_log 0 0" >> /mnt/etc/fstab || die
+            echo "UUID=$partVar /var $filesystem $btrfsopts,nodatacow,subvol=@var 0 2" >> /mnt/etc/fstab || die
         ;;
     esac
 fi
