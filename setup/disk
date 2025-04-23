@@ -141,6 +141,9 @@ if [ "$filesystem" == "btrfs" ]; then
     [ "$swapStyle" == "swapfile" ] &&
         { btrfs su cr /mnt/@swap || die ; }
 
+    # split off var/log so that grub-btrfs can be used with read-only snapshots
+    btrfs su cr /mnt/@var_log || die
+
     umount /mnt || die
 fi
 
@@ -232,6 +235,8 @@ if [ "$filesystem" == "btrfs" ]; then
 
             [ "$swapStyle" == "swapfile" ] &&
                 { mkdir /mnt/swap ; mount -o rw,nodatacow,subvol=@swap /dev/mapper/void /mnt/swap || die ; }
+
+            mkdir -p /mnt/var/log ; mount -o "$btrfsopts",subvol=@var_log /dev/mapper/void /mnt/var/log || die
         ;;
         No)
             mount -o "$btrfsopts",subvol=@ "$root" /mnt || die
@@ -245,6 +250,8 @@ if [ "$filesystem" == "btrfs" ]; then
 
             [ "$swapStyle" == "swapfile" ] &&
                 { mkdir /mnt/swap ; mount -o rw,nodatacow,subvol=@swap "$root" /mnt/swap || die ; }
+
+            mkdir -p /mnt/var/log ; mount -o "$btrfsopts",subvol=@var_log "$root" /mnt/var/log || die
         ;;
     esac
 

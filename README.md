@@ -164,6 +164,24 @@ A cool thing that could be done with this file (and as part of this post_install
 
 Outside of options that are potentially dangerous, "random" features that do not fit elsewhere can be added via this.
 
+# btrfs notes
+
+Do note that btrfs support in this installer is still considered experimental, meaning the deployed setup is likely to change over time.
+
+Currently, the btrfs option will deploy a "typical" btrfs setup, with the following subvolumes:
+
+- `@` - root
+- `@home` - home subvol, created if the user chooses to split off home
+- `@swap` - swap volume, created if a swapfile is chosen as opposed to zram, mounted at `/swap`
+- `@var_log` - volume to hold `/var/log`, created so grub-btrfs can use read-only snapshots
+- `@snapshots` - snapshots volume, mounted at `/.snapshots`
+
+A few other subvolumes are created, because the contents of which typically are undesired as part of snapshots:
+
+- `/var/cache/xbps`
+- `/var/tmp`
+- `/srv`
+
 # Wrappers
 
 There are wrapper functions for a handful of things, such as ``install`` and ``system``.
