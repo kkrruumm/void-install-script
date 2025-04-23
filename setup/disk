@@ -265,9 +265,6 @@ if [ "$filesystem" == "btrfs" ]; then
 
     [ "$bootloader" == "grub" ] &&
         { mkdir -p /mnt/boot/grub ; btrfs su cr /mnt/boot/grub/x86_64-efi || die ; }
-
-    # Disable copy-on-write on a per-directory basis
-    chattr +C /mnt/var || die
 fi
 
 # TODO: xchroot can deal with mounting these.
