@@ -31,7 +31,7 @@ At the moment, this installer does not have stable releases. The most recent com
 --Networking (dhcpcd, NetworkManager, none)
 --Audio server (pipewire, pulseaudio, none)
 
---DE or WM (gnome, i3, kde, mate, niri, sway, swayfx, wayfire, xfce, none)
+--DE or WM (gnome, i3, kde, mate, niri, river, sway, swayfx, wayfire, xfce, none)
 ---With i3, there is an option to install lightdm
 ---With sway, swayfx, wayfire, and niri there is an option to install greetd
 
