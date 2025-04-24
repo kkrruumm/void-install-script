@@ -153,7 +153,7 @@ else
 
     # Create users home directories, such as ~/Downloads
     case "$desktop" in
-        sway|swayfx|wayfire|i3|niri)
+        sway|swayfx|wayfire|i3|niri|river)
             su "$username" -c 'xdg-user-dirs-update' ||
                 { commandFailure="Executing xdg-user-dirs-update has failed." ; die ; }
         ;;

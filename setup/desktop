@@ -138,6 +138,25 @@ case "$desktop" in
             system "chmod +x /usr/local/bin/swayfx-run"
         fi
     ;;
+    river)
+        install river elogind polkit polkit-elogind foot xorg-fonts xdg-desktop-portal-wlr xdg-user-dirs
+
+        [ "$network" == "NetworkManager" ] &&
+            install network-manager-applet
+
+        system "ln -s /etc/sv/polkitd /var/service"
+
+        if [ "$greetd" == "Yes" ]; then
+            install greetd
+            system "ln -s /etc/sv/greetd /var/service"
+            sed -i -e 's,command = "agreety --cmd /bin/sh",command = "agreety --cmd river-run",' /mnt/etc/greetd/config.toml || die
+            cp misc/river-run /mnt/usr/local/bin/river-run || die
+
+            system "chown root:root /usr/local/bin/river-run"
+            system "chmod 755 /usr/local/bin/river-run"
+            system "chmod +x /usr/local/bin/river-run"
+        fi
+    ;;
     i3)
         install i3 xorg-minimal xinit xterm xorg-fonts xorg-video-drivers xdg-user-dirs
 
