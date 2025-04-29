@@ -23,15 +23,16 @@ do
 
             # Enable mode setting for wayland compositors
             # This default should change to drm enabled with more recent nvidia drivers, expect this to be removed in the future.
-            case "$bootloader" in
-                grub)
-                    sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 nvidia_drm.modeset=1/g' /mnt/etc/default/grub || die
-                ;;
-                uki)
-                    sed -i -e 's/loglevel=4/loglevel=4 nvidia_drm.modeset=1/g' /mnt/etc/kernel.d/post-install/60-ukify || die
-                ;;
-            esac
+            #case "$bootloader" in
+            #    grub)
+            #        sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 nvidia_drm.modeset=1/g' /mnt/etc/default/grub || die
+            #    ;;
+            #    uki)
+            #        sed -i -e 's/loglevel=4/loglevel=4 nvidia_drm.modeset=1/g' /mnt/etc/kernel.d/post-install/60-ukify || die
+            #    ;;
+            #esac
 
+            setKernelParam "nvidia_drm.modeset=1"
         ;;
 
         nvidia-32bit)

@@ -2,6 +2,9 @@
 
 echo "Running setupdisk..."
 
+[ "$filesystem" == "zfs" ] &&
+    { commandFailure="Running zgenhostid has failed." ; zgenhostid -f 0x00bab10c || die ; }
+
 if [ -n "$wipedisk" ] && [ "$wipedisk" -gt 0 ]; then
     shred --verbose --random-source=/dev/urandom -n"$wipedisk" --zero "$diskInput" ||
         { commandFailure="Disk erase has failed." ; die ; }
@@ -71,7 +74,7 @@ fi
 mkfs.vfat "$esp" ||
     { commandFailure="Formatting ESP as vfat has failed." ; die ; }
 
-if [ "$encryption" == "Yes" ]; then
+if [ "$encryption" == "Yes" ] && [ "$filesystem" != "zfs" ]; then
 
     [ -z "$hash" ] &&
         hash="sha512"
@@ -144,6 +147,68 @@ if [ "$filesystem" == "btrfs" ]; then
     btrfs su cr /mnt/@var || die
 
     umount /mnt || die
+elif [ "$filesystem" == "zfs" ]; then
+    commandFailure="Creating zpool has failed."
+
+    echo -e "${YELLOW}Enter your encryption passphrase here.${NC}"
+    read -s zfscryptpass
+
+    echo "$zfscryptpass" > /etc/zfs/zroot.key
+    chmod 000 /etc/zfs/zroot.key
+
+    # best to explicitly discard this
+    unset zfscryptpass
+
+    echo -e "${YELLOW}Opening new encrypted partition...${NC}"
+
+    # https://docs.zfsbootmenu.org/en/v3.0.x/guides/void-linux/uefi.html#create-the-zpool
+    partVar=$(blkid -o value -s PARTUUID "$root")
+    if [ "$encryption" == "Yes" ]; then
+        zpool create -f -o ashift=12 \
+            -O compression="$compressionType" \
+            -O acltype=posixacl \
+            -O xattr=sa \
+            -O relatime=on \
+            -O encryption=aes-256-gcm \
+            -O keylocation=file:///etc/zfs/zroot.key \
+            -O keyformat=passphrase \
+            -o autotrim=on \
+            -o compatibility=openzfs-2.1-linux \
+            -m none zroot /dev/disk/by-partuuid/"$partVar"
+    else
+        zpool create -f -o ashift=12 \
+            -O compression="$compressionType" \
+            -O acltype=posixacl \
+            -O xattr=sa \
+            -O relatime=on \
+            -o autotrim=on \
+            -o compatibility=openzfs-2.1-linux \
+            -m none zroot /dev/disk/by-partuuid/"$partVar"
+    fi
+
+    commandFailure="Creating ZFS filesystems has failed."
+    zfs create -o mountpoint=none zroot/ROOT || die
+    zfs create -o mountpoint=/ -o canmount=noauto zroot/ROOT/void || die
+
+    [ "$createHome" == "Yes" ] &&
+        { zfs create -o mountpoint=/home zroot/home || die ; }
+
+    commandFailure="Re-importing zpool has failed."
+    zpool export zroot || die
+    zpool import -N -R /mnt zroot || die
+
+    [ "$encryption" == "Yes" ] &&
+        { zfs load-key -L prompt zroot || die ; }
+
+    zfs mount zroot/ROOT/void || die
+    zfs mount -a || die
+
+    # Cache file, see https://docs.voidlinux.org/installation/guides/zfs.html
+    commandFailure="Creating ZFS pool cache file has failed."
+    mkdir -p /mnt/etc/zfs || die
+    zpool set cachefile=/mnt/etc/zfs/zpool.cache zroot || die
+
+    udevadm trigger || die
 fi
 
 if [ "$swapStyle" == "partition" ]; then
@@ -208,13 +273,13 @@ commandFailure="Mounting partitions has failed."
 [ "$lvm" == "Yes" ] &&
     { mount /dev/void/root /mnt || die ; }
 
-[ "$lvm" == "No" ] && [ "$encryption" == "Yes" ] &&
+[ "$lvm" == "No" ] && [ "$encryption" == "Yes" ] && [ "$filesystem" != "zfs" ] &&
     { mount /dev/mapper/void /mnt || die ; }
 
-[ "$lvm" == "No" ] && [ "$encryption" == "No" ] &&
+[ "$lvm" == "No" ] && [ "$encryption" == "No" ] && [ "$filesystem" != "zfs" ] &&
     { mount "$root" /mnt || die ; }
 
-[ "$lvm" == "No" ] && [ -n "$home" ] && [ "$filesystem" != "btrfs" ] &&
+[ "$lvm" == "No" ] && [ -n "$home" ] && [ "$filesystem" != "btrfs" ] && [ "$filesystem" == "zfs" ] &&
     { mkdir /mnt/home ; mount "$home" /mnt/home || die ; }
 
 [ "$lvm" == "Yes" ] && [ -e "/dev/mapper/void-home" ] &&

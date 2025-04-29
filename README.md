@@ -37,13 +37,14 @@ At the moment, this installer does not have stable releases. The most recent com
 
 --Or, choose to do none of these and install a bare-minimum system
 
+-Option to choose between xfs, ext4, zfs, and btrfs filesystems
+
 -Option to choose between LVM and a traditional install
 -Option to choose between zswap, swap partition, and normal swapfile
 -Option to securely erase the installation disk with shred
 -Option to choose between doas or sudo
 -Option to choose your repository mirror
 -Option to choose between linux, linux-lts, and linux-mainline kernels
--Option to choose between xfs, ext4, and btrfs filesystems
 -Configure partitions in the installer for home, swap, and root with LVM
 -Support for both glibc and musl
 -User creation and basic configuration
@@ -106,7 +107,7 @@ Inside of the main() function, you're free to add any commands you'd like to be 
 
 If the module script requires a certain value that may or may not be set by the user, you may check if this variable is set at the top of the module file, and return 1 if it is not. If a module returns 1, it will not be shown in the modules menu. The esync module is an example of this as it requires a username in order to function.
 
-If the module script changes kernel parameters, you may set `kernelparam_update="true"` in the module script, and the installer will update the grub config (or run a reconfigure on the kernel in the case of UKIs) once all of the modules have finished running. The `amdgpu_unlock` module is an example of this.
+If your module changes kernel parameters, and you make use of the setKernelParam wrapper function, the installer will automatically run ``update-grub`` or rebuild the UKI once all of the modules have run.
 
 That's it!
 
@@ -164,6 +165,18 @@ A cool thing that could be done with this file (and as part of this post_install
 
 Outside of options that are potentially dangerous, "random" features that do not fit elsewhere can be added via this.
 
+# zfs notes
+
+ZFS support in this installer is considered highly experimental, and testing is needed. The deployed setup is likely to change over time.
+
+If you would like to use ZFS, grab the [hrmpf](https://github.com/leahneukirchen/hrmpf/releases) ISO as detailed in the Void Linux [documentation](https://docs.voidlinux.org/installation/guides/zfs.html#installation-media), which includes the necessary things to deploy ZFS by default. Alternatively, one may build a Void Linux ISO manually that includes ZFS.
+
+This installer is tested against the latest hrmpf image, and is the expected and recommended ISO to use when deploying ZFS.
+
+For the time being, the only supported boot setup with ZFS is via [zfsbootmenu](https://github.com/zbm-dev/zfsbootmenu).
+
+The only supported encryption setup is via ZFS native encryption, as zbm is currently unable to handle luks in this context by default. However, there are some [implications](https://forums.truenas.com/t/truenas-zfs-encryption-deduplication-for-home-server/13589/3) with ZFS native encryption the user should be aware of.
+
 # btrfs notes
 
 Do note that btrfs support in this installer is still considered experimental, meaning the deployed setup is likely to change over time.
@@ -192,7 +205,9 @@ There are wrapper functions for a handful of things, such as ``install`` and ``s
 
 ``system command`` will run "command" on the new install via chroot for enabling services or otherwise, rather than repetitively entering full chroot commands. This wrapper does not need to ``|| die``, as this is handled in the function that is called, however, ``commandFailure`` must be set before ``system command`` is run if the command should provide a specific output on command failure. 
 
-``install package`` will install "package" on the new install, and also does not need to ``|| die``, as this is handled in the ``install`` function, and also must have commandFailure set before the command is run if it should return a specific output on command failure.
+``install package`` will install "package" on the new install, and also does not need to ``|| die``, as this is handled in the ``install`` function, and also must have ``commandFailure`` set before the command is run if it should return a specific output on command failure.
+
+``setKernelParam "parameter"`` will add ``parameter`` to the new installations kernel parameters, does not need to ``|| die``, and also must have ``commandFailure`` set before the command is run if it should return a specific output on command failure. 
 
 All of the current and future wrapper functions will be located in ``misc/libviss``.
 
@@ -219,6 +234,5 @@ There *are* a few things to keep in mind-
 # TODO
 - Add manual partitioning
 - Split security modules into their own menu
-- ZFS support with zfsbootmenu is planned
-- Add more bootloader choices such as limine and systemd-boot 
+- Add more bootloader choices such as limine and systemd-boot
 - You tell me, or, open a PR adding what you want.

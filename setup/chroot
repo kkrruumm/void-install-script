@@ -11,7 +11,10 @@ exitFunction () {
     xbps-reconfigure -fa ||
         { commandFailure="xbps-reconfigure has failed." ; die ; }
 
-    if [ "$bootloader" == "uki" ]; then
+    [ "$bootloader" == "zfsbootmenu" ] &&
+        { commandFailure="Creating zbm boot entry has failed." ; efibootmgr --create --label "Void Linux" --disk "$diskInput" --part 1 --loader "\EFI\boot\bootx64.EFI" ; }
+
+    if [ "$bootloader" == "uki" ] || [ "$bootloader" == "zfsbootmenu" ]; then
         # For one reason or another, some systems seem to remove our entry without setting it as next to boot.
         commandFailure="Setting default boot entry has failed."
         bootEntry=$(efibootmgr --unicode | grep "Void Linux" | while read c1 c2; do echo $c1; done | sed 's/Boot//g' | sed 's/*//g') || die
@@ -106,6 +109,10 @@ case "$bootloader" in
     grub)
         grub-install --removable --target=x86_64-efi --efi-directory=/boot/efi ||
             { commandFailure="GRUB installation has failed." ; die ; }
+    ;;
+    zfsbootmenu)
+        generate-zbm ||
+            { commandFailure="Generating ZBM image has failed." ; die ; }
     ;;
 esac
 
