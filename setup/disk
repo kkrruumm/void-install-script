@@ -279,7 +279,7 @@ commandFailure="Mounting partitions has failed."
 [ "$lvm" == "No" ] && [ "$encryption" == "No" ] && [ "$filesystem" != "zfs" ] &&
     { mount "$root" /mnt || die ; }
 
-[ "$lvm" == "No" ] && [ -n "$home" ] && [ "$filesystem" != "btrfs" ] && [ "$filesystem" == "zfs" ] &&
+[ "$lvm" == "No" ] && [ -n "$home" ] && [ "$filesystem" != "btrfs" ] && [ "$filesystem" != "zfs" ] &&
     { mkdir /mnt/home ; mount "$home" /mnt/home || die ; }
 
 [ "$lvm" == "Yes" ] && [ -e "/dev/mapper/void-home" ] &&
