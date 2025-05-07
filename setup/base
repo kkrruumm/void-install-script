@@ -57,6 +57,7 @@ case "$basesystem" in
 
         install dosfstools
 
+        # zfsbootmenu will automatically pull in zfs
         case "$filesystem" in
             xfs) install xfsprogs ;;
             ext4) install e2fsprogs ;;
@@ -167,34 +168,18 @@ case "$bootloader" in
         partVar=$(blkid -o value -s UUID "$root")
         [ "$lvm" == "Yes" ] && [ "$encryption" == "Yes" ] &&
             setKernelParam "rd.luks.uuid=$partVar root=/dev/void/root rootfstype=$filesystem rw"
-            #{ sed -i -e 's:loglevel=4:loglevel=4 rd.luks.uuid='$partVar' root=/dev/void/root rootfstype='$filesystem' rw:g' /mnt/etc/kernel.d/post-install/60-ukify || die ; }
 
         [ "$lvm" == "Yes" ] && [ "$encryption" == "No" ] &&
             setKernelParam "rd.lvm.vg=void root=/dev/void/root rootfstype=$filesystem rw"
-            #{ sed -i -e 's:loglevel=4:loglevel=4 rd.lvm.vg=void root=/dev/void/root rootfstype='$filesystem' rw:g' /mnt/etc/kernel.d/post-install/60-ukify || die ; }
 
         if [ "$lvm" == "No" ] && [ "$encryption" == "No" ]; then
             setKernelParam "root=UUID=$partVar rootfstype=$filesystem rw"
-            #sed -i -e 's/loglevel=4/loglevel=4 root=UUID='$partVar' rootfstype='$filesystem' rw/g' /mnt/etc/kernel.d/post-install/60-ukify || die
-
-            #[ "$filesystem" == "btrfs" ] &&
-                #{ sed -i -e 's/loglevel=4/loglevel=4 rootflags=subvol=@/' /mnt/etc/kernel.d/post-install/60-ukify || die ;}
         elif [ "$lvm" == "No" ] && [ "$encryption" == "Yes" ]; then
             setKernelParam "rd.luks.uuid=$partVar rd.luks.name=$partVar=void-root root=/dev/mapper/void-root rootfstype=$filesystem rw"
-           #sed -i -e 's:loglevel=4:loglevel=4 rd.luks.uuid='$partVar' rd.luks.name='$partVar'=void-root root=/dev/mapper/void-root rootfstype='$filesystem' rw:g' /mnt/etc/kernel.d/post-install/60-ukify || die
-
-           #[ "$filesystem" == "btrfs" ] &&
-               #{ sed -i -e 's/loglevel=4/loglevel=4 rootflags=subvol=@/' /mnt/etc/kernel.d/post-install/60-ukify || die ; }
         fi
 
         [ "$filesystem" == "btrfs" ] &&
             setKernelParam "rootflags=subvol=@"
-
-        #[ "$acpi" == "false" ] &&
-            #{ sed -i -e 's/loglevel=4/loglevel=4 acpi=off/g' /mnt/etc/kernel.d/post-install/60-ukify || { commandFailure="Disabling ACPI has failed." ; die ; } ; }
-
-        #[ "$intel_pstate" == "false" ] &&
-            #{ sed -i -e 's/loglevel=4/loglevel=4 intel_pstate=disable/g' /mnt/etc/kernel.d/post-install/60-ukify || { commandFailure="Disabling intel_pstate has failed." ; die ; } ; }
     ;;
     grub)
         commandFailure="Configuring grub base config has failed."
@@ -202,20 +187,12 @@ case "$bootloader" in
             partVar=$(blkid -o value -s UUID "$root")
             [ "$lvm" == "Yes" ] &&
                 setKernelParam "rd.lvm.vg=void rd.luks.uuid=$partVar"
-                #{ sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4"/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 rd.lvm.vg=void rd.luks.uuid='$partVar'"/g' /mnt/etc/default/grub || die ; }
 
             [ "$lvm" == "No" ] &&
                 setKernelParam "rd.luks.uuid=$partVar"
-                #{ sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4"/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 rd.luks.uuid='$partVar'"/g' /mnt/etc/default/grub || die ; }
 
             echo "GRUB_ENABLE_CRYPTODISK=y" >> /mnt/etc/default/grub || die
         fi
-
-        #[ "$acpi" == "false" ] &&
-            #{ sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 acpi=off/g' /mnt/etc/default/grub || { commandFailure="Disabling ACPI has failed." ; die ; } ; }
-
-        #[ "$intel_pstate" == "false" ] &&
-            #{ sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 intel_pstate=disable/g' /mnt/etc/default/grub || { commandFailure="Disabling intel_pstate has failed." ; die ; } ; }
     ;;
     zfsbootmenu)
         commandFailure="Configuring zfsbootmenu has failed."

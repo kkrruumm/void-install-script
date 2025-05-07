@@ -177,6 +177,8 @@ For the time being, the only supported boot setup with ZFS is via [zfsbootmenu](
 
 The only supported encryption setup is via ZFS native encryption, as zbm is currently unable to handle luks in this context by default. However, there are some [implications](https://forums.truenas.com/t/truenas-zfs-encryption-deduplication-for-home-server/13589/3) with ZFS native encryption the user should be aware of.
 
+The only supported swap method out of the box via this installer is zram due to ZFS [limitations](https://github.com/openzfs/zfs/issues/7734).
+
 # btrfs notes
 
 Do note that btrfs support in this installer is still considered experimental, meaning the deployed setup is likely to change over time.

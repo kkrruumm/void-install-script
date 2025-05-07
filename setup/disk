@@ -32,7 +32,7 @@ sfdisk --delete "$diskInput"
     echo g; # gpt table
     echo n; echo ; echo ; echo +500M; # ESP
     [ "$lvm" == "No" ] && [ "$swapStyle" == "partition" ] && echo n; echo ; echo ; echo +"$swapSize";
-    if [ "$filesystem" == "btrfs" ] || [ "$lvm" == "Yes" ] || [ "$rootSize" == "full" ]; then
+    if [ "$filesystem" == "zfs" ] || [ "$filesystem" == "btrfs" ] || [ "$lvm" == "Yes" ] || [ "$rootSize" == "full" ]; then
         echo n; echo ; echo ; echo ;
     fi
     [ "$lvm" == "No" ] && [ "$rootSize" != "full" ] && echo n; echo ; echo ; echo +"$rootSize";
@@ -150,16 +150,27 @@ if [ "$filesystem" == "btrfs" ]; then
 elif [ "$filesystem" == "zfs" ]; then
     commandFailure="Creating zpool has failed."
 
-    echo -e "${YELLOW}Enter your encryption passphrase here.${NC}"
-    read -s zfscryptpass
+    if [ "$encryption" == "Yes" ] ; then
+        while [ -z "$zfscryptpass" ] ; do
+            echo -e "${YELLOW}Enter your encryption passphrase here.${NC}"
+            read -s zfscryptpass
+            echo -e "${YELLOW}Enter your encryption passphrase again to confirm.${NC}"
+            read -s zfscryptpassconfirm
 
-    echo "$zfscryptpass" > /etc/zfs/zroot.key
-    chmod 000 /etc/zfs/zroot.key
+            if [ "$zfscryptpass" != "$zfscryptpassconfirm" ] ; then
+                echo -e "${RED}Passphrases do not match. Try again.${NC}"
+                unset zfscryptpass zfscryptpassconfirm
+            fi
+        done
 
-    # best to explicitly discard this
-    unset zfscryptpass
+        echo "$zfscryptpass" > /etc/zfs/zroot.key
+        chmod 000 /etc/zfs/zroot.key
 
-    echo -e "${YELLOW}Opening new encrypted partition...${NC}"
+        # best to explicitly discard these
+        unset zfscryptpass zfscryptpassconfirm
+
+        echo -e "${YELLOW}Opening new encrypted partition...${NC}"
+    fi
 
     # https://docs.zfsbootmenu.org/en/v3.0.x/guides/void-linux/uefi.html#create-the-zpool
     partVar=$(blkid -o value -s PARTUUID "$root")

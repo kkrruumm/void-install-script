@@ -82,10 +82,12 @@ diskConfig() {
     fi
 
     if drawDialog --title "Disk Details" --extra-button --extra-label "Map" --no-cancel --title "Partitioner - Swap" --yesno "Would you like to use swap?" 0 0 ; then
-        if [ "$lvm" == "Yes" ] || [ "$encryption" == "No" ] && [ "$filesystem" != "btrfs" ]; then
-            swapStyle=$(drawDialog --begin 2 2 --title "Disk Details" --infobox "$diskIndicator" 0 0 --and-widget --no-cancel --title "Partitioner - Swap" --menu "What style of swap would you like to use?\n\nIf you are unsure, 'swapfile' is recommended." 0 0 0 "swapfile" "- On-filesystem swapfile" "zram" "- RAM in your RAM, but smaller" "partition" "- Traditional swap partition")
+        if [ "$lvm" == "Yes" ] || [ "$encryption" == "No" ] && [ "$filesystem" != "btrfs" ] && [ "$filesystem" != "zfs" ]; then
+            swapStyle=$(drawDialog --begin 2 2 --title "Disk Details" --infobox "$diskIndicator" 0 0 --and-widget --no-cancel --title "Partitioner - Swap" --menu "What style of swap would you like to use?\n\nIf you are unsure, 'swapfile' is recommended." 0 0 0 "swapfile" "- On-filesystem swapfile" "zram" "- RAM in your RAM, but smaller" "partition" "- Traditional swap partition" "none" "")
+        elif [ "$filesystem" == "zfs" ] ; then
+            swapStyle=$(drawDialog --begin 2 2 --title "Disk Details" --infobox "$diskIndicator" 0 0 --and-widget --no-cancel --title "Partitioner - Swap" --menu "What style of swap would you like to use?\n\nDue to filesystem limitations, zram is the available choice." 0 0 0 "zram" "- RAM in your RAM, but smaller" "none" "")
         else
-            swapStyle=$(drawDialog --begin 2 2 --title "Disk Details" --infobox "$diskIndicator" 0 0 --and-widget --no-cancel --title "Partitioner - Swap" --menu "What style of swap would you like to use?\n\nIf you are unsure, 'swapfile' is recommended." 0 0 0 "swapfile" "- On-filesystem swapfile" "zram" "- RAM in your RAM, but smaller")
+            swapStyle=$(drawDialog --begin 2 2 --title "Disk Details" --infobox "$diskIndicator" 0 0 --and-widget --no-cancel --title "Partitioner - Swap" --menu "What style of swap would you like to use?\n\nIf you are unsure, 'swapfile' is recommended." 0 0 0 "swapfile" "- On-filesystem swapfile" "zram" "- RAM in your RAM, but smaller" "none" "")
         fi
     else
         [ "$?" == "3" ] && dungeonmap
@@ -100,7 +102,7 @@ diskConfig() {
         ;;
     esac
 
-    if [ "$filesystem" != "btrfs" ]; then
+    if [ "$filesystem" != "btrfs" ] && [ "$filesystem" != "zfs" ]; then
         rootSize=$(drawDialog --begin 2 2 --title "Disk Details" --infobox "$diskIndicator" 0 0 --and-widget --no-cancel --title "Partitioner - Root" --extra-button --extra-label "Map" --inputbox "If you would like to limit the size of your root filesystem, such as to have a separate home partition, you can enter a value such as '50G' here.\n\nOtherwise, if you would like your root partition to take up the entire drive, leave this empty and press OK." 0 0)
         [ "$?" == "3" ] && dungeonmap
         [ -z "$rootSize" ] && rootSize="full"
@@ -119,7 +121,7 @@ diskConfig() {
     fi
 
     [ "$separateHomePossible" != "No" ] &&
-        if drawDialog --title "Partitioner - Home" --extra-button --extra-label "Map" --yesno "Would you like to have a separate home volume?" 0 0 ; then
+        if drawDialog --title "Partitioner - Home" --extra-button --extra-label "Map" --yesno "Would you like to have a separate home volume?\n\nIf using btrfs or zfs, creating a separate home is recommended." 0 0 ; then
             if [ "$filesystem" != "btrfs" ] && [ "$filesystem" != "zfs" ]; then
                 homeSize=$(drawDialog --begin 2 2 --title "Disk Details" --infobox "$diskIndicator" 0 0 --and-widget --no-cancel --title "Partitioner - Home" --inputbox "How large would you like your home partition to be?\n(Example: '100G')\n\nIf you would like the home partition to take up the rest of your disk, leave this empty and press OK." 0 0)
                 [ -z "$homeSize" ] && homeSize="full"
@@ -319,8 +321,8 @@ confirm() {
 
     settings+="Filesystem: $filesystem\n"
 
-    [ "$filesystem" == "btrfs" ] &&
-        settings+="btrfs compression: $compressionType\n"
+    [ -z "$compressionType" ] &&
+        settings+="Filesystem compression: $compressionType\n"
 
     if [ -n "$swapStyle" ]; then
         settings+="Swap style: $swapStyle\n"
