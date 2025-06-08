@@ -195,7 +195,7 @@ elif [ "$filesystem" == "zfs" ]; then
             read -s zfscryptpassconfirm
 
             if [ "${#zfscryptpass}" -lt 8 ]; then
-                echo -e "${RED}Passphrase must be at least 8 characters in length.${NC}"
+                echo -e "${RED}Passphrase must be at least 8 characters in length. Try again.${NC}"
                 unset zfscryptpass zfscryptpassconfirm
             fi
 
