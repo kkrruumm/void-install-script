@@ -177,6 +177,8 @@ For the time being, the only supported boot setup with ZFS is via [zfsbootmenu](
 
 The only supported encryption setup is via ZFS native encryption, as zbm is currently unable to handle luks in this context by default. However, there are some [implications](https://forums.truenas.com/t/truenas-zfs-encryption-deduplication-for-home-server/13589/3) with ZFS native encryption the user should be aware of.
 
+Since ZFS does not support calculating iterations for pbkdf2 based on time by itself, this script makes use of cryptsetup benchmark and a little bit of additional math to attempt to ballpark dynamically calculated iterations. This should result in meeting or very slightly overshooting the amount of time that is set, which is 10 seconds by default.
+
 The only supported swap method out of the box via this installer is zram due to ZFS [limitations](https://github.com/openzfs/zfs/issues/7734).
 
 # btrfs notes
