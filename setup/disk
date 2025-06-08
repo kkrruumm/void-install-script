@@ -188,10 +188,16 @@ elif [ "$filesystem" == "zfs" ]; then
         zfsIters=$(echo "$iterationSeconds * $benchmark" | bc)
 
         while [ -z "$zfscryptpass" ] ; do
-            echo -e "${YELLOW}Enter your encryption passphrase here:${NC}"
+            echo -e "${YELLOW}Enter your encryption passphrase here: (Minimum 8 characters)${NC}"
             read -s zfscryptpass
+
             echo -e "${YELLOW}Enter your encryption passphrase again to confirm:${NC}"
             read -s zfscryptpassconfirm
+
+            if [ "${#zfscryptpass}" -lt 8 ]; then
+                echo -e "${RED}Passphrase must be at least 8 characters in length.${NC}"
+                unset zfscryptpass zfscryptpassconfirm
+            fi
 
             if [ "$zfscryptpass" != "$zfscryptpassconfirm" ] ; then
                 echo -e "${RED}Passphrases do not match. Try again.${NC}"
