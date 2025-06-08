@@ -151,10 +151,46 @@ elif [ "$filesystem" == "zfs" ]; then
     commandFailure="Creating zpool has failed."
 
     if [ "$encryption" == "Yes" ] ; then
+
+        # calculate iteration count based on amount of time the
+        # user is willing to wait for decryption, zfs does not
+        # have a built in way to do this (one of its many many MANY drawbacks)
+        # so attempt to ballpark calculate iterations here.
+        clear
+        echo "Benchmarking system for pbkdf2..."
+
+        # there is run to run variance with this, so we run it 5 times
+        # to average the results of the runs
+        for i in {1..5} ; do
+            benchmark=$(cryptsetup benchmark --hash sha256)
+            benchmark=$(echo $benchmark | awk '{print $12}') # potentially fragile, TODO
+
+            # this desperately needs testing on a good amount of systems,
+            # but it's better to overshoot compared to undershoot;
+            # on my system this has about half a second of overshoot, meaning 10 seconds
+            # will calculate to around 10.5 seconds, and 20 to 21 seconds.
+            benchmark=$(echo "$benchmark / 1.375" | bc)
+            runs+=("$benchmark")
+        done
+
+        # average the results of the benchmarks
+        benchmark="$(echo "${runs[0]} + ${runs[1]} + ${runs[2]} + ${runs[3]} + ${runs[4]}" | bc)"
+        benchmark="$(echo "$benchmark / 5" | bc)"
+        echo "Set $benchmark iterations per second for pbkdf2iters."
+
+        # out of desire to keep the same declaration of iteration time style as luks,
+        # we need to do some basic math here
+        [ -z "$itertime" ] &&
+            itertime="10000" # same 10 second default as with luks
+
+        # TODO: this assumes the user is setting itertime to a number divisible by 1000
+        iterationSeconds=$(echo "$itertime / 1000" | bc)
+        zfsIters=$(echo "$iterationSeconds * $benchmark" | bc)
+
         while [ -z "$zfscryptpass" ] ; do
-            echo -e "${YELLOW}Enter your encryption passphrase here.${NC}"
+            echo -e "${YELLOW}Enter your encryption passphrase here:${NC}"
             read -s zfscryptpass
-            echo -e "${YELLOW}Enter your encryption passphrase again to confirm.${NC}"
+            echo -e "${YELLOW}Enter your encryption passphrase again to confirm:${NC}"
             read -s zfscryptpassconfirm
 
             if [ "$zfscryptpass" != "$zfscryptpassconfirm" ] ; then
@@ -169,7 +205,7 @@ elif [ "$filesystem" == "zfs" ]; then
         # best to explicitly discard these
         unset zfscryptpass zfscryptpassconfirm
 
-        echo -e "${YELLOW}Opening new encrypted partition...${NC}"
+        echo "Creating encrypted zpool..."
     fi
 
     # https://docs.zfsbootmenu.org/en/v3.0.x/guides/void-linux/uefi.html#create-the-zpool
@@ -183,6 +219,7 @@ elif [ "$filesystem" == "zfs" ]; then
             -O encryption=aes-256-gcm \
             -O keylocation=file:///etc/zfs/zroot.key \
             -O keyformat=passphrase \
+            -O pbkdf2iters="$zfsIters" \
             -o autotrim=on \
             -o compatibility=openzfs-2.1-linux \
             -m none zroot /dev/disk/by-partuuid/"$partVar"
@@ -196,6 +233,8 @@ elif [ "$filesystem" == "zfs" ]; then
             -o compatibility=openzfs-2.1-linux \
             -m none zroot /dev/disk/by-partuuid/"$partVar"
     fi
+
+    echo -e "${YELLOW}Enter your encryption passphrase to unlock zroot:${NC}"
 
     commandFailure="Creating ZFS filesystems has failed."
     zfs create -o mountpoint=none zroot/ROOT || die
