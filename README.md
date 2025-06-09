@@ -20,7 +20,7 @@ At the moment, this installer does not have stable releases. The most recent com
 --Option to install nftables with a default firewall config
 --Various security related modules
 
--Option to choose between grub and UKI to boot the system
+-Option to choose between grub, zfsbootmenu (with zfs only), and UKI to boot the system
 
 -Option to encrypt installation disk
 --With UKI setup, encryption will encrypt both /boot and / using luks2
@@ -40,7 +40,7 @@ At the moment, this installer does not have stable releases. The most recent com
 -Option to choose between xfs, ext4, zfs, and btrfs filesystems
 
 -Option to choose between LVM and a traditional install
--Option to choose between zswap, swap partition, and normal swapfile
+-Option to choose between zram, swap partition, and normal swapfile
 -Option to securely erase the installation disk with shred
 -Option to choose between doas or sudo
 -Option to choose your repository mirror
