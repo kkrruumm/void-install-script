@@ -1,0 +1,12 @@
+Global:
+  ManageImages: true
+  BootMountPoint: /boot/efi
+Components:
+   Enabled: false
+EFI:
+  ImageDir: /boot/efi/EFI/boot/
+  Versions: false
+  Enabled: true
+Kernel:
+  Prefix: bootx64
+  CommandLine: quiet loglevel=0

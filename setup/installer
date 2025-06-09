@@ -7,15 +7,17 @@ echo "Running basic checks..."
     echo -e "${RED}Please execute this script as root.${NC}" && exit 1
 
 dependencies=("$(pwd)/modules" \
-"$(pwd)/setup/base" \
-"$(pwd)/setup/desktop" \
-"$(pwd)/setup/disk" \
-"$(pwd)/setup/chroot" \
-"$(pwd)/misc/sway-run" \
-"$(pwd)/misc/wayfire-run" \
-"$(pwd)/misc/niri-run" \
-"$(pwd)/misc/river-run" \
-"$(pwd)/misc/60-ukify")
+"setup/base" \
+"setup/desktop" \
+"setup/disk" \
+"setup/chroot" \
+"misc/sway-run" \
+"misc/wayfire-run" \
+"misc/niri-run" \
+"misc/river-run" \
+"misc/60-ukify" \
+"misc/zbmconfig.yaml" \
+"misc/zol.conf")
 
 for i in ${dependencies[@]}; do
     [ -e "$i" ] ||
@@ -30,6 +32,11 @@ done
 
 [ "$(uname -m)" != "x86_64" ] &&
     { commandFailure="This systems CPU architecture is not currently supported by this installer." ; die ; }
+
+# if the host doesn't have zfs utils, don't populate
+# TODO: this needs better verification in the future.
+which zfs ||
+    zfspossible=no
 
 echo "Finding out what libc is being used..."
 if ldd --version | grep GNU ; then

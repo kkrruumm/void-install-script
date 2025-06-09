@@ -13,8 +13,9 @@ case "$basesystem" in
         [ "$lvm" == "Yes" ] &&
             install lvm2
 
-        [ "$encryption" == "Yes" ] &&
-            install cryptsetup
+        # Forcing zfs native crypt for the time being.
+        [ "$filesystem" != "zfs" ] &&
+            { [ "$encryption" == "Yes" ] && install cryptsetup ; }
 
         if [ "$kernel" != "linux" ] ; then
             echo "ignorepkg=linux" >> /mnt/etc/xbps.d/ignore.conf || die
@@ -43,8 +44,8 @@ case "$basesystem" in
 
         install "$kernel"
 
-        [ "$encryption" == "Yes" ] &&
-            install cryptsetup
+        [ "$filesystem" != "zfs" ] &&
+            { [ "$encryption" == "Yes" ] && install cryptsetup ; }
 
         [ "$lvm" == "Yes" ] &&
             install lvm2
@@ -56,6 +57,7 @@ case "$basesystem" in
 
         install dosfstools
 
+        # zfsbootmenu will automatically pull in zfs
         case "$filesystem" in
             xfs) install xfsprogs ;;
             ext4) install e2fsprogs ;;
@@ -70,7 +72,16 @@ esac
 case "$bootloader" in
     uki) install efibootmgr ukify systemd-boot-efistub ;;
     grub) install grub-x86_64-efi ;;
+    zfsbootmenu) install zfsbootmenu systemd-boot-efistub efibootmgr ;;
 esac
+
+if [ "$bootloader" == "zfsbootmenu" ]; then
+    commandFailure="Copying hostid to the new install has failed."
+    cp /etc/hostid /mnt/etc || die
+
+    [ "$encryption" == "Yes" ] &&
+        { commandFailure="Copying zroot key to the new install has failed." ; cp /etc/zfs/zroot.key /mnt/etc/zfs || die ; }
+fi
 
 commandFailure="Creating $kernel virtualpkg has failed."
 case "$kernel" in
@@ -90,7 +101,7 @@ echo "UUID=$partVar /boot/efi vfat defaults 0 0" >> /mnt/etc/fstab || die
 [ "$lvm" == "Yes" ] &&
     { echo "/dev/void/root / $filesystem defaults 0 0" >> /mnt/etc/fstab || die ; }
 
-[ "$lvm" == "No" ] && [ "$encryption" == "Yes" ] && [ "$filesystem" != "btrfs" ] &&
+[ "$lvm" == "No" ] && [ "$encryption" == "Yes" ] && [ "$filesystem" != "btrfs" ] && [ "$filesystem" != "zfs" ] &&
     { partVar=$(blkid -o value -s UUID /dev/mapper/void) ; echo "UUID=$partVar / $filesystem defaults 0 0" >> /mnt/etc/fstab || die ; }
 
 if [ "$filesystem" == "btrfs" ]; then
@@ -126,13 +137,13 @@ if [ "$filesystem" == "btrfs" ]; then
     esac
 fi
 
-[ "$lvm" == "No" ] && [ "$encryption" == "No" ] && [ "$filesystem" != "btrfs" ] &&
+[ "$lvm" == "No" ] && [ "$encryption" == "No" ] && [ "$filesystem" != "btrfs" ] && [ "$filesystem" != "zfs" ] &&
     { partVar=$(blkid -o value -s UUID "$root") ; echo "UUID=$partVar / $filesystem defaults 0 0" >> /mnt/etc/fstab || die ; }
 
 [ -n "$swapSize" ] && [ "$swapStyle" == "partition" ] && [ "$lvm" == "Yes" ] &&
     { echo "/dev/void/swap swap swap defaults 0 0" >> /mnt/etc/fstab || die ; }
 
-[ -n "$swapSize" ] && [ "$swapStyle" == "partition" ] && [ "$lvm" == "No" ] &&
+[ -n "$swapSize" ] && [ "$swapStyle" == "partition" ] && [ "$lvm" == "No" ] && [ "$filesystem" != "zfs" ] &&
     { partVar=$(blkid -o value -s UUID "$swap") ; echo "UUID=$partVar swap swap defaults 0 0" >> /mnt/etc/fstab || die ; }
 
 [ -n "$swapSize" ] && [ "$swapStyle" == "swapfile" ] && [ "$filesystem" != "btrfs" ] &&
@@ -144,7 +155,7 @@ fi
 [ "$separateHomePossible" != "No" ] && [ -n "$homeSize" ] && [ "$lvm" == "Yes" ] &&
     { echo "/dev/void/home /home $filesystem defaults 0 0" >> /mnt/etc/fstab || die ; }
 
-[ -n "$homeSize" ] && [ "$lvm" == "No" ] &&
+[ -n "$homeSize" ] && [ "$lvm" == "No" ] && [ "$filesystem" != "zfs" ] &&
     { partVar=$(blkid -o value -s UUID "$home") ; echo "UUID=$partVar /home $filesystem defaults 0 0" >> /mnt/etc/fstab || die ; }
 
 case "$bootloader" in
@@ -156,49 +167,55 @@ case "$bootloader" in
         commandFailure="Configuring uki base kernel parameters has failed."
         partVar=$(blkid -o value -s UUID "$root")
         [ "$lvm" == "Yes" ] && [ "$encryption" == "Yes" ] &&
-            { sed -i -e 's:loglevel=4:loglevel=4 rd.luks.uuid='$partVar' root=/dev/void/root rootfstype='$filesystem' rw:g' /mnt/etc/kernel.d/post-install/60-ukify || die ; }
+            setKernelParam "rd.luks.uuid=$partVar root=/dev/void/root rootfstype=$filesystem rw"
 
         [ "$lvm" == "Yes" ] && [ "$encryption" == "No" ] &&
-            { sed -i -e 's:loglevel=4:loglevel=4 rd.lvm.vg=void root=/dev/void/root rootfstype='$filesystem' rw:g' /mnt/etc/kernel.d/post-install/60-ukify || die ; }
+            setKernelParam "rd.lvm.vg=void root=/dev/void/root rootfstype=$filesystem rw"
 
         if [ "$lvm" == "No" ] && [ "$encryption" == "No" ]; then
-            sed -i -e 's/loglevel=4/loglevel=4 root=UUID='$partVar' rootfstype='$filesystem' rw/g' /mnt/etc/kernel.d/post-install/60-ukify || die
-
-            [ "$filesystem" == "btrfs" ] &&
-                { sed -i -e 's/loglevel=4/loglevel=4 rootflags=subvol=@/' /mnt/etc/kernel.d/post-install/60-ukify || die ;}
+            setKernelParam "root=UUID=$partVar rootfstype=$filesystem rw"
         elif [ "$lvm" == "No" ] && [ "$encryption" == "Yes" ]; then
-           sed -i -e 's:loglevel=4:loglevel=4 rd.luks.uuid='$partVar' rd.luks.name='$partVar'=void-root root=/dev/mapper/void-root rootfstype='$filesystem' rw:g' /mnt/etc/kernel.d/post-install/60-ukify || die
-
-           [ "$filesystem" == "btrfs" ] &&
-               { sed -i -e 's/loglevel=4/loglevel=4 rootflags=subvol=@/' /mnt/etc/kernel.d/post-install/60-ukify || die ; }
+            setKernelParam "rd.luks.uuid=$partVar rd.luks.name=$partVar=void-root root=/dev/mapper/void-root rootfstype=$filesystem rw"
         fi
 
-        [ "$acpi" == "false" ] &&
-            { sed -i -e 's/loglevel=4/loglevel=4 acpi=off/g' /mnt/etc/kernel.d/post-install/60-ukify || { commandFailure="Disabling ACPI has failed." ; die ; } ; }
-
-        [ "$intel_pstate" == "false" ] &&
-            { sed -i -e 's/loglevel=4/loglevel=4 intel_pstate=disable/g' /mnt/etc/kernel.d/post-install/60-ukify || { commandFailure="Disabling intel_pstate has failed." ; die ; } ; }
+        [ "$filesystem" == "btrfs" ] &&
+            setKernelParam "rootflags=subvol=@"
     ;;
     grub)
         commandFailure="Configuring grub base config has failed."
         if [ "$encryption" == "Yes" ]; then
             partVar=$(blkid -o value -s UUID "$root")
             [ "$lvm" == "Yes" ] &&
-                { sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4"/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 rd.lvm.vg=void rd.luks.uuid='$partVar'"/g' /mnt/etc/default/grub || die ; }
+                setKernelParam "rd.lvm.vg=void rd.luks.uuid=$partVar"
 
             [ "$lvm" == "No" ] &&
-                { sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4"/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 rd.luks.uuid='$partVar'"/g' /mnt/etc/default/grub || die ; }
+                setKernelParam "rd.luks.uuid=$partVar"
 
             echo "GRUB_ENABLE_CRYPTODISK=y" >> /mnt/etc/default/grub || die
         fi
+    ;;
+    zfsbootmenu)
+        commandFailure="Configuring zfsbootmenu has failed."
+        zfs set org.zfsbootmenu:commandline="loglevel=4" zroot/ROOT || die
+        [ "$encryption" == "Yes" ] &&
+            zfs set org.zfsbootmenu:keysource="zroot/ROOT/void" zroot || die
 
-        [ "$acpi" == "false" ] &&
-            { sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 acpi=off/g' /mnt/etc/default/grub || { commandFailure="Disabling ACPI has failed." ; die ; } ; }
+        commandFailure="Configuring dracut for ZFS has failed."
+        cp "misc/zol.conf" /mnt/etc/dracut.conf.d/zol.conf || die
 
-        [ "$intel_pstate" == "false" ] &&
-            { sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 intel_pstate=disable/g' /mnt/etc/default/grub || { commandFailure="Disabling intel_pstate has failed." ; die ; } ; }
+        [ "$encryption" == "Yes" ] &&
+            echo 'install_items+=" /etc/zfs/zroot.key "' >> /mnt/etc/dracut.conf.d/zol.conf || die
+
+        commandFailure="Copying zbm config to new system has failed."
+        cp "misc/zbmconfig.yaml" /mnt/etc/zfsbootmenu/config.yaml || die
     ;;
 esac
+
+[ "$acpi" == "false" ] &&
+    { commandFailure="Disabling acpi has failed." ; setKernelParam "acpi=off" ; }
+
+[ "$intel_pstate" == "false" ] &&
+    { commandFailure="Disabling intel_pstate has failed." ; setKernelParam "intel_pstate=disable" ; }
 
 if [ "$libc" == "glibc" ]; then
     commandFailure="Locale configuration has failed."

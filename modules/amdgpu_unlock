@@ -5,16 +5,7 @@ status=off
 
 main() {
     commandFailure="Enabling amdgpu overclocking has failed."
-    case "$bootloader" in
-        grub)
-             sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4/GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 amdgpu.ppfeaturemask=0xffffffff/g' /mnt/etc/default/grub || die
-        ;;
-        uki)
-            sed -i -e 's/loglevel=4/loglevel=4 amdgpu.ppfeaturemask=0xffffffff/g' /mnt/etc/kernel.d/post-install/60-ukify || die
-        ;;
-    esac
-
-    kernelparam_update="true"
+    setKernelParam "amdgpu.ppfeaturemask=0xffffffff"
 
     return 0
 }

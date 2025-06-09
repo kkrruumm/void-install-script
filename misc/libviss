@@ -60,3 +60,24 @@ install() {
 system() {
     chroot /mnt /bin/bash -c "$@" || die
 }
+
+setKernelParam() {
+    case "$bootloader" in
+        grub)
+            sed -i -e "s:loglevel=4:loglevel=4 $1:" /mnt/etc/default/grub || die
+        ;;
+        uki)
+            sed -i -e "s:loglevel=4:loglevel=4 $1:" /mnt/etc/kernel.d/post-install/60-ukify || die
+        ;;
+        zfsbootmenu)
+            # this variable should empty once it goes out of scope
+            # no need to explicitly unset to prevent dupes
+            local zfsparams=$(zfs get -H -o value org.zfsbootmenu:commandline zroot/ROOT)
+            zfs set org.zfsbootmenu:commandline="$zfsparams $1" zroot/ROOT || die
+        ;;
+    esac
+
+    kernelparam_update="true"
+
+    return 0
+}
