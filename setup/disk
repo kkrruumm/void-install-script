@@ -176,8 +176,9 @@ elif [ "$filesystem" == "zfs" ]; then
             fi
         done
 
-        echo "$zfscryptpass" > /etc/zfs/zroot.key
-        chmod 000 /etc/zfs/zroot.key
+        commandFailure="Creating zroot.key has failed."
+        echo "$zfscryptpass" > /etc/zfs/zroot.key || die
+        chmod 000 /etc/zfs/zroot.key || die
 
         # best to explicitly discard these
         unset zfscryptpass zfscryptpassconfirm
@@ -199,7 +200,8 @@ elif [ "$filesystem" == "zfs" ]; then
             -O pbkdf2iters="$zfsiters" \
             -o autotrim=on \
             -o compatibility=openzfs-2.1-linux \
-            -m none zroot /dev/disk/by-partuuid/"$partVar"
+            -m none zroot /dev/disk/by-partuuid/"$partVar" ||
+            { commandFailure="Creating zpool has failed." ; die ; }
     else
         zpool create -f -o ashift=12 \
             -O compression="$compressionType" \
@@ -208,7 +210,8 @@ elif [ "$filesystem" == "zfs" ]; then
             -O relatime=on \
             -o autotrim=on \
             -o compatibility=openzfs-2.1-linux \
-            -m none zroot /dev/disk/by-partuuid/"$partVar"
+            -m none zroot /dev/disk/by-partuuid/"$partVar" ||
+            { commandFailure="Creating zpool has failed." ; die ; }
     fi
 
     echo -e "${YELLOW}Enter your encryption passphrase to unlock zroot:${NC}"
