@@ -132,7 +132,8 @@ intel_pstate="true"
 hash="sha512"
 keysize="512"
 itertime="10000"
-basesystem="*" # Define base system packages instead of using metapackage
+zfsiters="1000000"
+basesystem="base-system" # Define base system packages instead of using metapackage
 
 post_install() {
     # do post-install stuff here
@@ -157,6 +158,8 @@ The LUKS default is "2000", or 2 seconds. The default in this installer has been
 
 The fips140 compliant value here would be 600000 according to owasp, though this would result in a 10 minute disk unlock time.
 
+- zfsiters sets the specific amount of iterations for the pbkdf2 kdf used by ZFS, as ZFS does not have a built in way to calculate this based on the amount of time the user would like to wait. Raise or lower as desired, with the same implications as itertime with LUKS.
+
 - The `post_install` function may be defined if the user would like to run custom commands once installation has completed.
 
 This function does not need to be defined, but if it is, this will be the last task the installer handles. This function has access to all of the variables defined by the installer, and has access to wrapper commands such as `system` and `install`.
@@ -177,7 +180,7 @@ For the time being, the only supported boot setup with ZFS is via [zfsbootmenu](
 
 The only supported encryption setup is via ZFS native encryption, as zbm is currently unable to handle luks in this context by default. However, there are some [implications](https://forums.truenas.com/t/truenas-zfs-encryption-deduplication-for-home-server/13589/3) with ZFS native encryption the user should be aware of.
 
-Since ZFS does not support calculating iterations for pbkdf2 based on time by itself, this script makes use of cryptsetup benchmark and a little bit of additional math to attempt to ballpark dynamically calculated iterations. This should result in meeting or very slightly overshooting the amount of time that is set, which is 10 seconds by default.
+By default, the installer will bump the default amount of pbkdf iterations to 1,000,000 from 350,000. This is a specific amount of iterations due to ZFS' lack of ability to calculate based on the amount of time the user desires to wait, as opposed to something like LUKS.
 
 The only supported swap method out of the box via this installer is zram due to ZFS [limitations](https://github.com/openzfs/zfs/issues/7734).
 
