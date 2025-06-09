@@ -162,7 +162,7 @@ The fips140 compliant value here would be 600000 according to owasp, though this
 
 - The `post_install` function may be defined if the user would like to run custom commands once installation has completed.
 
-This function does not need to be defined, but if it is, this will be the last task the installer handles. This function has access to all of the variables defined by the installer, and has access to wrapper commands such as `system` and `install`.
+This function does not need to be defined, but if it is, this will be the last task the installer handles. This function has access to all of the variables defined by the installer, and has access to wrapper commands such as `system`, `install`, and `setKernelParam`.
 
 A cool thing that could be done with this file (and as part of this post_install function) is switching based on which device the installer is being run on, do see [my file](https://github.com/kkrruumm/void-basesystem) for an example of this.
 
