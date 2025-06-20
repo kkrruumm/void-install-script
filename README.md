@@ -60,7 +60,7 @@ At the moment, this installer does not have stable releases. The most recent com
     - `sudo xbps-install -S git`
     - `git clone https://github.com/kkrruumm/void-install-script.git`
     - `cd void-install-script`
-    - `sudo ./installer.sh`
+    - `sudo ./viss`
 4. Follow on-screen steps
 5. Done.
 
