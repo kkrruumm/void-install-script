@@ -321,7 +321,7 @@ confirm() {
 
     settings+="Filesystem: $filesystem\n"
 
-    [ -z "$compressionType" ] &&
+    [ -n "$compressionType" ] &&
         settings+="Filesystem compression: $compressionType\n"
 
     if [ -n "$swapStyle" ]; then
