@@ -64,6 +64,14 @@ case "$basesystem" in
             doas) install opendoas ;;
         esac
 
+        # despite defining a custom basesystem, dracut is likely
+        # to be pulled in as a dependency, ignore it and remove
+        # if it exists:
+        if [ "$initrd" != "dracut" ]; then
+            echo "ignorepkg=dracut" >> /mnt/etc/xbps.d/ignore.conf || die
+            xbps-remove -ROoy -r /mnt dracut || die
+        fi
+
         install "$initrd"
 
         [ "$initrd" == "dracut" ] &&
