@@ -21,6 +21,7 @@ At the moment, this installer does not have stable releases. The most recent com
 --Various security related modules
 
 -Option to choose between grub, zfsbootmenu (with zfs only), and UKI to boot the system
+-Option to choose between dracut and tinyramfs (without zfs) initramfs generators
 
 -Option to encrypt installation disk
 --With UKI setup, encryption will encrypt both /boot and / using luks2
@@ -134,6 +135,7 @@ keysize="512"
 itertime="10000"
 zfsiters="1000000"
 basesystem="base-system" # Define base system packages instead of using metapackage
+initrdhostonly="false"
 
 post_install() {
     # do post-install stuff here
@@ -142,11 +144,11 @@ post_install() {
 
 If none of these variables are set in the file, or no file is provided, the above defaults will be used.
 
-- The toggle for ACPI can be set to false if you are facing ACPI related issues. This will set the "acpi=off" kernel parameter on the new install. Do not change this setting unless absolutely necessary.
+- The toggle for ACPI can be set to false if you are facing ACPI related issues. This will set the `acpi=off` kernel parameter on the new install. Do not change this setting unless absolutely necessary.
 
-- The toggle for intel_pstate can be set to false if you would like to disable intels power management. This is particularly useful on laptops to gain access to the "ondemand" governor and otherwise. This will set the "intel_pstate=disable" kernel parameter on the new install.
+- The toggle for `intel_pstate` can be set to false if you would like to disable intels power management. This is particularly useful on laptops to gain access to the "ondemand" governor and otherwise. This will set the `intel_pstate=disable` kernel parameter on the new install.
 
-- hash, keysize, and itertime are all variables that change the LUKS settings for encrypted installations.
+- `hash`, `keysize`, and `itertime` are all variables that change the LUKS settings for encrypted installations.
 
 I do not recommend changing hash and keysize from their default values unless you are absolutely certain you would like to. Research this before changing values.
 
@@ -158,7 +160,9 @@ The LUKS default is "2000", or 2 seconds. The default in this installer has been
 
 The fips140 compliant value here would be 600000 according to owasp, though this would result in a 10 minute disk unlock time.
 
-- zfsiters sets the specific amount of iterations for the pbkdf2 kdf used by ZFS, as ZFS does not have a built in way to calculate this based on the amount of time the user would like to wait. Raise or lower as desired, with the same implications as itertime with LUKS.
+- `zfsiters` sets the specific amount of iterations for the pbkdf2 kdf used by ZFS, as ZFS does not have a built in way to calculate this based on the amount of time the user would like to wait. Raise or lower as desired, with the same implications as itertime with LUKS.
+
+- `initrdhostonly` will instruct the initramfs generator to generate a host-specific initramfs image when set to `true`.
 
 - The `post_install` function may be defined if the user would like to run custom commands once installation has completed.
 

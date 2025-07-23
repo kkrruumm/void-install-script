@@ -28,6 +28,15 @@ case "$basesystem" in
             xbps-remove -ROoy -r /mnt sudo || die
         fi
 
+        if [ "$initrd" != "dracut" ]; then
+            echo "ignorepkg=dracut" >> /mnt/etc/xbps.d/ignore.conf || die
+            xbps-remove -ROoy -r /mnt dracut || die
+
+            install "$initrd"
+        else
+            install binutils # allow dracut to strip the initramfs
+        fi
+
         [ "$su" == "doas" ] &&
             install opendoas
 
@@ -54,6 +63,11 @@ case "$basesystem" in
             sudo) install sudo ;;
             doas) install opendoas ;;
         esac
+
+        install "$initrd"
+
+        [ "$initrd" == "dracut" ] &&
+            install binutils # allow dracut to strip the initramfs
 
         install dosfstools
 
@@ -158,58 +172,121 @@ fi
 [ -n "$homeSize" ] && [ "$lvm" == "No" ] && [ "$filesystem" != "zfs" ] &&
     { partVar=$(blkid -o value -s UUID "$home") ; echo "UUID=$partVar /home $filesystem defaults 0 0" >> /mnt/etc/fstab || die ; }
 
-case "$bootloader" in
-    uki)
-        commandFailure="Configuring ukify kernel hook has failed."
-        cp "$(pwd)/misc/60-ukify" /mnt/etc/kernel.d/post-install/60-ukify || die
-        chmod 744 /mnt/etc/kernel.d/post-install/60-ukify || die
+if [ "$initrd" == "dracut" ]; then
+    case "$bootloader" in
+        uki)
+            commandFailure="Configuring ukify kernel hook has failed."
+            cp "$(pwd)/misc/60-ukify" /mnt/etc/kernel.d/post-install/60-ukify || die
+            chmod 744 /mnt/etc/kernel.d/post-install/60-ukify || die
 
-        commandFailure="Configuring uki base kernel parameters has failed."
-        partVar=$(blkid -o value -s UUID "$root")
-        [ "$lvm" == "Yes" ] && [ "$encryption" == "Yes" ] &&
-            setKernelParam "rd.luks.uuid=$partVar root=/dev/void/root rootfstype=$filesystem rw"
-
-        [ "$lvm" == "Yes" ] && [ "$encryption" == "No" ] &&
-            setKernelParam "rd.lvm.vg=void root=/dev/void/root rootfstype=$filesystem rw"
-
-        if [ "$lvm" == "No" ] && [ "$encryption" == "No" ]; then
-            setKernelParam "root=UUID=$partVar rootfstype=$filesystem rw"
-        elif [ "$lvm" == "No" ] && [ "$encryption" == "Yes" ]; then
-            setKernelParam "rd.luks.uuid=$partVar rd.luks.name=$partVar=void-root root=/dev/mapper/void-root rootfstype=$filesystem rw"
-        fi
-
-        [ "$filesystem" == "btrfs" ] &&
-            setKernelParam "rootflags=subvol=@"
-    ;;
-    grub)
-        commandFailure="Configuring grub base config has failed."
-        if [ "$encryption" == "Yes" ]; then
+            commandFailure="Configuring uki base kernel parameters has failed."
             partVar=$(blkid -o value -s UUID "$root")
-            [ "$lvm" == "Yes" ] &&
-                setKernelParam "rd.lvm.vg=void rd.luks.uuid=$partVar"
+            [ "$lvm" == "Yes" ] && [ "$encryption" == "Yes" ] &&
+                setKernelParam "rd.luks.uuid=$partVar root=/dev/void/root rootfstype=$filesystem rw"
 
-            [ "$lvm" == "No" ] &&
-                setKernelParam "rd.luks.uuid=$partVar"
+            [ "$lvm" == "Yes" ] && [ "$encryption" == "No" ] &&
+                setKernelParam "rd.lvm.vg=void root=/dev/void/root rootfstype=$filesystem rw"
 
+            if [ "$lvm" == "No" ] && [ "$encryption" == "No" ]; then
+                setKernelParam "root=UUID=$partVar rootfstype=$filesystem rw"
+            elif [ "$lvm" == "No" ] && [ "$encryption" == "Yes" ]; then
+                setKernelParam "rd.luks.uuid=$partVar rd.luks.name=$partVar=void-root root=/dev/mapper/void-root rootfstype=$filesystem rw"
+            fi
+
+            [ "$filesystem" == "btrfs" ] &&
+                setKernelParam "rootflags=subvol=@"
+            ;;
+        grub)
+            commandFailure="Configuring grub base config has failed."
+            if [ "$encryption" == "Yes" ]; then
+                partVar=$(blkid -o value -s UUID "$root")
+                [ "$lvm" == "Yes" ] &&
+                    setKernelParam "rd.lvm.vg=void rd.luks.uuid=$partVar"
+
+                [ "$lvm" == "No" ] &&
+                    setKernelParam "rd.luks.uuid=$partVar"
+
+                echo "GRUB_ENABLE_CRYPTODISK=y" >> /mnt/etc/default/grub || die
+            fi
+            ;;
+        zfsbootmenu)
+            commandFailure="Configuring zfsbootmenu has failed."
+            zfs set org.zfsbootmenu:commandline="loglevel=4" zroot/ROOT || die
+            [ "$encryption" == "Yes" ] &&
+                { zfs set org.zfsbootmenu:keysource="zroot/ROOT/void" zroot || die ; }
+
+            commandFailure="Configuring dracut for ZFS has failed."
+            cp "misc/zol.conf" /mnt/etc/dracut.conf.d/zol.conf || die
+
+            [ "$encryption" == "Yes" ] &&
+                { echo 'install_items+=" /etc/zfs/zroot.key "' >> /mnt/etc/dracut.conf.d/zol.conf || die ; }
+
+            commandFailure="Copying zbm config to new system has failed."
+            cp "misc/zbmconfig.yaml" /mnt/etc/zfsbootmenu/config.yaml || die
+            ;;
+    esac
+
+    [ "$initrdhostonly" == "true" ] &&
+        { echo 'hostonly="yes"' >> /mnt/etc/dracut.conf || die ; }
+
+elif [ "$initrd" == "tinyramfs" ]; then
+    case "$bootloader" in
+        uki)
+            commandFailure="Configuring ukify kernel hook has failed."
+            cp "$(pwd)/misc/60-ukify" /mnt/etc/kernel.d/post-install/60-ukify || die
+            chmod 744 /mnt/etc/kernel.d/post-install/60-ukify || die
+        ;;
+        grub)
+            commandFailure="Configuring grub base config has failed."
             echo "GRUB_ENABLE_CRYPTODISK=y" >> /mnt/etc/default/grub || die
-        fi
-    ;;
-    zfsbootmenu)
-        commandFailure="Configuring zfsbootmenu has failed."
-        zfs set org.zfsbootmenu:commandline="loglevel=4" zroot/ROOT || die
-        [ "$encryption" == "Yes" ] &&
-            zfs set org.zfsbootmenu:keysource="zroot/ROOT/void" zroot || die
+        ;;
+    esac
 
-        commandFailure="Configuring dracut for ZFS has failed."
-        cp "misc/zol.conf" /mnt/etc/dracut.conf.d/zol.conf || die
+    # making an exception to the "style" of this script given how
+    # spammed this path is here
+    trfsconfig="/mnt/etc/tinyramfs/config"
 
-        [ "$encryption" == "Yes" ] &&
-            echo 'install_items+=" /etc/zfs/zroot.key "' >> /mnt/etc/dracut.conf.d/zol.conf || die
+    commandFailure="Editing tinyramfs config has failed."
+    partVar=$(blkid -o value -s UUID "$root")
+    sed -i '/root=/d' "$trfsconfig" || die
+    if [ "$encryption" == "Yes" ]; then
+        echo 'luks_name=void' >> "$trfsconfig" || die
+        sed -i 's/hooks="eudev"/hooks="eudev,luks"/g' "$trfsconfig" || die
+        echo "luks_root=UUID=${partVar}" >> "$trfsconfig" || die
+        partVar=$(blkid -o value -s UUID /dev/mapper/void)
 
-        commandFailure="Copying zbm config to new system has failed."
-        cp "misc/zbmconfig.yaml" /mnt/etc/zfsbootmenu/config.yaml || die
-    ;;
-esac
+        # the order hooks are included in is also the order they will be executed in,
+        # lvm must come *after* luks so tinyramfs will unlock before
+        # attempting to activate the "void" volume group
+        [ "$lvm" == "Yes" ] &&
+            { sed -i 's/hooks="eudev,luks"/hooks="eudev,luks,lvm"/g' "$trfsconfig" || die ; }
+
+        # eliminate the need to enter passphrase twice
+        # once /boot has been decrypted
+        [ "$bootloader" == "grub" ] &&
+            { echo 'luks_key=/boot/volume.key' >> "$trfsconfig" || die ; }
+    else
+        [ "$lvm" == "Yes" ] &&
+            { sed -i 's/hooks="eudev"/hooks="eudev,lvm"/g' "$trfsconfig" || die ; }
+    fi
+
+    if [ "$lvm" == "Yes" ]; then
+        echo 'root=/dev/void/root' >> "$trfsconfig" || die
+    else
+        echo "root=UUID=${partVar}" >> "$trfsconfig" || die
+    fi
+
+    [ "$filesystem" == "btrfs" ] &&
+        { echo 'root_opts="'$btrfsopts',subvol=@"' >> "$trfsconfig" ; }
+
+    [ "$filesystem" != "ext4" ] &&
+        { sed -i "s/root_type=ext4/root_type=${filesystem}/g" "$trfsconfig" || die ; }
+
+    [ "$initrdhostonly" == "true" ] &&
+        { echo 'hostonly=true' >> "$trfsconfig" || die ; }
+
+    unset trfsconfig
+fi
 
 [ "$acpi" == "false" ] &&
     { commandFailure="Disabling acpi has failed." ; setKernelParam "acpi=off" ; }

@@ -87,9 +87,11 @@ partVar=$(blkid -o value -s UUID "$root")
         chmod -R g-rwx,o-rwx /boot || die
 
         echo "void   UUID=$partVar   /boot/volume.key   luks" >> /etc/crypttab || die
-        touch /etc/dracut.conf.d/10-crypt.conf || die
-        dracutConf='install_items+=" /boot/volume.key /etc/crypttab "' || die
-        echo "$dracutConf" >> /etc/dracut.conf.d/10-crypt.conf || die
+        if [ "$initrd" == "dracut" ]; then
+            touch /etc/dracut.conf.d/10-crypt.conf || die
+            dracutConf='install_items+=" /boot/volume.key /etc/crypttab "' || die
+            echo "$dracutConf" >> /etc/dracut.conf.d/10-crypt.conf || die
+        fi
     fi
 
 case "$bootloader" in

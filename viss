@@ -162,6 +162,18 @@ bootloaderConfig() {
     bootloader=$(drawDialog --no-cancel --title "Bootloader choice" --extra-button --extra-label "Map" --menu "If you are unsure, choose 'grub'" 0 0 0 "grub" "- Traditional bootloader" "uki" "- Unified Kernel Image" "none" "- Installs no bootloader (Advanced)")
     [ "$?" == "3" ] && dungeonmap
 
+    initrdConfig
+}
+
+initrdConfig() {
+    [ "$filesystem" == "zfs" ] &&
+        { initrd="dracut" && hostnameConfig ; }
+    # TODO: need to test tinyramfs with zfs
+    # TODO: is mkinitcpio worthwhile to include?
+
+    initrd=$(drawDialog --no-cancel --title "Initramfs choice" --extra-button --extra-label "Map" --menu "If you are unsure, choose 'dracut'"  0 0 0 "dracut" "- Default Void initramfs generator" "tinyramfs" "- Small POSIX Shell initramfs generator")
+    [ "$?" == "3" ] && dungeonmap
+
     hostnameConfig
 }
 
@@ -198,12 +210,12 @@ localeConfig() {
         repositoryConfig
 
     # This line is also taken from the normal Void installer.
-    localeList=$(grep -E '\.UTF-8' /etc/default/libc-locales | awk '{print $1}' | sed -e 's/^#//')
+    local localeList=$(grep -E '\.UTF-8' /etc/default/libc-locales | awk '{print $1}' | sed -e 's/^#//')
 
     for i in $localeList
     do
         # We don't need to specify an item here, only a tag and print it to stdout
-        tmp+=("$i" $(printf '\u200b')) # Use a zero width unicode character for the item
+        local tmp+=("$i" $(printf '\u200b')) # Use a zero width unicode character for the item
     done
 
     local localeChoice=$(drawDialog --no-cancel --title "Locale Selection" --menu "Please choose your system locale." 0 0 0 ${tmp[@]})
@@ -282,7 +294,7 @@ modulesConfig() {
     for i in "${modulesList[@]}"
     do
         if [ -e "modules/$i" ] && checkModule ; then
-            modulesDialogArray+=("'$title' '$description' '$status'")
+            local modulesDialogArray+=("'$title' '$description' '$status'")
         fi
     done
 
@@ -307,6 +319,7 @@ confirm() {
     settings+="Repo mirror: $repository\n"
     settings+="Bootloader: $bootloader\n"
     settings+="Kernel: $kernel\n"
+    settings+="Initramfs: $initrd\n"
     settings+="Target disk: $diskInput\n"
     settings+="Encryption: $encryption\n"
 
@@ -394,13 +407,14 @@ To change any of these settings, choose 'Map'." 0 0
 }
 
 dungeonmap() {
-    waypoint=$(drawDialog --no-cancel --title "Dungeon Map" --menu "Choose a section to jump to:" 0 0 0 "Disk" "" "SU" "" "Kernel" "" "Bootloader" "" "Hostname" "" "User" "" "Timezone" "" "Locale" "" "Repository" "" "Graphics" "" "Network" "" "Audio" "" "Desktop" "" "Modules" "" "Overview" "")
+    waypoint=$(drawDialog --no-cancel --title "Dungeon Map" --menu "Choose a section to jump to:" 0 0 0 "Disk" "" "SU" "" "Kernel" "" "Bootloader" "" "Initramfs" "" "Hostname" "" "User" "" "Timezone" "" "Locale" "" "Repository" "" "Graphics" "" "Network" "" "Audio" "" "Desktop" "" "Modules" "" "Overview" "")
 
     case "$waypoint" in
         Disk) diskConfig ;;
         SU) suConfig ;;
         Kernel) kernelConfig ;;
         Bootloader) bootloaderConfig ;;
+        Initramfs) initrdConfig ;;
         Hostname) hostnameConfig ;;
         User) userConfig ;;
         Timezone) timezoneConfig ;;
