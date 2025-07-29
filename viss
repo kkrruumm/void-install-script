@@ -185,7 +185,7 @@ hostnameConfig() {
 }
 
 userConfig() {
-    username=$(drawDialog --title "Create User" --extra-button --extra-label "Map" --inputbox "What would you like your username to be?\n\nIf you do not want to set a user here, choose 'Skip'\n\nYou will be asked to set a password later." 0 0)
+    username=$(drawDialog --title "Create User" --extra-button --extra-label "Map" --inputbox "What would you like your username to be?\n\nIf you do not want to create a user here, choose 'Skip'\n\nYou will be asked to set a password later." 0 0)
     [ "$?" == "3" ] && dungeonmap
 
     timezoneConfig
@@ -478,9 +478,14 @@ _install() {
         esac
 
     clear
-    echo -e "${GREEN}Installation complete.${NC}"
-    echo "Please reboot and remove installation media."
-    echo -e "Otherwise, you may run 'chroot /mnt' for further config.\n"
+
+    if drawDialog --title "Installation Complete" --yes-label "Reboot" --extra-button --extra-label "Chroot" --no-label "Exit" --yesno "The installation has finished.\n\nIf you would like to make changes before rebooting, you may select 'Chroot' to chroot into the new system.\n\nOtherwise, you may choose 'Reboot' to reboot the system now.\n\nYou may also choose 'Exit' to drop back into the void-live shell." 0 0 ; then
+        reboot now
+    else
+        [ "$?" == "3" ] &&
+            { clear && xchroot /mnt 'bin/bash' ; }
+    fi
+
     exit 0
 }
 
