@@ -217,8 +217,19 @@ case "$audio" in
         mkdir -p /mnt/etc/alsa/conf.d || die
         mkdir -p /mnt/etc/pipewire/pipewire.conf.d || die
 
-        # This is now required to start pipewire and its session manager 'wireplumber' in an appropriate order, this should achieve a desireable result system-wide.
-        echo 'context.exec = [ { path = "/usr/bin/wireplumber" args = "" } ]' > /mnt/etc/pipewire/pipewire.conf.d/10-wireplumber.conf || die
+        # this is now required to start pipewire and its session manager 'wireplumber' in an appropriate order, this should achieve a desireable result system-wide
+        system "ln -s /usr/share/examples/wireplumber/10-wireplumber.conf /etc/pipewire/pipewire.conf.d/"
+        system "ln -s /usr/share/examples/pipewire/20-pipewire-pulse.conf /etc/pipewire/pipewire.conf.d/"
+
+        # enable pipewire and pipewire-pulse autostart
+        if [ -e "/usr/share/applications/pipewire.desktop" ] && [ -e "/etc/xdg/autostart/" ]; then
+            system "ln -s /usr/share/applications/pipewire.desktop /etc/xdg/autostart/pipewire.desktop"
+            system "ln -s /usr/share/applications/pipewire-pulse.desktop /etc/xdg/autostart/pipewire-pulse.desktop"
+        fi
+
+        # alsa configuration
+        system "ln -s /usr/share/alsa/alsa.conf.d/50-pipewire.conf /etc/alsa/conf.d"
+        system "ln -s /usr/share/alsa/alsa.conf.d/99-pipewire-default.conf /etc/alsa/conf.d"
     ;;
     pulseaudio)
         install pulseaudio alsa-plugins-pulseaudio

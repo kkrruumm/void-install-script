@@ -21,6 +21,10 @@ case "$basesystem" in
             echo "ignorepkg=linux" >> /mnt/etc/xbps.d/ignore.conf || die
             install "$kernel"
             xbps-remove -ROoy -r /mnt linux || die
+
+            # having any kernel around except for the target will confuse setup/chroot
+            # when it goes to find the kernel to reconfigure when building a UKI
+            system "vkpurge rm all" # use vkpurge to clean up /boot
         fi
 
         if [ "$su" != "sudo" ]; then
