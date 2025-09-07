@@ -7,6 +7,8 @@ The overall goal of this installer is to deploy a system that is ready to use as
 
 At the moment, this installer does not have stable releases. The most recent commit should be considered the most recent stable release. Of course, if you run into bugs, please create an issue. (Or, if you're inclined, create a pull request to fix it.)
 
+This script is not officially supported. Any issues should be filed here as opposed to any official Void Linux support area- if you're not sure if the issue you're facing stems from this installer, it would be best to create an issue on this repository before asking in the Void IRC or making a post on the subreddit.
+
 ![TUI Image](https://github.com/kkrruumm/void-install-script/blob/main/images/tuiscreenshot.png)
 
 # Features
@@ -223,8 +225,6 @@ There are wrapper functions for a handful of things, such as ``install`` and ``s
 All of the current and future wrapper functions will be located in ``misc/libviss``.
 
 # Misc notes
-
-This installer is not officially supported, and is still fairly work-in-progress. If you run into any problems please file them on this github page.
 
 This installer only supports x86_64-efi. I currently have no plans to support anything else.
 
