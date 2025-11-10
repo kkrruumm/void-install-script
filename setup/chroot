@@ -56,8 +56,6 @@ chmod 755 / || die
 [ -e /etc/sv/dbus ] &&
     { ln -s /etc/sv/dbus /var/service || { commandFailure="Enabling dbus has failed." ; die ; } ; }
 
-partVar=$(blkid -o value -s UUID "$root")
-
 [ "$encryption" == "Yes" ] &&
     if [ "$bootloader" == "grub" ]; then
         commandFailure="Configuring LUKS key has failed."
@@ -68,13 +66,6 @@ partVar=$(blkid -o value -s UUID "$root")
         cryptsetup luksAddKey "$root" /boot/volume.key || die
         chmod 000 /boot/volume.key || die
         chmod -R g-rwx,o-rwx /boot || die
-
-        echo "void   UUID=$partVar   /boot/volume.key   luks" >> /etc/crypttab || die
-        if [ "$initrd" == "dracut" ]; then
-            touch /etc/dracut.conf.d/10-crypt.conf || die
-            dracutConf='install_items+=" /boot/volume.key /etc/crypttab "' || die
-            echo "$dracutConf" >> /etc/dracut.conf.d/10-crypt.conf || die
-        fi
     fi
 
 case "$bootloader" in

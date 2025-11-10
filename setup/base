@@ -219,6 +219,9 @@ if [ "$initrd" == "dracut" ]; then
                     setKernelParam "rd.luks.uuid=$partVar"
 
                 echo "GRUB_ENABLE_CRYPTODISK=y" >> /mnt/etc/default/grub || die
+
+                echo "void   UUID=$partVar   /boot/volume.key   luks" >> /mnt/etc/crypttab || die
+                echo 'install_items+=" /boot/volume.key /etc/crypttab "' >> /mnt/etc/dracut.conf.d/10-crypt.conf || die
             fi
             ;;
         zfsbootmenu)
