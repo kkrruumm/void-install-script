@@ -11,17 +11,14 @@ dependencies=("$(pwd)/modules" \
 "setup/desktop" \
 "setup/disk" \
 "setup/chroot" \
-"misc/sway-run" \
-"misc/wayfire-run" \
-"misc/niri-run" \
-"misc/river-run" \
+"misc/greetd-run" \
 "misc/60-ukify" \
 "misc/zbmconfig.yaml" \
 "misc/zol.conf")
 
 for i in ${dependencies[@]}; do
     [ -e "$i" ] ||
-        { commandFailure="$i does not exist. This could be because it is incorrectly named, or it does not exist." ; die ; }
+        { commandFailure="$i appears to be missing. This could be because it is incorrectly named, or it does not exist." ; die ; }
 done
 
 [ -n "$modulesDialogArray" ] &&

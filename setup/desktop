@@ -72,6 +72,22 @@ case "$network" in
     ;;
 esac
 
+setup_greetd() {
+    install greetd
+    system "ln -s /etc/sv/greetd /var/service"
+    cp misc/greetd-run /mnt/usr/local/bin/"${desktop}"-run || die
+    sed -i 's,command = "agreety --cmd /bin/sh",command = "agreety --cmd '"${desktop}"'-run",' /mnt/etc/greetd/config.toml || die
+
+    # this defaults to 'sway' only because it applies to both sway and swayfx
+    if [ "$desktop" != 'sway' ] && [ "$desktop" != 'swayfx' ]; then
+        sed -i "s/sway/${desktop}/g" /mnt/usr/local/bin/"${desktop}"-run || die
+    fi
+
+    system "chown root:root /usr/local/bin/${desktop}-run"
+    system "chmod 755 /usr/local/bin/${desktop}-run"
+    system "chmod +x /usr/local/bin/${desktop}-run"
+}
+
 [ -n "$desktop" ] && [ "$desktop" != "none" ] &&
     commandFailure="GUI installation has failed"
 
@@ -101,14 +117,8 @@ case "$desktop" in
         system "ln -s /etc/sv/polkitd /var/service"
 
         if [ "$greetd" == "Yes" ]; then
-            install greetd
-            system "ln -s /etc/sv/greetd /var/service"
-            sed -i -e 's,command = "agreety --cmd /bin/sh",command = "agreety --cmd sway-run",' /mnt/etc/greetd/config.toml || die
-            cp misc/sway-run /mnt/usr/local/bin/sway-run || die
-
-            system "chown root:root /usr/local/bin/sway-run"
-            system "chmod 755 /usr/local/bin/sway-run"
-            system "chmod +x /usr/local/bin/sway-run"
+            setup_greetd
+            echo 'exec dbus-run-session sway "$@"' >> /mnt/usr/local/bin/"${desktop}"-run || die
         fi
     ;;
     swayfx)
@@ -120,14 +130,8 @@ case "$desktop" in
         system "ln -s /etc/sv/polkitd /var/service"
 
         if [ "$greetd" == "Yes" ]; then
-            install greetd
-            system "ln -s /etc/sv/greetd /var/service"
-            sed -i -e 's,command = "agreety --cmd /bin/sh",command = "agreety --cmd swayfx-run",' /mnt/etc/greetd/config.toml || die
-            cp misc/sway-run /mnt/usr/local/bin/swayfx-run || die
-
-            system "chown root:root /usr/local/bin/swayfx-run"
-            system "chmod 755 /usr/local/bin/swayfx-run"
-            system "chmod +x /usr/local/bin/swayfx-run"
+            setup_greetd
+            echo 'exec dbus-run-session sway "$@"' >> /mnt/usr/local/bin/"${desktop}"-run || die
         fi
     ;;
     river)
@@ -139,14 +143,8 @@ case "$desktop" in
         system "ln -s /etc/sv/polkitd /var/service"
 
         if [ "$greetd" == "Yes" ]; then
-            install greetd
-            system "ln -s /etc/sv/greetd /var/service"
-            sed -i -e 's,command = "agreety --cmd /bin/sh",command = "agreety --cmd river-run",' /mnt/etc/greetd/config.toml || die
-            cp misc/river-run /mnt/usr/local/bin/river-run || die
-
-            system "chown root:root /usr/local/bin/river-run"
-            system "chmod 755 /usr/local/bin/river-run"
-            system "chmod +x /usr/local/bin/river-run"
+            setup_greetd
+            echo 'exec dbus-run-session river "$@"' >> /mnt/usr/local/bin/"${desktop}"-run || die
         fi
     ;;
     i3)
@@ -169,14 +167,8 @@ case "$desktop" in
         system "ln -s /etc/sv/polkitd /var/service"
 
         if [ "$greetd" == "Yes" ]; then
-            install greetd
-            system "ln -s /etc/sv/greetd /var/service"
-            sed -i -e 's,command = "agreety --cmd /bin/sh",command = "agreety --cmd niri-run",' /mnt/etc/greetd/config.toml || die
-            cp misc/niri-run /mnt/usr/local/bin/niri-run || die
-
-            system "chown root:root /usr/local/bin/niri-run"
-            system "chmod 755 /usr/local/bin/niri-run"
-            system "chmod +x /usr/local/bin/niri-run"
+            setup_greetd
+            echo 'exec dbus-run-session niri --session "$@"' >> /mnt/usr/local/bin/"${desktop}"-run || die
         fi
     ;;
     wayfire)
@@ -188,14 +180,8 @@ case "$desktop" in
         system "ln -s /etc/sv/polkitd /var/service"
 
         if [ "$greetd" == "Yes" ]; then
-            install greetd
-            system "ln -s /etc/sv/greetd /var/service"
-            sed -i -e 's,command = "agreety --cmd /bin/sh",command = "agreety --cmd wayfire-run",' /mnt/etc/greetd/config.toml || die
-            cp misc/wayfire-run /mnt/usr/local/bin/wayfire-run || die
-
-            system "chown root:root /usr/local/bin/wayfire-run"
-            system "chmod 755 /usr/local/bin/wayfire-run"
-            system "chmod +x /usr/local/bin/wayfire-run"
+            setup_greetd
+            echo 'exec dbus-run-session wayfire "$@"' >> /mnt/usr/local/bin/"${desktop}"-run || die
         fi
     ;;
     mate)
