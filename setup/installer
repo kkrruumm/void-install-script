@@ -32,7 +32,7 @@ done
 
 # if the host doesn't have zfs utils, don't populate
 # TODO: this needs better verification in the future.
-which zfs ||
+which zfs &>/dev/null ||
     zfspossible=no
 
 echo "Finding out what libc is being used..."
