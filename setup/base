@@ -29,12 +29,12 @@ case "$basesystem" in
 
         if [ "$su" != "sudo" ]; then
             echo "ignorepkg=sudo" >> /mnt/etc/xbps.d/ignore.conf || die
-            xbps-remove -ROoy -r /mnt sudo || die
+            xbps-remove -ROody -r /mnt sudo || die
         fi
 
         if [ "$initrd" != "dracut" ]; then
             echo "ignorepkg=dracut" >> /mnt/etc/xbps.d/ignore.conf || die
-            xbps-remove -ROoy -r /mnt dracut || die
+            xbps-remove -ROody -r /mnt dracut || die
 
             install "$initrd"
         else
