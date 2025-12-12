@@ -20,7 +20,7 @@ case "$basesystem" in
         if [ "$kernel" != "linux" ] ; then
             echo "ignorepkg=linux" >> /mnt/etc/xbps.d/ignore.conf || die
             install "$kernel"
-            xbps-remove -ROoy -r /mnt linux || die
+            system "xbps-remove -ROoy linux"
 
             # having any kernel around except for the target will confuse setup/chroot
             # when it goes to find the kernel to reconfigure when building a UKI
@@ -29,12 +29,12 @@ case "$basesystem" in
 
         if [ "$su" != "sudo" ]; then
             echo "ignorepkg=sudo" >> /mnt/etc/xbps.d/ignore.conf || die
-            xbps-remove -ROody -r /mnt sudo || die
+            system "xbps-remove -ROoy sudo"
         fi
 
         if [ "$initrd" != "dracut" ]; then
             echo "ignorepkg=dracut" >> /mnt/etc/xbps.d/ignore.conf || die
-            xbps-remove -ROody -r /mnt dracut || die
+            system "xbps-remove -ROoy dracut"
 
             install "$initrd"
         else
@@ -49,7 +49,7 @@ case "$basesystem" in
             echo "ignorepkg=iw" >> /mnt/etc/xbps.d/ignore.conf || die
             echo "ignorepkg=wpa_supplicant" >> /mnt/etc/xbps.d/ignore.conf || die
 
-            xbps-remove -ROoy -r /mnt wifi-firmware iw wpa_supplicant || die
+            system "xbps-remove -ROoy wifi-firmware iw wpa_supplicant"
         fi
     ;;
     *)
@@ -73,7 +73,7 @@ case "$basesystem" in
         # if it exists:
         if [ "$initrd" != "dracut" ]; then
             echo "ignorepkg=dracut" >> /mnt/etc/xbps.d/ignore.conf || die
-            xbps-remove -ROoy -r /mnt dracut || die
+            system "xbps-remove -ROoy dracut"
         fi
 
         install "$initrd"
@@ -91,6 +91,9 @@ case "$basesystem" in
         esac
     ;;
 esac
+
+# clean up any packages in xbps cache that were removed by above
+system "xbps-remove -ROO"
 
 [ -n "$bootloader" ] && [ "$bootloader" != "none" ] &&
     commandFailure="Bootloader package installation has failed"

@@ -444,9 +444,7 @@ _install() {
         "diskInput $diskInput" \
         "username $username" \
         "desktop $desktop" \
-        "esp $esp" \
-        "root $root" \
-        "swap $swap")
+        "root $root")
 
     for i in "${syschrootVarPairs[@]}"
     do
