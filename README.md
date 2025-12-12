@@ -234,8 +234,6 @@ If you have found this script useful, do star this repository!
 
 The best way to contribute to this would be to create a pull request adding the feature you would like.
 
-Any new pull requests should target the `dev` branch. At the moment, the installer appears rather stable- the `dev` branch will provide a place to merge new changes, which after testing, can be merged into `main`.
-
 If you would like a change to be made to the script, a request/suggestion in the issues tracker is also a wonderful place to start.
 
 There *are* a few things to keep in mind- 
