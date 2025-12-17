@@ -477,7 +477,7 @@ _install() {
 
     clear
 
-    if drawDialog --title "Installation Complete" --yes-label "Reboot" --extra-button --extra-label "Chroot" --no-label "Exit" --yesno "The installation has finished.\n\nIf you would like to make changes before rebooting, you may select 'Chroot' to chroot into the new system.\n\nOtherwise, you may choose 'Reboot' to reboot the system now.\n\nYou may also choose 'Exit' to drop back into the void-live shell." 0 0 ; then
+    if drawDialog --title "Installation Complete" --yes-label "Reboot" --extra-button --extra-label "Chroot" --no-label "Exit" --yesno "The installation has finished.\n\nIf you would like to make changes before rebooting, you may select 'Chroot' to chroot into the new system.\n\nOtherwise, you may choose 'Reboot' to reboot the system now.\n\nYou may also choose 'Exit' to drop back into the void-live shell.\n\nTotal installer runtime: ${SECONDS} seconds." 0 0 ; then
         reboot now
     else
         [ "$?" == "3" ] &&
