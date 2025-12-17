@@ -124,7 +124,7 @@ This feature is also how one may define a `post_install` function to run whateve
 
 Example: 
 ```
-./installer.sh /path/to/file
+./viss /path/to/file
 ```
 
 Such file would contain any or all of the following options, and the following examples are set to their default values:
