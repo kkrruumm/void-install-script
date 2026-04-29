@@ -3,7 +3,7 @@
 
 echo "Running basic checks..."
 
-[ "$USER" != root ] &&
+[ "$(id -u)" -ne 0 ] &&
     echo -e "${RED}Please execute this script as root.${NC}" && exit 1
 
 dependencies=("$(pwd)/modules" \

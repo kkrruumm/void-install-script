@@ -28,16 +28,26 @@ done
 sfdisk --delete "$diskInput"
 
 # 'echo ;' here is equivalent to pressing enter in fdisk
+# if you see this and you're wondering "wtf," id rather pipe into fdisk compared to deal with other partitioners
 (
     echo g; # gpt table
     echo n; echo ; echo ; echo +500M; # ESP
-    [ "$lvm" == "No" ] && [ "$swapStyle" == "partition" ] && echo n; echo ; echo ; echo +"$swapSize";
+    [ "$lvm" == "No" ] && [ "$swapStyle" == "partition" ] &&
+        { echo n; echo ; echo ; echo +"$swapSize"; }
+
     if [ "$filesystem" == "zfs" ] || [ "$filesystem" == "btrfs" ] || [ "$lvm" == "Yes" ] || [ "$rootSize" == "full" ]; then
         echo n; echo ; echo ; echo ;
     fi
-    [ "$lvm" == "No" ] && [ "$rootSize" != "full" ] && echo n; echo ; echo ; echo +"$rootSize";
-    [ "$lvm" == "No" ] && [ "$encryption" == "No" ] && [ "$homeSize" != "full" ] && echo n; echo ; echo ; echo +"$homeSize";
-    [ "$lvm" == "No" ] && [ "$encryption" == "No" ] && [ "$homeSize" == "full" ] && echo n; echo ; echo ; echo ;
+
+    [ "$lvm" == "No" ] && [ "$rootSize" != "full" ] &&
+        { echo n; echo ; echo ; echo +"$rootSize"; }
+
+    [ "$lvm" == "No" ] && [ "$encryption" == "No" ] && [ -n "$homeSize" ] && [ "$homeSize" != "full" ] &&
+        { echo n; echo ; echo ; echo +"$homeSize"; }
+
+    [ "$lvm" == "No" ] && [ "$encryption" == "No" ] && [ "$homeSize" == "full" ] &&
+        { echo n; echo ; echo ; echo ; }
+
     echo w;
 ) | fdisk -w always "$diskInput" ||
     { commandFailure="Writing partition table to disk has failed." ; die ; }
@@ -50,12 +60,7 @@ fi
 
 esp="$diskInput""$idvar"1
 
-[ "$lvm" == "Yes" ] &&
-    root="$diskInput""$idvar"2
-
-[ "$filesystem" == "btrfs" ] &&
-    root="$diskInput""$idvar"2
-
+# root is p3 only when there's a swap partition ahead of it
 if [ "$lvm" == "No" ] && [ "$swapStyle" == "partition" ]; then
     root="$diskInput""$idvar"3
 else
@@ -303,10 +308,10 @@ commandFailure="Mounting partitions has failed."
 [ "$lvm" == "Yes" ] &&
     { mount /dev/void/root /mnt || die ; }
 
-[ "$lvm" == "No" ] && [ "$encryption" == "Yes" ] && [ "$filesystem" != "zfs" ] &&
+[ "$lvm" == "No" ] && [ "$encryption" == "Yes" ] && [ "$filesystem" != "zfs" ] && [ "$filesystem" != "btrfs" ] &&
     { mount /dev/mapper/void /mnt || die ; }
 
-[ "$lvm" == "No" ] && [ "$encryption" == "No" ] && [ "$filesystem" != "zfs" ] &&
+[ "$lvm" == "No" ] && [ "$encryption" == "No" ] && [ "$filesystem" != "zfs" ] && [ "$filesystem" != "btrfs" ] &&
     { mount "$root" /mnt || die ; }
 
 [ "$lvm" == "No" ] && [ -n "$home" ] && [ "$filesystem" != "btrfs" ] && [ "$filesystem" != "zfs" ] &&

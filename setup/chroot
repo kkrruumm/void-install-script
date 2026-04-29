@@ -125,7 +125,7 @@ else
     echo -ne "Should user "$username" be a superuser? (y/n) "
     read superPrompt
 
-    if [ $superPrompt == "y" ] || [ $superPrompt == "Y" ]; then
+    if [ "$superPrompt" == "y" ] || [ "$superPrompt" == "Y" ]; then
         usermod -aG wheel "$username" || die
         if [ "$su" == "sudo" ]; then
             sed -i -e 's/# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/g' /etc/sudoers || die

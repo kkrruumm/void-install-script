@@ -5,7 +5,7 @@
 
 # Source installer library
 . "$(pwd)/misc/libviss" ||
-    { echo "$(pwd)/lib/libvis not found. Cannot continue." ; exit 1 ; }
+    { echo "$(pwd)/misc/libviss not found. Cannot continue." ; exit 1 ; }
 
 # Source basic installer setup script
 . "$(pwd)/setup/installer" ||
