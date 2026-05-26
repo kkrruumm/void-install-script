@@ -41,16 +41,24 @@ partitionerOutput() {
 checkModule() {
     # Past this, I'm going to leave verifying correctness to the author of the module.
     # Check that relevant stuff is even in the file:
-    if grep "title="*"" "modules/$i" && { grep "status=on" "modules/$i" || grep "status=off" "modules/$i" ; } && { grep "description="*"" "modules/$i" ; } && { grep "main()" "modules/$i" ; }; then
+    local line t=0 s=0 d=0 m=0
 
-        # Test for early failures such as the module requiring a username
-        . "modules/$i" ||
-            return 1
+    while read -r line; do
+        [[ $line =~ title= ]] && t=1
+        [[ $line =~ status=(on|off) ]] && s=1
+        [[ $line =~ description= ]] && d=1
+        [[ $line =~ main\(\) ]] && m=1
 
-        return 0
-    else
-        return 1
-    fi
+        # break out early if all flags are satisfied (should always happen in the top 3-4 lines of the module probably)
+        (( t && s && d && m )) && break
+    done < "modules/${i}"
+
+    # if any flag is 0, the module failed the vibe check
+    (( t && s && d && m )) || return 1
+
+    # test for early failures such as the module requiring a username
+    . "modules/$i" || return 1
+    return 0
 }
 
 install() {
