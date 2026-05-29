@@ -76,7 +76,7 @@ fi
 [ "$lvm" == "No" ] && [ -n "$homeSize" ] && [ "$encryption" == "No" ] && [ -z "$swap" ] &&
     home="$diskInput""$idvar"3
 
-mkfs.vfat "$esp" ||
+mkfs.vfat -F 32 "$esp" ||
     { commandFailure="Formatting ESP as vfat has failed." ; die ; }
 
 if [ "$encryption" == "Yes" ] && [ "$filesystem" != "zfs" ]; then
