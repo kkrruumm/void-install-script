@@ -31,7 +31,7 @@ sfdisk --delete "$diskInput"
 # if you see this and you're wondering "wtf," id rather pipe into fdisk compared to deal with other partitioners
 (
     echo g; # gpt table
-    echo n; echo ; echo ; echo +500M; # ESP
+    echo n; echo ; echo ; echo +500M; echo t; echo 1; # ESP
     [ "$lvm" == "No" ] && [ "$swapStyle" == "partition" ] &&
         { echo n; echo ; echo ; echo +"$swapSize"; }
 
