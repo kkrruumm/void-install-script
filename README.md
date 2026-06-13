@@ -7,6 +7,8 @@ The overall goal of this installer is to deploy a system that is ready to use as
 
 At the moment, this installer does not have stable releases. The most recent commit should be considered the most recent stable release. Of course, if you run into bugs, please create an issue. (Or, if you're inclined, create a pull request to fix it.)
 
+If/when creating an issue, please attach the logfile at `/tmp/void-install-date.log` from the live ISO or `/var/log/void-install-script.log` from the new installation. This log does not capture any sensitive information short of perhaps the username. Redact username if desired.
+
 This script is not officially supported. Any issues should be filed here as opposed to any official Void Linux support area- if you're not sure if the issue you're facing stems from this installer, it would be best to create an issue on this repository before asking in the Void IRC or making a post on the subreddit.
 
 ![TUI Image](https://github.com/kkrruumm/void-install-script/blob/main/images/tuiscreenshot.png)
