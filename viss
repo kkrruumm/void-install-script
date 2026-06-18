@@ -257,7 +257,7 @@ graphicsConfig() {
 }
 
 networkConfig() {
-    network=$(drawDialog --no-cancel --title "Networking - DHCP client" --extra-button --extra-label "Map" --menu "If you are unsure, choose 'NetworkManager'\n\nIf 'none' is chosen, dhcpcd will still be included but not enabled." 0 0 0 "NetworkManager" "" "dhcpcd" "" "none" "")
+    network=$(drawDialog --no-cancel --title "Networking - DHCP client" --extra-button --extra-label "Map" --menu "If you are unsure, choose 'NetworkManager'\n\nIf 'none' is chosen, dhcpcd will still be included but not enabled." 0 0 0 "NetworkManager" "" "dhcpcd" "" "connman" "" "none" "")
     [ "$?" == "3" ] && dungeonmap
 
     audioConfig

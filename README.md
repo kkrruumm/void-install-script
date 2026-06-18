@@ -33,7 +33,7 @@ This script is not officially supported. Any issues should be filed here as oppo
 
 -Option to pre-install and pre-configure the following:
 --Graphics drivers (amd, nvidia, intel, nvidia-nouveau, none)
---Networking (dhcpcd, NetworkManager, none)
+--Networking (NetworkManager, dhcpcd, connman, none)
 --Audio server (pipewire, pulseaudio, none)
 
 --DE or WM (gnome, i3, kde, mate, niri, river, sway, swayfx, wayfire, xfce, none)

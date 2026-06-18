@@ -63,6 +63,10 @@ done
     commandFailure="DHCP client setup has failed."
 
 case "$network" in
+    connman)
+        install connman
+        system "ln -s /etc/sv/connmand /var/service"
+    ;;
     NetworkManager)
         install NetworkManager
         system "ln -s /etc/sv/NetworkManager /var/service"
