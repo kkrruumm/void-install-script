@@ -187,6 +187,16 @@ case "$desktop" in
             setup_greetd
             echo 'exec dbus-run-session wayfire "$@"' >> /mnt/usr/local/bin/"${desktop}"-run || die
         fi
+     ;;
+    labwc)
+        install labwc elogind polkit polkit-elogind alacritty xorg-fonts xdg-desktop-portal-wlr xdg-user-dirs
+
+        system "ln -s /etc/sv/polkitd /var/service"
+
+        if [ "$greetd" == "Yes" ]; then
+            setup_greetd
+            echo 'exec dbus-run-session labwc "$@"' >> /mnt/usr/local/bin/"${desktop}"-run || die
+        fi
     ;;
     mate)
         install mate mate-terminal lightdm lightdm-gtk3-greeter xorg-minimal xdg-user-dirs xorg-fonts xorg-video-drivers
