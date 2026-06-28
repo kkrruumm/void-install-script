@@ -187,7 +187,7 @@ case "$desktop" in
             setup_greetd
             echo 'exec dbus-run-session wayfire "$@"' >> /mnt/usr/local/bin/"${desktop}"-run || die
         fi
-     ;;
+    ;;
     labwc)
         install labwc elogind polkit polkit-elogind alacritty xorg-fonts xdg-desktop-portal-wlr xdg-user-dirs
 
