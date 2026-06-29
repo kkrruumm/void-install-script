@@ -38,7 +38,7 @@ This script is not officially supported. Any issues should be filed here as oppo
 
 --DE or WM (gnome, i3, labwc, kde, mate, niri, river, sway, swayfx, wayfire, xfce, none)
 ---With i3, there is an option to install lightdm
----With sway, swayfx, wayfire, river, and niri there is an option to install greetd
+---With sway, swayfx, wayfire, river, labwc, and niri there is an option to install greetd
 
 --Or, choose to do none of these and install a bare-minimum system
 
