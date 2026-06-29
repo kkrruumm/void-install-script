@@ -36,7 +36,7 @@ This script is not officially supported. Any issues should be filed here as oppo
 --Networking (NetworkManager, dhcpcd, connman, none)
 --Audio server (pipewire, pulseaudio, none)
 
---DE or WM (gnome, i3, kde, mate, niri, river, sway, swayfx, wayfire, xfce, none)
+--DE or WM (gnome, i3, labwc, kde, mate, niri, river, sway, swayfx, wayfire, xfce, none)
 ---With i3, there is an option to install lightdm
 ---With sway, swayfx, wayfire, river, and niri there is an option to install greetd
 
