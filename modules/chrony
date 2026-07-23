@@ -8,7 +8,7 @@ main() {
         install chrony
 
     commandFailure="Enabling chronyd has failed." &&
-        system "ln -s /etc/sv/chronyd /var/service"
+        enableService chronyd
 
     return 0
 }

@@ -11,7 +11,7 @@ main() {
         system "usbguard generate-policy > /etc/usbguard/rules.conf"
 
     commandFailure="Enabling usbguard has failed." &&
-        system "ln -s /etc/sv/usbguard /var/service"
+        enableService usbguard
 
     return 0
 }

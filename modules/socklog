@@ -8,7 +8,7 @@ main() {
         install socklog-void
 
     commandFailure="Enabling socklog has failed." &&
-        system "ln -s /etc/sv/socklog-unix /var/service && ln -s /etc/sv/nanoklogd /var/service"
+        enableService socklog-unix nanoklogd
 
     return 0
 }

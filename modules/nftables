@@ -34,7 +34,7 @@ main() {
         system "nft list ruleset >> /etc/nftables.conf"
 
     commandFailure="Enabling nftables has failed." &&
-        system "ln -s /etc/sv/nftables /var/service"
+        enableService nftables
 
     return 0
 }

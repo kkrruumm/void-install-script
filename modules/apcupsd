@@ -8,7 +8,7 @@ main() {
         install apcupsd
 
     commandFailure="Enabling apcupsd has failed." &&
-        system "ln -s /etc/sv/apcupsd /var/service"
+        enableService apcupsd
 
     return 0
 }

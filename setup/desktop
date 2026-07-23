@@ -65,20 +65,20 @@ done
 case "$network" in
     connman)
         install connman
-        system "ln -s /etc/sv/connmand /var/service"
+        enableService connmand
     ;;
     NetworkManager)
         install NetworkManager
-        system "ln -s /etc/sv/NetworkManager /var/service"
+        enableService NetworkManager
     ;;
     dhcpcd)
-        system "ln -s /etc/sv/dhcpcd /var/service"
+        enableService dhcpcd
     ;;
 esac
 
 setup_greetd() {
     install greetd
-    system "ln -s /etc/sv/greetd /var/service"
+    enableService greetd
     cp misc/greetd-run /mnt/usr/local/bin/"${desktop}"-run || die
     sed -i 's,command = "agreety --cmd /bin/sh",command = "agreety --cmd '"${desktop}"'-run",' /mnt/etc/greetd/config.toml || die
 
@@ -98,11 +98,11 @@ setup_greetd() {
 case "$desktop" in
     gnome)
         install gnome-core gnome-console gnome-tweaks gnome-browser-connector gnome-text-editor xdg-user-dirs xorg-minimal xorg-video-drivers
-        system "ln -s /etc/sv/gdm /var/service"
+        enableService gdm
     ;;
     kde)
         install kde-plasma kde-baseapps xdg-user-dirs xorg-minimal xorg-video-drivers
-        system "ln -s /etc/sv/sddm /var/service"
+        enableService sddm
     ;;
     xfce)
         install xfce4 xfce4-pulseaudio-plugin lightdm lightdm-gtk3-greeter xorg-minimal xdg-user-dirs xorg-fonts xorg-video-drivers
@@ -110,7 +110,7 @@ case "$desktop" in
         [ "$network" == "NetworkManager" ] &&
             install network-manager-applet
 
-        system "ln -s /etc/sv/lightdm /var/service"
+        enableService lightdm
     ;;
     sway)
         install sway elogind polkit polkit-elogind foot xorg-fonts xdg-desktop-portal-wlr xdg-user-dirs
@@ -118,7 +118,7 @@ case "$desktop" in
         [ "$network" == "NetworkManager" ] &&
             install network-manager-applet
 
-        system "ln -s /etc/sv/polkitd /var/service"
+        enableService polkitd
 
         if [ "$greetd" == "Yes" ]; then
             setup_greetd
@@ -131,7 +131,7 @@ case "$desktop" in
         [ "$network" == "NetworkManager" ] &&
             install network-manager-applet
 
-        system "ln -s /etc/sv/polkitd /var/service"
+        enableService polkitd
 
         if [ "$greetd" == "Yes" ]; then
             setup_greetd
@@ -144,7 +144,7 @@ case "$desktop" in
         [ "$network" == "NetworkManager" ] &&
             install network-manager-applet
 
-        system "ln -s /etc/sv/polkitd /var/service"
+        enableService polkitd
 
         if [ "$greetd" == "Yes" ]; then
             setup_greetd
@@ -159,7 +159,7 @@ case "$desktop" in
 
         if [ "$lightdm" == "Yes" ]; then
             install lightdm lightdm-gtk3-greeter
-            system "ln -s /etc/sv/lightdm /var/service"
+            enableService lightdm
         fi
     ;;
     niri)
@@ -168,7 +168,7 @@ case "$desktop" in
         [ "$network" == "NetworkManager" ] &&
             install network-manager-applet
 
-        system "ln -s /etc/sv/polkitd /var/service"
+        enableService polkitd
 
         if [ "$greetd" == "Yes" ]; then
             setup_greetd
@@ -181,7 +181,7 @@ case "$desktop" in
         [ "$network" == "NetworkManager" ] &&
             install network-manager-applet
 
-        system "ln -s /etc/sv/polkitd /var/service"
+        enableService polkitd
 
         if [ "$greetd" == "Yes" ]; then
             setup_greetd
@@ -191,7 +191,7 @@ case "$desktop" in
     labwc)
         install labwc elogind polkit polkit-elogind alacritty xorg-fonts xdg-desktop-portal-wlr xdg-user-dirs
 
-        system "ln -s /etc/sv/polkitd /var/service"
+        enableService polkitd
 
         if [ "$greetd" == "Yes" ]; then
             setup_greetd
@@ -204,7 +204,7 @@ case "$desktop" in
         [ "$network" == "NetworkManager" ] &&
             install network-manager-applet
 
-        system "ln -s /etc/sv/lightdm /var/service"
+        enableService lightdm
     ;;
 esac
 

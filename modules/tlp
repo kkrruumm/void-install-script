@@ -8,7 +8,7 @@ main() {
         install tlp
 
     commandFailure="Enabling tlp has failed." &&
-        system "ln -s /etc/sv/tlp /var/service"
+        enableService tlp
 
     return 0
 }

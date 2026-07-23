@@ -89,3 +89,12 @@ setKernelParam() {
 
     return 0
 }
+
+enableService() {
+    # looping this will enable one to enableService service1 service2 service3...
+    for service in "$@"; do
+        system "ln -s /etc/sv/$service /var/service"
+    done
+
+    return 0
+}

@@ -22,15 +22,13 @@ main() {
             system "usermod -aG libvirt $username"
     fi
 
-    commandFailure="Enabling virt services has failed."
-    system "ln -s /etc/sv/libvirtd /var/service"
-    system "ln -s /etc/sv/virtlogd /var/service"
-    system "ln -s /etc/sv/virtlockd /var/service"
+    commandFailure="Enabling virt services has failed." &&
+        enableService libvirtd virtlogd virtlockd
 
     # dbus and polkitd may or may not be installed by other things, recheck
     # this will fail if /var/service/dbus is checked as opposed to the default runsvdir
     [ ! -e /mnt/etc/runit/runsvdir/default/dbus ] &&
-        { commandFailure="Enabling dbus service has failed." ; system "ln -s /etc/sv/dbus /var/service" ; }
+        { commandFailure="Enabling dbus service has failed." ; enableService dbus ; }
 
     # allow proc access to polkitd for hardened proc module
     # if not already done by the harden proc module
