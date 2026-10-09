@@ -42,7 +42,7 @@ This script is not officially supported. Any issues should be filed here as oppo
 
 --Or, choose to do none of these and install a bare-minimum system
 
--Option to choose between xfs, ext4, zfs, and btrfs filesystems
+-Option to choose between xfs, ext4, jfs, zfs, and btrfs filesystems
 
 -Option to choose between LVM and a traditional install
 -Option to choose between zram, swap partition, and normal swapfile

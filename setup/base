@@ -51,6 +51,9 @@ case "$basesystem" in
 
             system "xbps-remove -ROoy wifi-firmware iw wpa_supplicant"
         fi
+
+        [ "$filesystem" == "jfs" ] &&
+            install jfsutils
     ;;
     *)
         XBPS_ARCH=$ARCH install $basesystem
@@ -88,6 +91,7 @@ case "$basesystem" in
             xfs) install xfsprogs ;;
             ext4) install e2fsprogs ;;
             btrfs) install btrfs-progs ;;
+            jfs) install jfsutils ;;
         esac
     ;;
 esac
